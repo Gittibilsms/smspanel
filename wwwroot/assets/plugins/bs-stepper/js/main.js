@@ -1,14 +1,22 @@
-var stepper2;
+document.addEventListener('DOMContentLoaded', function () {
+    const modalEl = document.getElementById('addCompanyModal');
 
-document.getElementById('addCompanyModal').addEventListener('shown.bs.modal', function () {
-    const el = document.querySelector('#stepper2');
-    if (el && !stepper2) {
-        stepper2 = new Stepper(el, { linear: false, animation: true });
-    }
-});
+    if (!modalEl) return; // Stop if modal isn't present
 
-document.getElementById('addCompanyModal').addEventListener('hidden.bs.modal', function () {
-    if (stepper2) {
-        stepper2.reset();
-    }
+    modalEl.addEventListener('shown.bs.modal', function () {
+        const el = document.querySelector('#stepper2');
+
+        if (el && !window.stepper2) {
+            window.stepper2 = new Stepper(el, { linear: false, animation: true });
+        }
+    });
+
+    modalEl.addEventListener('hidden.bs.modal', function () {
+        if (window.stepper2) {
+            window.stepper2.reset();
+        }
+
+        const form = modalEl.querySelector('#addCompanyForm');
+        if (form) form.reset();
+    });
 });

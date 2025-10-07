@@ -1,0 +1,347 @@
+﻿@model GittBilSmsCore.Models.Order
+@using GittBilSmsCore.Models
+@using GittBilSmsCore.Helpers
+@{
+    ViewData["Title"] = "Order Details";
+}
+
+@{
+    var timelineSteps = new List<KeyValuePair<string, string>>
+        {
+            new(SharedResource.Awaiting_Approval, "Awaiting approval"),
+            new(SharedResource.Scheduled, "Scheduled"),
+            new(SharedResource.Approved, "Shipping has started"),
+            new(SharedResource.Approved, "Cancelled"),
+            new(SharedResource.Sent, "Sent"),
+            new(SharedResource.Failed, "Sending failed")
+        };
+
+    var actionDict = Model.Actions.ToDictionary(a => a.ActionName, a => a);
+}
+@{
+    var localizedStatus = Model.CurrentStatus switch
+    {
+        "Sent" => SharedResource.Sent,
+        "Failed" => SharedResource.Failed,
+        "AwaitingApproval" or "Awaiting approval" => SharedResource.Awaiting_Approval,
+        "Waiting to be sent" or "WaitingToBeSent" => SharedResource.Waiting_to_be_sent,
+        "Shipping has started" => SharedResource.Approved,
+        "Cancelled" => SharedResource.Cancelled,
+        "Scheduled" => SharedResource.Scheduled,
+        _ => Model.CurrentStatus
+    };
+}
+@{
+    var userType = Context.Session.GetString("UserType") ?? "User";
+    var showExpired = userType == "Admin";
+    var visibleUndelivered = Model.UndeliveredCount + (showExpired ? 0 : Model.ExpiredCount);
+}
+
+<div>
+    <a href="/Home" class="btn btn-link"><i class="bi bi-arrow-left"></i>@SharedResource.All_Orders</a>
+</div>
+
+<div class="container-fluid py-4">
+    <div class="card shadow-lg p-4" style="max-width: 1200px;">
+        <div class="row">
+
+            <!-- Timeline -->
+            <div class="col-md-6 border-end">
+                <h6 class="mb-3 text-white">@SharedResource.Order_Timeline</h6>
+
+                @for (int i = 0; i < timelineSteps.Count; i++)
+                {
+                    var step = timelineSteps[i];
+                    var displayName = step.Key;
+                    var dbActionName = step.Value;
+
+                    var hasAction = actionDict.ContainsKey(dbActionName);
+                    var action = hasAction ? actionDict[dbActionName] : null;
+
+                    var isFailed = displayName.Contains("failed", StringComparison.OrdinalIgnoreCase)
+                    || displayName.Contains("submission", StringComparison.OrdinalIgnoreCase);
+
+                    var successActions = new[] { "Sent", "Shipping has started", "Scheduled" };
+                    var isSuccess = successActions.Contains(dbActionName, StringComparer.OrdinalIgnoreCase) && !isFailed;
+
+                    <div class="d-flex align-items-start mb-4">
+                        <div class="me-3 mt-1">
+                            <span class="badge rounded-pill @(hasAction ? (isFailed ? "bg-danger" : isSuccess ? "bg-success" : "bg-primary") : "bg-secondary")">&nbsp;</span>
+
+                            @if (i < timelineSteps.Count - 1)
+
+                            {
+                                <div class="border-start ms-2" style="height: 40px;"></div>
+                            }
+                        </div>
+
+                        <div>
+                            <h6 class="mb-1 card-title">
+                                @if (isFailed && hasAction)
+                                {
+                                    <span style="color: red;">@displayName</span>
+                                }
+                                else if (isSuccess && hasAction)
+                                {
+                                    <span style="color: green;">@displayName</span>
+                                }
+                                else
+                                {
+                                    @displayName
+                                }
+                            </h6>
+
+                            @if (isFailed && hasAction)
+                            {
+                                if (action != null && !string.IsNullOrEmpty(action.Message))
+                                {
+                                    if (action.Message.Contains("Insufficient", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        <div class="small text-danger">(Insufficient fund)</div>
+                                    }
+                                    else
+                                    {
+                                        if (User.IsInRole("Admin"))
+                                        {
+                                            <div class="small text-danger">(@action.Message)</div>
+                                        }
+                                        else
+                                        {
+                                            <div class="small text-danger">(Failed)</div>
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="small text-danger">(Failed)</div>
+                                }
+                            }
+                            @if (hasAction && action != null)
+                            {
+                                if (displayName == "Scheduled")
+                                {
+                                     <div class="small text-white">
+                                                        @action.Message
+                                    </div>
+                                                }
+                                                else
+                                                {
+                                    <div class="small text-white">
+                                                        @action.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                                    </div>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Order Details (RIGHT SIDE) -->
+            <div class="col-md-6">
+                <h6 class="mb-3">@SharedResource.Order #@Model.OrderId @SharedResource.Details</h6>
+
+                <h6 class="mb-3 text-white">
+                    @SharedResource.Order_Status
+                    <span class="badge @(Model.CurrentStatus == "Sent" ? "bg-success" : Model.CurrentStatus == "Failed" ? "bg-danger" : "bg-warning text-dark") ms-2">
+                        @localizedStatus
+                    </span>
+                </h6>
+
+                @if (Model.CurrentStatus == "Failed"
+                || Model.CurrentStatus == "Sending failed"
+                || Model.CurrentStatus == "Submission failed")
+                {
+                    <button class="btn btn-warning btn-sm mb-3 resend-order-btn" data-order-id="@Model.OrderId">
+                        🔄 @SharedResource.Resend
+                    </button>
+
+                    <div class="alert alert-danger mt-3">
+                        <strong>Status:</strong>
+                        @if (!string.IsNullOrEmpty(Model.ApiErrorResponse)
+                       && Model.ApiErrorResponse.Contains("Insufficient", StringComparison.OrdinalIgnoreCase))
+                        {
+                            @:Insufficient fund
+                        }
+                        else
+                        {
+                            if (User.IsInRole("Admin"))
+                            {
+                                if (!string.IsNullOrEmpty(Model.ApiErrorResponse))
+                                {
+                                    <pre>@Model.ApiErrorResponse</pre>
+                                }
+                                else
+                                {
+                                    @:Failed
+                                }
+                            }
+                            else
+                            {
+                                @:Failed
+                            }
+                        }
+                    </div>
+                }
+
+                <!-- ✅ META DETAILS -->
+                <div class="small mb-2">
+                    <div><strong>@SharedResource.Firm:</strong> @Model.Company?.CompanyName</div>
+                    <div><strong>@SharedResource.Status:</strong> @Model.CurrentStatus</div>
+                    <div><strong>@SharedResource.Total:</strong> @Model.LoadedCount</div>
+                </div>
+
+                <!-- Message -->
+                <div class="mb-3">
+                    <label class="form-label"><strong>@SharedResource.Message:</strong></label>
+                    <textarea class="form-control" rows="4" readonly>@Model.MessageText</textarea>
+                </div>
+
+                <!-- Counts -->
+                <div class="row g-3 mb-2">
+                    <div class="col-md-2 col-6">
+                        <div class="card text-center">
+                            <div class="fs-6 text-white d-flex">@SharedResource.Total: <span class="fw-bold">@Model.LoadedCount</span></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <div class="card text-center">
+                            <div class="fs-6 text-white d-flex">@SharedResource.Invalid: <span class="fw-bold">@Model.InvalidCount</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-1">
+                    <div class="col-md-2 col-6">
+                        <div class="card text-center">
+                            <div class="fs-6 text-white d-flex">@SharedResource.Invalid: <span class="fw-bold">@Model.ProcessedCount</span></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <div class="card text-center">
+                            <div class="fs-6 text-white d-flex">@SharedResource.Failed: <span class="fw-bold">@Model.UnsuccessfulCount</span></div>
+                        </div>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <div class="card text-center">
+                            <div class="fs-6 text-white d-flex">@SharedResource.Undelivered: <span class="fw-bold">@visibleUndelivered</span></div>
+                        </div>
+                    </div>
+                    @if (showExpired && Model.ExpiredCount > 0)
+                    {
+                        <div class="col-md-2 col-6">
+                            <div class="card text-center">
+                                <div class="fs-6 text-white d-flex">Expired: <span class="fw-bold">@Model.ExpiredCount</span></div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Files Section -->
+                <div class="row">
+                    <div class="col-md-12 mb-4">
+                        <h6 class="mb-3">@SharedResource.Files</h6>
+                        @{
+                            var categories = new Dictionary<string, string>
+                        {
+                        { SharedResource.All, "All" },
+                        { SharedResource.Blacklisted, "Blacklisted" },
+                        { SharedResource.Filtered, "Filtered" },
+                        { SharedResource.Invalid, "Invalid" },
+                        { SharedResource.Processed, "Processed" }
+                        };
+                        }
+                        <div class="row g-2">
+                            @foreach (var kvp in categories)
+                            {
+                                var localizedLabel = kvp.Key;
+                                var categoryValue = kvp.Value;
+                                string baseUrl = $"/Downloads/Export?orderId={Model.OrderId}&type={(categoryValue == "All" ? "original" : categoryValue.ToLowerInvariant())}&format=csv";
+                                    <div class="col-md-4">
+                                        <div class="dropdown w-100">
+                                            <a class="btn btn-sm btn-outline-success w-100 dropdown-toggle" data-bs-toggle="dropdown">
+                                                <i class="icon icon-download me-1"></i> @localizedLabel
+                                            </a>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item" href="@baseUrl.Replace("format=csv", "format=xlsx")">
+                                                    @($"{SharedResource.Order_No}-{Model.OrderId} - {categoryValue}.xlsx")
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="@baseUrl">
+                                                    @($"{SharedResource.Order_No}-{Model.OrderId} - {categoryValue}.csv")
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="@baseUrl.Replace("format=csv", "format=txt")">
+                                                    @($"{SharedResource.Order_No}-{Model.OrderId} - {categoryValue}.txt")
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <!-- REPORT Section -->
+                @if (Model.StartedAt.HasValue && Model.ReportLock == false)
+                {
+                    var reportReady = Model.StartedAt.Value.AddHours(48) <= DateTime.UtcNow.AddHours(3);
+
+                    if (reportReady)
+                    {
+                        <hr class="my-4" />
+                        <h4 class="mb-3">@SharedResource.Report</h4>
+
+                        <div class="row g-2">
+                            @foreach (var report in new[] { "Summary", "All", "Waiting", "Forwarded", "Undelivered" }.Concat(showExpired ? new[] { "Expired" } : new string[] { }))
+                            {
+                                string url = report switch
+                                {
+                                    "Summary" => $"/Home/DownloadReportSummary?orderId={Model.OrderId}&format=csv",
+                                    "All" => $"/Downloads/Export?orderId={Model.OrderId}&type=original&format=csv",
+                                    "Waiting" => $"/Home/DownloadWaiting?orderId={Model.OrderId}&format=csv",
+                                    "Forwarded" => $"/Home/DownloadForwarded?orderId={Model.OrderId}&format=csv",
+                                    "Undelivered" => $"/Home/DownloadUndelivered?orderId={Model.OrderId}&format=csv",
+                                    "Expired" => $"/Home/DownloadExpired?orderId={Model.OrderId}&format=csv",
+                                    _ => ""
+                                };
+
+                                <div class="col-md-4">
+                                    <div class="dropdown w-100">
+                                        <a class="btn btn-sm btn-outline-success w-100 dropdown-toggle" data-bs-toggle="dropdown">
+                                            <i class="icon icon-download me-1"></i> @report
+                                        </a>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <a class="dropdown-item" href="@url.Replace("format=csv", "format=xlsx")">@SharedResource.Order_No-@Model.OrderId - @(report + ".xlsx")</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="@url">@SharedResource.Order_No-@Model.OrderId - @(report + ".csv")</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="@url.Replace("format=csv", "format=txt")">@SharedResource.Order_No-@Model.OrderId - @(report + ".txt")</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <hr class="my-4" />
+                        <p class="text-muted">@SharedResource.Report_will_be_available_after_48_hours_</p>
+                    }
+                }
+                else
+                {
+                    <hr class="my-4" />
+                    <p class="text-muted">@SharedResource.Report_not_yet_generated_</p>
+                }
+            </div>
+        </div> <!-- end row -->
+    </div> <!-- end card -->
+</div> <!-- end container -->

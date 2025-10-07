@@ -1,0 +1,57 @@
+﻿@model List<GittBilSmsCore.Models.LoginHistory>
+
+@{
+    ViewData["Title"] = "Login History";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2>@SharedResource.loginhistory</h2>
+     <div class="table-responsive">
+<table id="loginHistoryTable" class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>@SharedResource.User_name</th>
+            <th>@SharedResource.ipaddress</th>
+            <th>@SharedResource.Location</th>
+            <th>@SharedResource.Device</th>
+            <th>@SharedResource.logintime</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+       
+                var epochMs = (long)(DateTime.SpecifyKind(item.LoggedInAt, DateTimeKind.Utc)
+                .ToUniversalTime()
+                .Subtract(new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc))).TotalMilliseconds;
+                <tr>
+
+                    <td>@item.Username</td>
+                    <td>@item.IPAddress</td>
+                    <td>@item.Location</td>
+                    <td>@item.Device</td>
+                    <td data-order="@epochMs">
+                        @item.LoggedInAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                    </td>
+                </tr>
+        }
+    </tbody>
+</table>
+</div>
+@section Scripts {
+
+    <script>
+             $(function () {
+          const table = $('#loginHistoryTable');
+          const loginColIndex = table.find('thead th').map(function(i, th){
+            return $(th).text().trim().toLowerCase();
+          }).get().indexOf('login time');
+
+          table.DataTable({
+            dom: 'Bfrtip',
+            buttons: ['copyHtml5','excelHtml5','csvHtml5','pdfHtml5','print'],
+            order: [[ loginColIndex >= 0 ? loginColIndex : 0, 'desc' ]]
+          });
+        });
+    </script>
+}

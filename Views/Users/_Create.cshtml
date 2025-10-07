@@ -1,0 +1,90 @@
+﻿@model GittBilSmsCore.Models.User
+
+@{
+    ViewData["Title"] = "Create User";
+    var roles = ViewBag.Roles as List<GittBilSmsCore.Models.Role>;
+    Layout = "_Layout";
+}
+
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="Create" method="post" autocomplete="off">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addUserModalLabel"># New User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="row g-4">
+                        <div class="col-lg-7">
+                            <div class="mb-3">
+                                <label asp-for="FullName" class="form-label">@SharedResource.Name</label>
+                                <input asp-for="FullName" class="form-control" placeholder="Name" />
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="UserName" class="form-label">@SharedResource.User_name</label>
+                                <input asp-for="UserName" class="form-control" placeholder="User name" />
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="Email" class="form-label">@SharedResource.Email</label>
+                                <input asp-for="Email" class="form-control" placeholder="Email" />
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="PhoneNumber" class="form-label">@SharedResource.Telephone</label>
+                                <input asp-for="PhoneNumber" class="form-control" placeholder="(5__) ___ __ __" />
+                            </div>
+                           @*  <div class="mb-3">
+                                <label asp-for="UserType" class="form-label">User type</label>
+                                <select asp-for="UserType" class="form-select">
+                                    <option value="user">user</option>
+                                    <option value="admin">admin</option>
+                                </select>
+                            </div> *@
+                            <div class="mb-3">
+                                <label for="Password" class="form-label">@SharedResource.Password</label>
+                                <div class="input-group" id="show_hide_password">
+                                    <button type="button" class="btn btn-success" id="generatePasswordBtn">
+                                        <span class="material-symbols-outlined">
+                                            autorenew
+                                        </span>
+                                    </button>
+                                    <input type="password" class="form-control" id="Password" name="Password" required />
+                                    <a href="javascript:;" class="input-group-text bg-transparent"><i class="bi bi-eye-slash-fill"></i></a>
+                                </div>
+                                <small class="form-text text-muted">
+                                    @SharedResource.Password_Information
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-5">
+                            <label class="form-label fw-bold mb-2">@SharedResource.Roles</label>
+                            <div class="border rounded p-3">
+                                @if (roles != null && roles.Any())
+                                {
+                                    foreach (var role in roles)
+                                    {
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="selectedRoles" value="@role.RoleId" id="role_@role.RoleId" />
+                                            <label class="form-check-label fw-semibold" for="role_@role.RoleId">@role.RoleName</label>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="text-danger">@SharedResource.No_roles_found_</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">@SharedResource.Create</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@SharedResource.Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

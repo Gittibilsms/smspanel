@@ -1,0 +1,15 @@
+﻿@{
+    ViewData["Title"] = "Access Denied";
+    Layout = "~/Views/Shared/_Layout.cshtml"; // Change if you're using a different layout
+}
+
+<div class="container mt-5 text-center">
+    <h1 class="display-4 text-danger">
+        <i class="lni lni-warning"></i> @ViewData["Title"]
+    </h1>
+    <p class="lead">You do not have permission to access this page.</p>
+
+    <a href="/Home" class="btn btn-primary mt-3">
+        <i class="lni lni-home"></i> Back to Dashboard
+    </a>
+</div>

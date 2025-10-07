@@ -1,0 +1,97 @@
+﻿@model GittBilSmsCore.Models.User
+@{
+    ViewData["Title"] = "Company User Details";
+}
+
+<div class="d-flex align-items-center mb-3">
+
+    <a href="/CompanyUsers/Index" class="btn btn-link"><i class="bi bi-arrow-left"></i>@SharedResource.All_Company_Users</a>
+</div>
+
+<h4 class="mb-3"># @SharedResource.New_Company_User</h4>
+
+<div class="card">
+    <div class="card-body">
+        <form id="createCompanyUserForm" autocomplete="off">
+
+            <div class="row">
+                <!-- Firm -->
+                <div class="col-md-6 mb-3">
+                    <label for="CompanyId" class="form-label">@SharedResource.Firm</label>
+                    <select class="form-select" id="CompanyId" name="CompanyId" @(ViewBag.IsEdit == false ? "" : "disabled") required>
+                        <option value="">@SharedResource.Select_Firm</option>
+                        @foreach (var company in ViewBag.Companies as List<SelectListItem>)
+                        {
+                            var isSelected = Model.CompanyId == int.Parse(company.Value);
+                            <option value="@company.Value" selected="@(isSelected ? "selected" : null)">
+                                @company.Text
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Email -->
+                <div class="col-md-6 mb-3">
+                    <label for="Email" class="form-label">@SharedResource.Email</label>
+                    <input type="email" class="form-control" id="Email" name="Email" required />
+                </div>
+
+                <!-- Name -->
+                <div class="col-md-6 mb-3">
+                    <label for="FullName" class="form-label">@SharedResource.Name</label>
+                    <input type="text" class="form-control" id="FullName" name="FullName" required />
+                </div>
+
+                <!-- Telephone -->
+                <div class="col-md-6 mb-3">
+                    <label for="Phone" class="form-label">@SharedResource.Telephone</label>
+                    <input type="text" class="form-control phoneNumberinput" id="CompanyPhone" name="Phone" placeholder="(5__) ___-____" />
+                </div>
+
+                <!-- Username -->
+                <div class="col-md-6 mb-3">
+                    <label for="UserName" class="form-label">@SharedResource.User_name</label>
+                    <input type="text" class="form-control" id="UserName" name="UserName" required />
+                </div>
+
+                <!-- Password -->
+                <div class="col-md-6 mb-3">
+                    <label for="Password" class="form-label">@SharedResource.Password</label>
+                    <div class="input-group" id="show_hide_password">
+                        <button type="button" class="btn btn-success password-generator" data-password-target="Password">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        <input type="password" class="form-control" id="Password" required name="Password" autocomplete="new-password">
+                        <a href="javascript:;" class="input-group-text bg-transparent"><i class="bi bi-eye-slash-fill"></i></a>
+                    </div>
+                    <small class="text-white"> @SharedResource.Password_Information
+                    </small>
+                </div>
+
+                <!-- Quota Type -->
+                <div class="col-md-6 mb-3">
+                    <label for="QuotaType" class="form-label">@SharedResource.Quota_Type</label>
+                    <select class="form-select QuotaType" id="QuotaType" name="QuotaType" required>
+                        <option value="No Quota">@SharedResource.Noquota</option>
+                        <option value="Variable Quota">@SharedResource.Variable_Quota</option>
+                    
+                    </select>
+                </div>
+
+                <!-- Quota -->
+                <div class="col-md-6 mb-3">
+                    <label for="Quota" class="form-label">@SharedResource.Quota</label>
+                    <input type="number" class="form-control QuotaValue" id="Quota" name="Quota" value="0" disabled />
+                </div>
+
+            </div>
+
+            <!-- Create button -->
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">@SharedResource.Create</button>
+            </div>
+
+        </form>
+    </div>
+</div>
+

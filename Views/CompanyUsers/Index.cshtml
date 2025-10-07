@@ -1,0 +1,86 @@
+﻿@using System.Linq
+@using GittBilSmsCore.Helpers
+@using Newtonsoft.Json
+@using GittBilSmsCore.Models
+@{
+    ViewData["Title"] = "Company Users";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@{
+    var roleIdsRaw = Context.Session.GetString("RoleIds") ?? "";
+    var permissionsJson = Context.Session.GetString("UserPermissions") ?? "[]";
+    var roleIds = roleIdsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                              .Select(id => Convert.ToInt32(id))
+                              .Distinct()
+                              .ToList();
+
+    var allPermissions = JsonConvert.DeserializeObject<List<RolePermission>>(permissionsJson) ?? new List<RolePermission>();
+
+    // Custom roles are roles not in 5, 6, 7
+    var customRoles = roleIds.Except(new[] { 5, 6, 7 }).ToList();
+
+    var permissions = customRoles.Any()
+        ? allPermissions.Where(p => customRoles.Contains(p.RoleId)).ToList()
+        : allPermissions.Where(p => new[] { 5, 6, 7 }.Contains(p.RoleId)).ToList();
+
+    bool HasAccess(string module, string action) =>
+        permissions.Any(p =>
+            string.Equals(p.Module, module, StringComparison.OrdinalIgnoreCase) &&
+            (action == "Read" && p.CanRead ||
+             action == "Create" && p.CanCreate ||
+             action == "Edit" && p.CanEdit ||
+             action == "Delete" && p.CanDelete)
+        );
+    var canCreateUsers = HasAccess("Company_User", "Create");
+    var canEditUsers = HasAccess("Company_User", "Edit");
+    var userType = Context.Session.GetString("UserType") ?? "Unknown";
+    var isCompanyUser = userType.Equals("CompanyUser", StringComparison.OrdinalIgnoreCase);
+
+}
+<div id="permission-flags-users"
+data-can-edit-users="@canEditUsers.ToString().ToLower()"
+data-is-company-user="@isCompanyUser.ToString().ToLower()">
+</div>
+
+
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0"># @SharedResource.Company_Users</h4>
+            @if (canEditUsers || canCreateUsers)
+            {
+                <a href="/CompanyUsers/Create" class="btn btn-primary d-flex align-items-center justify-content-center">
+                    <i class="material-icons-outlined">add</i> @SharedResource.Add_New_User
+                </a>
+            }
+        </div>
+        <input type="hidden" id="isCompanyUser" value="@(isCompanyUser ? "true" : "false")" />
+
+        <div class="table-responsive">
+            <table id="allcompanyUsersList" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>@SharedResource.User_name</th>
+                        <th>@SharedResource.Is_it_active</th>
+                        <th>@SharedResource.Name</th>
+                        <th>@SharedResource.Created_By</th>
+                        <th>@SharedResource.Company_Name</th>
+                        <th>@SharedResource.Quota_Type</th>
+                        <th>@SharedResource.Quota</th>
+                        <th>@SharedResource.Email</th>
+                        <th>@SharedResource.Telephone</th>
+                        <th>@SharedResource._2FA_Type</th>
+                        <th>@SharedResource.Creation_Date</th>
+                        <th>@SharedResource.Updated_Date</th>
+                        @if (canEditUsers)
+                        {
+                             <th>@SharedResource.Actions</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+

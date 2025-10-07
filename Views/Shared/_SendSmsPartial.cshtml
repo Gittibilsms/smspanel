@@ -1,0 +1,205 @@
+﻿@model GittBilSmsCore.ViewModels.HomeIndexViewModel
+
+@using System.Globalization
+@{
+    var isCompanyUser = Context.Session.GetString("UserType") == "CompanyUser";
+    var companyId = Context.Session.GetInt32("CompanyId");
+}
+<form id="smsForm" method="post" action="/Home/SendSms" enctype="multipart/form-data">
+    <div class="modal-header px-3 py-2">
+        <h5 class="mb-0 modal-title">@SharedResource.Sendsms</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body p-3">
+        <div class="row mb-3">
+            <label class="col-sm-3 col-form-label">@SharedResource.Firm</label>
+            <div class="col-sm-9">
+                 <select class="form-select select2" id="selectFirm" name="CompanyId"
+                        data-placeholder="@SharedResource.Choose_a_company" @(isCompanyUser ? "disabled" : "")>
+                        <option value="">@SharedResource.Choose_Firm</option>
+                    @foreach (var company in Model.Companies)
+                    {
+                        var isSelected = isCompanyUser && companyId == company.CompanyId;
+                        var selectedAttr = isSelected ? " selected" : "";
+
+                        @:<option value="@company.CompanyId" data-credit="@(company.CreditLimit?.ToString("F2", CultureInfo.InvariantCulture) ?? "0.00")"@selectedAttr>@company.CompanyName</option>
+                    }
+                </select>
+
+            @if (isCompanyUser)
+            {
+                <input type="hidden" name="CompanyId" value="@companyId" />
+            }
+            </div>
+        </div>
+
+        <div class="dependent-fields">
+            <div class="row mb-3">
+                <label class="col-sm-3 col-form-label">@SharedResource.Directory</label>
+                <div class="col-sm-9">
+                <select class="form-select" id="selectDirectory" name="DirectoryId" data-placeholder="Choose one thing">
+                    <option value="">@SharedResource.choosedirectory</option>
+                </select>
+                </div>
+            </div> 
+
+            <div class="row mb-2">
+                <label class="col-sm-3 col-form-label">@SharedResource.Numbers</label>
+                <div class="col-sm-9">
+                    <textarea class="form-control" id="PhoneNumbers" name="PhoneNumbers" placeholder="@SharedResource.Numbers" rows="1" required></textarea>
+                    <div class="d-flex flex-md-row align-items-md-end">
+                          <small id="smsCount" class="text-white">@SharedResource.Total_Numbers: 0</small>
+                           <small class="mt-2 mb-0" style="padding-left:20px;"><strong>@SharedResource.Available_credit:</strong> <span id="availableCredit">0.00</span></small>
+                    </div>
+                    <input type="hidden" name="TotalSmsCount" id="TotalSmsCount" value="0"/>
+                    <input type="hidden" id="lowPrice" value="@Model.LowPrice?.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)" />
+                    <input type="hidden" id="mediumPrice" value="@Model.MediumPrice?.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)" />
+                    <input type="hidden" id="highPrice" value="@Model.HighPrice?.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)" />
+                    <div class="d-flex flex-md-row align-items-md-end mt-2 mb-2">
+                           <small id="validCount" class="text-success">✅ @SharedResource.Valid: 0</small>
+                             <small id="invalidCount" style="padding-left:20px;" class="text-danger">❌ @SharedResource.Invalid: 0</small>
+                   
+                       </div>
+                 
+                  
+                   
+                </div>
+            </div>
+        
+            <div id="nameSelectors" class="row mb-3" style="display:none;">
+              <label class="col-sm-3 col-form-label">@SharedResource.Namecolumn</label>
+              <div class="col-sm-9" id="nameButtons">
+                <!-- JS will inject one <button> per column here -->
+              </div>
+            </div>
+            <div id="numberSelectors" class="row mb-3" style="display:none;">
+              <label class="col-sm-3 col-form-label">@SharedResource.Numbercolumn</label>
+              <div class="col-sm-9" id="numberButtons">
+                <!-- JS will inject one <button> per column here -->
+              </div>
+            </div>
+         <div class="row mb-3">
+              <label class="col-sm-3 col-form-label">@SharedResource.Filemode</label>
+              <div class="col-sm-9">
+                <div class="form-check form-check-inline">
+                  <input
+                    class="form-check-input fileModeRadio"
+                    type="radio"
+                    name="fileMode"
+                    id="modeStandard"
+                    value="standard"
+                    checked
+                    data-column-prefix="@SharedResource.ColumnLabel"
+                  />
+                  <label class="form-check-label" for="modeStandard">
+                    @SharedResource.standardformat
+                  </label>
+                </div>
+                <div class="form-check form-check-inline">
+                  <input
+                    class="form-check-input fileModeRadio"
+                    type="radio"
+                    name="fileMode"
+                    id="modeCustom"
+                    value="custom"
+                    data-column-prefix="@SharedResource.ColumnLabel"
+                  />
+                  <label class="form-check-label" for="modeCustom">
+                    @SharedResource.personlisedmsg
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="row mb-2">
+                <label class="col-sm-3 col-form-label">@SharedResource.File</label>
+                <div class="col-sm-9">
+                    <div class="card" style="margin-bottom:1rem">
+                        <div class="card-body">
+                               <div id="filePreview" class="mt-3"></div>
+                            <input type="file" id="numberUpload" name="files" accept=".csv,.txt,.xlsx" />
+                            <ul id="fileList" class="mt-2"></ul>
+                         
+                            <p class="mb-0 steper-sub-title">@SharedResource.Filemessage1<br />@SharedResource.Filemessage2</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <input type="hidden" name="RecipientsJson" id="RecipientsJson" />
+            <input type="hidden" id="FileMode" name="FileMode" />
+            <input type="hidden" id="SelectedCustomColumnKey"   name="SelectedCustomColumnKey" />
+            <input type="hidden" id="SelectedNumberColumnKey"   name="SelectedNumberColumnKey" />
+            <input type="hidden" name="SelectedCustomColumn" id="SelectedCustomColumn" />
+            <input type="hidden" name="SelectedNumberColumn"  id="SelectedNumberColumn"  />
+            <div class="row mb-2">
+                <label class="col-sm-3 col-form-label">@SharedResource.Dateofshipment</label>
+                <div class="col-sm-9">
+                    <input type="text" name="ScheduledSendDate" class="form-control date-time" />
+                </div>
+            </div>
+
+           @*  <div class="row mb-3">
+                <label class="col-sm-3 col-form-label">@SharedResource.Past_messages</label>
+                <div class="col-sm-9">
+                    <select class="form-select" id="pastMessaages" name="PastMessageId" data-placeholder="Choose one thing">
+                        <option value="1">Test</option>
+                    </select>
+                </div>
+            </div> *@
+
+            <div class="row mb-2">
+                <label class="col-sm-3 col-form-label">@SharedResource.Message</label>
+                <div class="col-sm-9">
+                    <textarea class="form-control" id="message" name="Message" placeholder="@SharedResource.Message" rows="3" required maxlength="465"></textarea>
+                    <small id="charCount" class="d-flex justify-content-end">0 / 155 (1 SMS)</small>
+                    <p class="mb-0 steper-sub-title">@SharedResource.MessageText</p>
+                    <p class="mb-0 d-none"><strong>@SharedResource.Price_per_SMS:</strong> <span id="smsPrice">0.00</span></p>
+                    <input type="hidden" id="companyLowPrice" value="@Model.Company?.LowPrice?.ToString("0.####", CultureInfo.InvariantCulture)" />
+                    <input type="hidden" id="companyMediumPrice" value="@Model.Company?.MediumPrice?.ToString("0.####", CultureInfo.InvariantCulture)" />
+                    <input type="hidden" id="companyHighPrice" value="@Model.Company?.HighPrice?.ToString("0.####", CultureInfo.InvariantCulture)" />
+
+                    <input type="hidden" id="globalLowPrice" value="@Model.LowPrice?.ToString("0.####", CultureInfo.InvariantCulture)" />
+                    <input type="hidden" id="globalMediumPrice" value="@Model.MediumPrice?.ToString("0.####", CultureInfo.InvariantCulture)" />
+                    <input type="hidden" id="globalHighPrice" value="@Model.HighPrice?.ToString("0.####", CultureInfo.InvariantCulture)" />
+                    <p class="mb-0 d-none"><strong>@SharedResource.This_order_cost:</strong> <span id="orderCost">0.00</span></p>
+                    <p id="creditStatus" class="fw-bold mt-2"></p>
+                </div>
+            </div>
+                 @if (!isCompanyUser)
+            {
+            <div class="row mb-2">
+                <label class="col-sm-3 col-form-label">@SharedResource.Choose_API</label>
+                <div class="col-sm-9">
+                    <select class="form-select formChooseApi" id="chooseApi" name="SelectedApiId" data-placeholder="@SharedResource.Choose_API">
+                         @foreach (var api in Model.ApiLists)
+                        {
+                            var isSelected = api.Value == Model.DefaultApiId?.ToString();
+                            <option value="@api.Value" selected="@(isSelected ? "selected" : null)">
+                                @api.Text
+                            </option>
+                        }
+                    </select>
+                </div>
+            </div>
+            }
+        </div>
+
+        <!-- Hidden fields -->
+        <input type="hidden" id="AvailableCredit" value="0" />
+        <input type="hidden" id="SmsPrice" value="0" />
+    </div>
+
+    <div class="modal-footer justify-content-between px-4 py-3">
+        <div class="d-md-flex d-grid align-items-center gap-3">
+            <button type="button" class="btn btn-secondary px-4" id="previewSmsBtn">@SharedResource.Preview</button>
+            <button type="reset" class="btn btn-secondary px-4">@SharedResource.Reset</button>
+            </div>
+        <div class="d-md-flex d-grid align-items-center gap-3">
+           
+            <button type="submit" class="btn btn-grd-primary px-4" id="sendSmsButton">@SharedResource.Submit</button>
+       
+        </div>
+    </div>
+</form>
+

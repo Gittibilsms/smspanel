@@ -1,0 +1,471 @@
+﻿@model GittBilSmsCore.ViewModels.CompanyDetailsViewModel
+@using System.Globalization
+@using GittBilSmsCore.Helpers
+@using Newtonsoft.Json
+@using GittBilSmsCore.Models
+@using System.Linq
+
+@{
+    ViewData["Title"] = "Company Details";
+    ViewData["PageClass"] = "companyDetailsPage";
+}
+@section Scripts {
+        <script>
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <text>toastr.success("@TempData["SuccessMessage"]");</text>
+        }
+
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <text>toastr.error("@TempData["ErrorMessage"]");</text>
+        }
+
+        </script>
+    
+}
+@{
+    var roleIdsRaw = Context.Session.GetString("RoleIds") ?? "";
+    var permissionsJson = Context.Session.GetString("UserPermissions") ?? "[]";
+    var roleIds = roleIdsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                              .Select(id => Convert.ToInt32(id))
+                              .Distinct()
+                              .ToList();
+
+    var allPermissions = JsonConvert.DeserializeObject<List<RolePermission>>(permissionsJson) ?? new List<RolePermission>();
+
+    // Custom roles are roles not in 5, 6, 7
+    var customRoles = roleIds.Except(new[] { 5, 6, 7 }).ToList();
+
+    var permissions = customRoles.Any()
+        ? allPermissions.Where(p => customRoles.Contains(p.RoleId)).ToList()
+        : allPermissions.Where(p => new[] { 5, 6, 7 }.Contains(p.RoleId)).ToList();
+
+    bool HasAccess(string module, string action) =>
+        permissions.Any(p =>
+            string.Equals(p.Module, module, StringComparison.OrdinalIgnoreCase) &&
+            (action == "Read" && p.CanRead ||
+             action == "Create" && p.CanCreate ||
+             action == "Edit" && p.CanEdit ||
+             action == "Delete" && p.CanDelete)
+        );
+    var canCreateUsers = HasAccess("Company_User", "Create");
+    var canEditUsers = HasAccess("Company_User", "Edit");
+    var userType = Context.Session.GetString("UserType") ?? "Unknown";
+    var isCompanyUser = userType.Equals("CompanyUser", StringComparison.OrdinalIgnoreCase);
+
+}
+<div id="permission-flags-users"
+     data-can-edit-users="@canEditUsers.ToString().ToLower()"
+     data-is-company-user="@isCompanyUser.ToString().ToLower()">
+</div>
+
+
+<div id="permission-flags"
+     data-can-edit-users="@canEditUsers.ToString().ToLower()">
+</div>
+<div class="container py-4">
+    <form id="companyDetailsForm" method="post" asp-action="UpdateDetails" asp-controller="Companies" autocomplete="off">
+        @* Bind Company.CompanyId properly *@
+        <input type="hidden" asp-for="Company.CompanyId" />
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0"><i class="bi bi-building"></i> @Model.Company.CompanyName</h4>
+            <div>
+                <a href="/Companies" class="btn btn-link"><i class="bi bi-arrow-left"></i>@SharedResource.All_Companies</a>
+                @if (Context.Session.HasAll(("Firm", "Read"), ("Firm", "Edit")))
+                            {
+                <button id="toggleCompanyBtn"
+                        class="btn me-2"
+                        data-company-id="@Model.Company.CompanyId"
+                        data-is-active="@Model.Company.IsActive.ToString().ToLower()"
+                        onclick="toggleCompanyActiveNoReload(this)" type="button">
+                </button>
+
+                <button id="updateBtn" type="submit" class="btn btn-success me-2" disabled>@SharedResource.Update</button>
+                <button type="button" class="btn btn-danger" onclick="deleteCompany(@Model.Company.CompanyId)">@SharedResource.Delete</button>
+                }
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Company Info -->
+            <div class="col-md-6">
+                <h5 class="mb-3 border-bottom pb-2">@SharedResource.Company_Information</h5>
+
+                <div class="mb-3">
+                    <label class="form-label">@SharedResource.Company_Name</label>
+                    <input asp-for="Company.CompanyName" class="form-control" />
+                </div>
+
+                <div class="form-check form-switch mb-2">
+                    @Html.CheckBoxFor(m => m.Company.IsTrustedSender, new { @class = "form-check-input" })
+                    <label class="form-check-label">@SharedResource.Trusted_sender</label>
+                </div>
+
+                <div class="form-check form-switch mb-2">
+                    @Html.CheckBoxFor(m => m.Company.IsRefundable, new { @class = "form-check-input" })
+                    <label class="form-check-label">@SharedResource.Refundable</label>
+                </div>
+
+                <div class="form-check form-switch mb-3">
+                    @Html.CheckBoxFor(m => m.Company.CanSendSupportRequest, new { @class = "form-check-input" })
+                    <label class="form-check-label">@SharedResource.Can_send_support_request</label>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">@SharedResource.Credit</label>
+                    <input type="text" class="form-control" id="creditValue" value="@Model.Company.CreditLimit?.ToString("N2") " disabled />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">@SharedResource.Choose_API</label>
+                            <select asp-for="Company.Apid" asp-items="Model.ApiList" id="chooseApi"
+                                    class="form-select select2" data-placeholder="@SharedResource.selectapi">
+                            </select>
+                </div>
+            </div>
+
+            <!-- Pricing Info -->
+            <div class="col-md-6">
+                <h5 class="mb-3 border-bottom pb-2 planText">@SharedResource.Pricing <span class="text-success">@SharedResource.Standard</span></h5>
+
+                <div class="mb-3">
+                    <label class="form-label">@SharedResource.Currency</label>
+                    <select asp-for="Company.CurrencyCode" id="currencyCode" class="form-select select2">
+                        <option value="TRY" selected>TRY</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">@SharedResource.Low__1_500_000_SMS_unit_price_</label>
+                    <input asp-for="Company.LowPrice" type="text" class="form-control" id="lowPriceInput" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">@SharedResource.Medium__500_000_1_000_000_SMS_unit_price_</label>
+                    <input asp-for="Company.MediumPrice" type="text" class="form-control" id="mediumPriceInput" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">@SharedResource.High__1_000_000__SMS_unit_price_</label>
+                    <input asp-for="Company.HighPrice" type="text" class="form-control" id="highPriceInput" />
+                </div>
+            </div>
+        </div>
+    </form>
+
+
+    <hr class="my-4">
+    <input type="hidden" id="companyId" value="@Model.Company.CompanyId" />
+    <!-- Credit Transactions Section -->
+    <h4 class="mb-3">@SharedResource.Credit_Transactions</h4>
+
+    <div class="d-flex justify-content-between mb-3">
+        @if (Context.Session.HasAll(("Credit", "Read"), ("Credit", "Edit")))
+                            {
+                            <button class="btn btn-success" id="openAddCreditModal">+ @SharedResource.Add_credit</button>
+                            <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteCreditModal">- @SharedResource.Delete_credit</button>
+                            }
+    </div>
+    <div class="table-responsive">
+    <table id="transactionList" class="table table-striped table-bordered">
+        <thead>
+            <tr>
+                <th>@SharedResource.Transaction_Type</th>
+                <th>@SharedResource.Credit</th>
+                <th>@SharedResource.Total</th>
+                <th>@SharedResource.Currency</th>
+                <th>@SharedResource.Unit_Price</th>
+                <th>@SharedResource.Transaction_Date</th>
+                <th>@SharedResource.Note</th>
+            </tr>
+        </thead>
+        <tbody>
+       
+        </tbody>
+    </table>
+    </div>
+
+        <hr class="my-4">
+
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0">@SharedResource.Company_Users</h4>
+                @if (Context.Session.HasAll(("Company_User", "Read"), ("Company_User", "Edit")))
+                {
+                              <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                                    + @SharedResource.Add_New_User
+                                </button>
+                }
+        </div>
+     <input type="hidden" id="companyId" value="@Model.Company.CompanyId" />
+    <div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form id="addUserForm" autocomplete="off">
+                    <div class="modal-header">
+                        <h5 class="modal-title">@SharedResource.Add_New_User</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body row g-3">
+                        <input type="hidden" name="CompanyId" value="@Model.Company.CompanyId" />
+
+                        <div class="col-md-6">
+                            <label for="FullName" class="form-label">@SharedResource.Full_Name</label>
+                            <input class="form-control" name="FullName" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="UserName" class="form-label">@SharedResource.User_name</label>
+                            <input class="form-control" name="UserName" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="Email" class="form-label">@SharedResource.Email</label>
+                            <input class="form-control" name="Email" type="email" required />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="Phone" class="form-label">@SharedResource.Telephone</label>
+                            <input class="form-control phoneNumberinput" name="Phone" placeholder="(5__) ___-____" maxlength="14"  />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="Password" class="form-label">@SharedResource.Password</label>
+                            <div class="input-group" id="show_hide_password">
+                                <button type="button" class="btn btn-success password-generator" data-password-target="addPassword">
+                                     <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <input type="password" class="form-control" id="addPassword" name="Password" autocomplete="new-password">
+                                <a href="javascript:;" class="input-group-text bg-transparent"><i class="bi bi-eye-slash-fill"></i></a>
+                            </div>  
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="QuotaType" class="form-label">@SharedResource.Quota_Type</label>
+                            <select class="form-select" name="QuotaType">
+                                <option value="noquota">@SharedResource.Noquota</option>
+                                <option value="variablequota">@SharedResource.Variable_Quota</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="Quota" class="form-label">@SharedResource.Quota</label>
+                            <input class="form-control" name="Quota" type="number" min="0" value="0" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="VerificationType" class="form-label">@SharedResource._2FA_Type</label>
+                            <select class="form-select" name="VerificationType">
+                                <option value="none">@SharedResource.None</option>
+                                <option value="Email">@SharedResource.Email</option>
+                                <option value="Phone">@SharedResource.Telephone</option>
+                            </select>
+                        </div>
+@* 
+                        <div class="col-md-6">
+                            <label class="form-check-label">
+                                <input type="checkbox" name="IsActive" class="form-check-input" checked /> Active
+                            </label>
+                        </div> *@
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">@SharedResource.Save_User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+        <div class="table-responsive">
+            <table id="companyUsersList" class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>@SharedResource.User_name</th>
+                        <th>@SharedResource.Is_it_active</th>
+                        <th>@SharedResource.Name</th>
+                        <th>@SharedResource.Quota_Type</th>
+                        <th>@SharedResource.Quota</th>
+                        <th>@SharedResource.Email</th>
+                        <th>@SharedResource.Telephone</th>
+                        <th>@SharedResource._2FA_Type</th>
+                        <th>@SharedResource.Creation_Date</th>
+                        <th>@SharedResource.Updated_Date</th>
+                            @if (canEditUsers)
+                            {
+                                 <th>@SharedResource.Actions</th>
+                            }
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+
+        <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+          <form id="editUserForm" autocomplete="off">
+           <input type="hidden" id="editCompanyId" value="@Model.Company.CompanyId" />
+        <div class="modal-header">
+          <h5 class="modal-title">@SharedResource.Edit_User</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body row">
+          <input type="hidden" id="editUserId" name="Id">
+          <div class="mb-3 col-md-6">
+            <label class="form-label">@SharedResource.Name</label>
+            <input type="text" class="form-control" id="editFullName" name="FullName">
+          </div>
+          <div class="mb-3 col-md-6">
+            <label class="form-label">@SharedResource.User_name</label>
+            <input type="text" class="form-control" id="editUserName" name="UserName">
+          </div>
+          <div class="mb-3 col-md-6">
+            <label class="form-label">@SharedResource.Email</label>
+            <input type="email" class="form-control" id="editEmail" name="Email">
+          </div>
+          <div class="mb-3 col-md-6">
+            <label class="form-label">@SharedResource.Telephone</label>
+            <input type="text" class="form-control phoneNumberinput" id="editPhone" name="Phone" placeholder="(5__) ___-____" maxlength="14">
+          </div>
+          <div class="mb-3 col-md-6">
+            <label class="form-label">@SharedResource.Quota_Type</label>
+                            <select class="form-select QuotaType" id="editQuotaType" name="editQuotaType">
+              <option value="No Quota">@SharedResource.Noquota</option>
+               <option value="Variable Quota">@SharedResource.Variable_Quota</option>
+            </select>
+                     
+          </div>
+          <div class="mb-3 col-md-6">
+            <label class="form-label">@SharedResource.Quota</label>
+                            <input type="number" class="form-control QuotaValue" id="editQuota" name="Quota" disabled>
+          </div>
+          <div class="mb-3 col-md-6">
+            <label class="form-label">@SharedResource._2FA_Type</label>
+            <select class="form-select" id="editVerificationType" name="VerificationType">
+              <option value="none">@SharedResource.None</option>
+              <option value="email">@SharedResource.Email</option>
+              <option value="sms">Gauth</option>
+            </select>
+          </div>
+          <div class="mb-3 col-md-6">
+              <label class="form-label">@SharedResource.Password</label>
+                            <div class="input-group" id="show_hide_password">
+                                <button type="button" class="btn btn-success password-generator" data-password-target="editPassword">
+                                     <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <input type="password" class="form-control" id="editPassword" name="Password" autocomplete="new-password">
+                                <a href="javascript:;" class="input-group-text bg-transparent"><i class="bi bi-eye-slash-fill"></i></a>
+                            </div>  
+            </div>
+        </div>
+        <div class="modal-footer">
+                        <button id="toggleUserBtn" type="button"
+                                class="btn"
+                                data-user-id=""
+                                data-is-active=""
+                                onclick="toggleUserActiveNoReload(this)">
+                        </button>
+          <button type="submit" class="btn btn-primary">@SharedResource.Update</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@SharedResource.Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+    <div class="modal fade" id="addCreditModal" tabindex="-1"
+         data-latest-unit-price="@Model.Company.LowPrice.ToString()">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="addCreditForm" method="post" action="/Companies/AddCredit" autocomplete="off">
+                    <input type="hidden" name="companyId" value="@Model.Company.CompanyId" />
+                    <input type="hidden" id="priceMode" name="priceMode" value="automatic" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@SharedResource.Add_credit</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label>@SharedResource.Price</label>
+                            <input type="number" name="price" id="priceInput" class="form-control" step="0.01" min="0" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">@SharedResource.Unit_price_options</label>
+                            @{
+                                var prices = Model.DistinctPricingOptions ?? new List<decimal>();
+                            }
+                            <div class="inputgroup mb-2" role="group" id="unitPriceOptions">
+                                @foreach (var price in Model.DistinctPricingOptions)
+                                {
+                                    <button type="button" class="btn btn-outline-success unit-price-option" data-price="@price.ToString("0.00", CultureInfo.InvariantCulture)">
+                                        @price.ToString("0.00", CultureInfo.InvariantCulture)
+                                    </button>
+                                }
+                                <button type="button" class="btn btn-outline-secondary" id="manualBtn">@SharedResource.Manual</button>
+                            </div>
+                            <input type="text" id="unitPrice" name="unitPrice_display" class="form-control" value="@Model.Company.LowPrice?.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)" readonly />
+
+                            <!-- Hidden field for actual value to submit -->
+                            <input type="hidden" name="unitPrice" id="unitPriceHidden" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label>@SharedResource.Credit</label>
+                            <input type="text" id="loanDisplay" class="form-control" readonly />
+                        </div>
+
+                        <div class="mb-3">
+                            <label>@SharedResource.Currency</label>
+                            <input type="text" name="currency" class="form-control" value="@(Model.Company.CurrencyCode ?? "TRY")" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label>@SharedResource.Note</label>
+                            <textarea name="note" class="form-control"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-success">+ @SharedResource.Add</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@SharedResource.Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="deleteCreditModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="deleteCreditForm" autocomplete="off">
+                    <input type="hidden" name="companyId" value="@Model.Company.CompanyId" />
+                    <div class="modal-header">
+                        <h5 class="modal-title">@SharedResource.Delete_credit</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label>@SharedResource.Credit_to_remove</label>
+                            <input type="number" name="credit" class="form-control" step="0.01" min="0" required />
+                        </div>
+                        <div class="mb-3">
+                            <label>@SharedResource.Currency</label>
+                            <input type="text" name="currency" class="form-control" value="@(Model.Company.CurrencyCode ?? "TRY")" required />
+                        </div>
+                        <div class="mb-3">
+                            <label>@SharedResource.Note</label>
+                            <textarea name="note" class="form-control"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-danger">- @SharedResource.Delete</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@SharedResource.Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

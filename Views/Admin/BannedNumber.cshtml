@@ -1,0 +1,38 @@
+﻿@model List<GittBilSmsCore.Models.BannedNumber>
+
+<h2>Banned Numbers</h2>
+
+<form asp-action="AddBannedlist" method="post">
+    <input type="text" name="number" placeholder="Number" required />
+    <input type="text" name="reason" placeholder="Reason (optional)" />
+    <button type="submit">Add</button>
+</form>
+
+<table>
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Number</th>
+            <th>Reason</th>
+            <th>Created At</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.BannedNumberId</td>
+                <td>@item.Number</td>
+                <td>@item.Reason</td>
+                <td>@item.CreatedAt</td>
+                <td>
+                    <form asp-action="DeleteBanned" method="post">
+                        <input type="hidden" name="id" value="@item.BannedNumberId" />
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

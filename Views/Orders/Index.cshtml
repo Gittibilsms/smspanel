@@ -1,0 +1,337 @@
+﻿@{
+    var isAdmin = Context.Session.GetInt32("RoleId") == 1;
+}
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Orders";
+}
+@section Scripts {
+    <script>
+        window.localizedText = @Html.Raw(Json.Serialize(new
+            {
+                Sent = SharedResource.Sent ?? "Sent",
+                AwaitingApproval = SharedResource.Awaiting_Approval ?? "Awaiting Approval",
+                Failed = SharedResource.Failed ?? "Failed",
+                waiting_to_be_sent = SharedResource.Waiting_to_be_sent ?? "Waiting to be sent",
+                Approve = SharedResource.Approve ?? "Approve",
+                resend = SharedResource.Resend ?? "Resend",
+                changeApi = SharedResource.Change_API ?? "Change API",
+                cancelorder = SharedResource.Cancel_Order ?? "Cancel Order",
+                cancelconfirmation = SharedResource.Are_you_sure_you_want_to_cancel_this_order_ ?? "Are you sure you want to cancel this order?",
+                cancelled = SharedResource.Cancelled ?? "Cancelled",
+                confirmsend = SharedResource.Confirm_Send ?? "Confirm Send"
+
+            }));
+    </script>
+
+}
+<script>
+    window.ordersControllerUrl = '/Orders/GetAllOrders';
+        window.ordersDetailsUrl = '/Orders/GetOrderDetails';
+          window.ordersCancelUrl = '/Orders/CancelOrder';
+    window.getApisUrl = '/Orders/GetApis';
+       window.resendUrl = '/Orders/ResendOrder';
+</script>
+<h4 class="mb-4">@SharedResource.All_Orders</h4>
+
+<!-- Filter dropdown -->
+<div class="row mb-3 d-none">
+    <div class="col-md-4">
+        <select class="column-filter" data-column="2">
+            <option value="">@SharedResource.All_Status</option>
+            <option value="AwaitingApproval">@SharedResource.Pending_approval</option>
+            <option value="Waiting to be sent">@SharedResource.Waiting_to_be_sent</option>
+            <option value="Shipping has started">@SharedResource.Shipping_has_started</option>
+            <option value="Sent">@SharedResource.Sent</option>
+            <option value="Failed">@SharedResource.Send_Failed</option>
+            <option value="Cancelled">@SharedResource.Cancelled</option>
+
+        </select>
+    </div>
+</div>
+
+<!-- Orders Table -->
+<div class="table-responsive">
+    <table class="table align-middle" id="ordersList">
+        <button id="clearAllFilters" class="btn btn-sm btn-outline-danger mb-2" style="display:none">
+@SharedResource.clearallfilters        </button>
+        <thead>
+            <!-- HEADER ROW -->
+            <tr>
+                <th class="width-50">
+                    <div class="header-content">
+                        <span class="header-text"></span>
+                        <i class="fas fa-filter header-filter-icon" data-column="0" style="visibility: hidden;"></i>
+                    </div>
+                </th>
+                <th class="width-50">
+                    <div class="header-content">
+                        <span class="header-text">@SharedResource.Order_ID</span>
+                        <i class="fas fa-filter header-filter-icon" data-column="1"></i>
+                    </div>
+                </th>
+                <th class="width-50">
+                    <div class="header-content">
+                        <span class="header-text">@SharedResource.Status</span>
+                        <i class="fas fa-filter header-filter-icon" data-column="2"></i>
+                    </div>
+                </th>
+                @if (isAdmin)
+                {
+                    <th class="width-50">
+                        <div class="header-content">
+                            <span class="header-text">@SharedResource.Company_Name</span>
+                            <i class="fas fa-filter header-filter-icon" data-column="3"></i>
+                        </div>
+                    </th>
+                }
+                <th>
+                    <div class="header-content">
+                        <span class="header-text">@SharedResource.Date_of_Sending</span>
+                        <i class="fas fa-filter header-filter-icon" data-column="10"></i>
+                    </div>
+                </th>
+                <th>
+                    <div class="header-content">
+                        <span class="header-text">@SharedResource.Creation_Date</span>
+                        <i class="fas fa-filter header-filter-icon" data-column="14"></i>
+                    </div>
+                </th>
+                @if (isAdmin)
+                {
+                    <th>
+                        <div class="header-content">
+                            <span class="header-text">@SharedResource.API</span>
+                            <i class="fas fa-filter header-filter-icon" data-column="4"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="header-content">
+                            <span class="header-text">@SharedResource.Submission_Type</span>
+                            <i class="fas fa-filter header-filter-icon" data-column="5"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="header-content">
+                            <span class="header-text">@SharedResource.Loaded</span>
+                            <i class="fas fa-filter header-filter-icon" data-column="6"></i>
+                        </div>
+                    </th>
+                }
+                <th>
+                    <div class="header-content">
+                        <span class="header-text">@SharedResource.Processed</span>
+                        <i class="fas fa-filter header-filter-icon" data-column="7"></i>
+                    </div>
+                </th>
+                @if (isAdmin)
+                {
+                    <th>
+                        <div class="header-content">
+                            <span class="header-text">@SharedResource.Unsuccessful</span>
+                            <i class="fas fa-filter header-filter-icon" data-column="8"></i>
+                        </div>
+                    </th>
+                }
+                <th>
+                    <div class="header-content">
+                        <span class="header-text">@SharedResource.Created_By</span>
+                        <i class="fas fa-filter header-filter-icon" data-column="9"></i>
+                    </div>
+                </th>
+                @if (isAdmin)
+                {
+                    <th>
+                        <div class="header-content">
+                            <span class="header-text">@SharedResource.Refundable</span>
+                            <i class="fas fa-filter header-filter-icon" data-column="11"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="header-content">
+                            <span class="header-text">@SharedResource.Returned</span>
+                            <i class="fas fa-filter header-filter-icon" data-column="12"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="header-content">
+                            <span class="header-text">@SharedResource.Return_Date</span>
+                            <i class="fas fa-filter header-filter-icon" data-column="13"></i>
+                        </div>
+                    </th>
+                }
+            </tr>
+
+            <!-- FILTER ROW -->
+            @if (isAdmin)
+            {
+                <tr class="filter-row">
+                    <th></th>
+                    <th class="width-50">
+                        <div class="filter-container">
+                            <input type="text" class="column-filter" placeholder="@SharedResource.Filter_Order_ID..." data-column="1" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="1" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th class="width-50">
+                        <div class="filter-container">
+                            <select class="column-filter" data-column="2">
+                                <option value="">@SharedResource.All_Status</option>
+                                <option value="AwaitingApproval">@SharedResource.Pending_approval</option>
+                                <option value="Waiting to be sent">@SharedResource.Waiting_to_be_sent</option>
+                                <option value="Shipping has started">@SharedResource.Shipping_has_started</option>
+                                <option value="Sent">@SharedResource.Sent</option>
+                                <option value="Failed">@SharedResource.Send_Failed</option>
+                                <option value="Cancelled">@SharedResource.Cancelled</option>
+                            </select>
+                        </div>
+                    </th>
+                    <th class="width-50">
+                        <div class="filter-container">
+                            <input type="text" class="column-filter" placeholder="@SharedResource.Filter_Company..." data-column="3" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="3" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="date-filter-container">
+                            <div class="date-range-wrapper">
+                                <input type="date" class="date-filter start-date" data-column="4" />
+                                <input type="date" class="date-filter end-date" data-column="4" />
+                            </div>
+                            <i class="fas fa-times clear-date-filter" data-column="4" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="date-filter-container">
+                            <div class="date-range-wrapper">
+                                <input type="date" class="date-filter start-date" data-column="5" />
+                                <input type="date" class="date-filter end-date" data-column="5" />
+                            </div>
+                            <i class="fas fa-times clear-date-filter" data-column="5" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="text" class="column-filter" placeholder="@SharedResource.Filter_API..." data-column="6" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="6" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="text" class="column-filter" placeholder="@SharedResource.Filter_Submission_Type..." data-column="7" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="7" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="number" class="column-filter" placeholder="@SharedResource.Min_Loaded..." data-column="8" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="8" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="number" class="column-filter" placeholder="@SharedResource.Min_Processed..." data-column="9" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="9" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="number" class="column-filter" placeholder="@SharedResource.Min_Unsuccessful..." data-column="10" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="10" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="text" class="column-filter" placeholder="@SharedResource.Created_By..." data-column="11" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="11" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <select class="column-filter" data-column="12">
+                                <option value="">@SharedResource.All</option>
+                                <option value="Yes">@SharedResource.Yes</option>
+                                <option value="No">@SharedResource.No</option>
+                            </select>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <select class="column-filter" data-column="13">
+                                <option value="">@SharedResource.All</option>
+                                <option value="Yes">@SharedResource.Yes</option>
+                                <option value="No">@SharedResource.No</option>
+                            </select>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="date-filter-container">
+                            <div class="date-range-wrapper">
+                                <input type="date" class="date-filter start-date" data-column="14" />
+                                <input type="date" class="date-filter end-date" data-column="14" />
+                            </div>
+                            <i class="fas fa-times clear-date-filter" data-column="14" style="display: none;"></i>
+                        </div>
+                    </th>
+                </tr>
+            }
+            else
+            {
+                <tr class="filter-row">
+                    <th></th>
+                    <th class="width-50">
+                        <div class="filter-container">
+                            <input type="text" class="column-filter width-50" placeholder="@SharedResource.Filter_Order_ID..." data-column="1" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="1" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th class="width-50">
+                        <div class="filter-container">
+                            <select class="column-filter width-50" data-column="2">
+                                <option value="">@SharedResource.All_Status</option>
+                                <option value="AwaitingApproval">@SharedResource.Pending_approval</option>
+                                <option value="Waiting to be sent">@SharedResource.Waiting_to_be_sent</option>
+                                <option value="Shipping has started">@SharedResource.Shipping_has_started</option>
+                                <option value="Sent">@SharedResource.Sent</option>
+                                <option value="Failed">@SharedResource.Send_Failed</option>
+                                <option value="Cancelled">@SharedResource.Cancelled</option>
+                            </select>
+                        </div>
+                    </th>
+                    <th class="width-50">
+                        <div class="date-filter-container">
+                            <div class="date-range-wrapper">
+                                <input type="date" class="date-filter start-date" data-column="3" />
+                                <input type="date" class="date-filter end-date" data-column="3" />
+                            </div>
+                            <i class="fas fa-times clear-date-filter" data-column="3" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="date-filter-container">
+                            <div class="date-range-wrapper">
+                                <input type="date" class="date-filter start-date" data-column="4" />
+                                <input type="date" class="date-filter end-date" data-column="4" />
+                            </div>
+                            <i class="fas fa-times clear-date-filter" data-column="4" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="number" class="column-filter" placeholder="@SharedResource.Min_Processed..." data-column="5" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="5" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="text" class="column-filter" placeholder="@SharedResource.Created_By..." data-column="6" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="6" style="display: none;"></i>
+                        </div>
+                    </th>
+                </tr>
+            }
+        </thead>
+        <tbody>
+        </tbody>
+    </table>
+</div>

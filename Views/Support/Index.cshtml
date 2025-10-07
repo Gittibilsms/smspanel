@@ -1,0 +1,388 @@
+﻿@using GittBilSmsCore.Helpers
+@using GittBilSmsCore.Models
+@using Newtonsoft.Json
+@using System.Linq
+@using Microsoft.AspNetCore.Http
+@inject IHttpContextAccessor HttpContextAccessor
+@model List<GittBilSmsCore.ViewModels.TicketListItemViewModel>
+
+@{
+    ViewData["Title"] = "Support Tickets";
+
+}
+@{
+    var roleIdsRaw = Context.Session.GetString("RoleIds") ?? "";
+    var permissionsJson = Context.Session.GetString("UserPermissions") ?? "[]";
+    var roleIds = roleIdsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                              .Select(id => Convert.ToInt32(id))
+                              .Distinct()
+                              .ToList();
+
+    var allPermissions = JsonConvert.DeserializeObject<List<RolePermission>>(permissionsJson) ?? new List<RolePermission>();
+
+    // Custom roles are roles not in 5, 6, 7
+    var customRoles = roleIds.Except(new[] { 5, 6, 7 }).ToList();
+
+    var permissions = customRoles.Any()
+        ? allPermissions.Where(p => customRoles.Contains(p.RoleId)).ToList()
+        : allPermissions.Where(p => new[] { 5, 6, 7 }.Contains(p.RoleId)).ToList();
+
+    bool HasAccess(string module, string action) =>
+        permissions.Any(p =>
+            string.Equals(p.Module, module, StringComparison.OrdinalIgnoreCase) &&
+            (action == "Read" && p.CanRead ||
+             action == "Create" && p.CanCreate ||
+             action == "Edit" && p.CanEdit ||
+             action == "Delete" && p.CanDelete)
+        );
+    var canReadSupport = HasAccess("Request_for_support", "Read");
+    var canCreateSupport = HasAccess("Request_for_support", "Create");
+    var canDeleteSupport = HasAccess("Request_for_support", "Delete");
+    var canEditSupport = HasAccess("Request_for_support", "Edit");
+}
+
+<div class="container mt-4">
+
+    <h2>@SharedResource.Support_Tickets</h2>
+
+    @if (canCreateSupport)
+    {
+        <button id="btnCreateTicket" class="btn btn-primary mb-3">
+            💬 @SharedResource.newsupportticket
+        </button>
+    }
+    @if(canReadSupport)
+    {
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="supportTicketList" class="table table-bordered table-striped">
+                        <thead>
+                            <tr>
+                                <th>@SharedResource.subject</th>
+                                <th>@SharedResource.Status</th>
+                                <th>@SharedResource.Created_By</th>
+                                <th>@SharedResource.Created</th>
+                                @if (canEditSupport)
+                                {
+                                    <th>@SharedResource.Actions</th>
+                                }
+
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ticket in Model)
+                            {
+                                <tr>
+                                    <td>@ticket.Subject</td>
+                                    <td>@ticket.Status</td>
+                                    <td>@ticket.CreatedByUserName</td>
+                                    <td>
+                                        <span data-order="@ticket.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ss")">
+                                            @ticket.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                                        </span>
+                                    </td>
+                                    @if (canEditSupport)
+                                    {
+                                        <td>
+                                            <button class="btn btn-sm btn-primary open-chat"
+                                                    data-ticket-id="@ticket.Id"
+                                                    data-ticket-title="@ticket.Subject">
+                                                💬 Chat
+                                            </button>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+     
+    }
+</div>
+
+@* Create Ticket Modal *@
+<div class="modal fade" id="createTicketModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-md">
+    <div class="modal-content">
+      <form id="createTicketForm">
+        <div class="modal-header">
+          <h5 class="modal-title">@SharedResource.newsupportticket</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="subject">@SharedResource.subject</label>
+            <input type="text" id="subject" class="form-control" maxlength="200" required />
+          </div>
+          <div class="form-group">
+            <label for="message">@SharedResource.Message</label>
+            <textarea id="message" class="form-control" rows="4" maxlength="2000" required></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">@SharedResource.send</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Chat Modal -->
+<div class="chat-wrapper">
+  <div class="chat-sidebar">
+    <div class="chat-sidebar-header d-flex align-items-center px-3 py-2">
+      <h5 class="mb-0 flex-grow-1">Message Box</h5>
+      <button type="button" class="chat-toggle-btn-close btn-close"></button>
+    </div>
+    <div class="chat-sidebar-content p-3" id="chatContent">
+      <!-- loaded via AJAX/SignalR -->
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+    <script>
+       $(function() {
+        // ——————————————
+        // 1) DataTable init
+        // ——————————————
+        const table = $('#supportTicketList').DataTable({
+          order: [[3, 'desc']],
+               columns: [
+          { data: 0 },         // Subject
+          { data: 1 },         // Status
+          { data: 2 },         // Created By
+          {                     // Created (the HTML string)
+            data: 3,
+            render: function(html, type, row) {
+              // when sorting, pull the ISO timestamp from data-order
+              if (type === 'sort' || type === 'type') {
+                return $('<div>' + html + '</div>')
+                         .find('span')
+                         .data('order') || '';
+              }
+              // otherwise (display, filter, etc.) just give back the HTML
+              return html;
+            }
+          },
+          { data: 4, orderable: false } // Actions button, no sorting
+        ],
+
+        // 3) your rowCallback stays exactly the same
+        rowCallback: function(row, data) {
+          const status = String(data[1]).trim();
+          if (status === 'Open') {
+            $(row).find('td').eq(1)
+              .html(`<span class="dash-lable mb-0 bg-warning bg-opacity-10 text-warning rounded-2">
+                       ${status} <i class="bi bi-info-circle ms-1"></i>
+                     </span>`);
+          }
+          else if (status === 'Answered') {
+            $(row).find('td').eq(1)
+              .html(`<span class="dash-lable mb-0 bg-success bg-opacity-10 text-success rounded-2">
+                       ${status} <i class="bi bi-check2 ms-1"></i>
+                     </span>`);
+            $(row).find('td').eq(4)
+                   .find('button.open-chat')
+                   .removeClass('btn-primary')
+                   .addClass('btn-secondary-dt');
+          }
+        }
+        });
+        
+        // ——————————————
+        // 2) Razor vars (JSON‑safe)
+        // ——————————————
+            const currentUser = @Html.Raw(Json.Serialize(User.Identity.Name));
+            const companyId   = @Html.Raw(Json.Serialize((int?)ViewBag.CurrentCompanyId));
+
+        // ——————————————
+        // 3) SignalR setup
+        // ——————————————
+        const connection = new signalR.HubConnectionBuilder()
+          .withUrl('/chathub')
+          .build();
+
+        // incoming chat messages
+        connection.on('ReceiveMessage', data => {
+          if (data.name === currentUser && data.text === lastSentText) {
+            lastSentText = null;
+            return;
+          }
+          const $chat = $('#chatBox');
+          if (!$chat.length) return;
+                const avatarFile = data.isAdmin ? '09.png' : '11.png';
+          const isIncoming = data.name !== currentUser;
+          const html = isIncoming
+            ? `<div class="chat-content-rightside text-end" style="display:flex; justify-content:end">
+                 <div class="d-flex">
+                  <img src="/assets/images/avatars/${avatarFile}"
+                            width="42" height="42"
+                            class="rounded-circle"
+                            alt="${data.name}" />
+                                 <div class="flex-grow-1 ms-2">
+                 <p class="mb-0 chat-time">${data.time}</p>
+                 <p class="chat-right-msg">${data.text}</p>
+                 </div>
+                        </div>
+               </div>`
+            : `<div class="chat-content-leftside yeshere">
+                 <div class="d-flex">
+                       <img src="/assets/images/avatars/${avatarFile}"
+                        width="42" height="42"
+                        class="rounded-circle"
+                        alt="${data.name}" />
+                   <div class="flex-grow-1 ms-2">
+                     <p class="mb-0 chat-time">${data.time}</p>
+                     <p class="chat-left-msg">${data.text}</p>
+                   </div>
+                 </div>
+               </div>`;
+          $chat.append(html);
+          $chat[0].scrollTop = $chat[0].scrollHeight;
+        });
+
+        // new tickets
+        connection.on('ReceiveNewTicket', ticket => {
+          table.row.add([
+            ticket.subject,
+            ticket.status,
+            ticket.createdByUserName,
+            `<span data-order="${ticket.isoDate}">${ticket.displayDate}</span>`,
+            `<button class="btn btn-sm btn-primary open-chat"
+                     data-ticket-id="${ticket.id}">💬 Chat</button>`
+          ]).draw(false);
+        });
+
+        // status changes
+        connection.on('TicketStatusChanged', data => {
+          const $row = table.rows().nodes().to$()
+            .filter((_, tr) =>
+              $(tr).find('.open-chat').data('ticket-id') === data.ticketId
+            );
+          if ($row.length) {
+            table.cell($row, 1).data(data.status).draw(false);
+          }
+          const $badge = $('#supportBadge');
+          let count = parseInt($badge.text(), 10) || 0;
+          if (data.status === 'Answered' && count > 0) {
+            $badge.text(count - 1);
+          }
+        });
+
+        // ——————————————
+        // 4) Start & join groups
+        // ——————————————
+          connection.start()
+              .then(() => {
+                if (companyId !== null) {
+                  connection.invoke('JoinCompanyGroup', companyId)
+                            .catch(console.error);
+                }
+              })
+              .catch(err => console.error('SignalR start error:', err));
+
+        // ——————————————
+        // 5) UI handlers
+        // ——————————————
+        $('#btnCreateTicket').click(() => $('#createTicketModal').modal('show'));
+
+        $('#createTicketForm').on('submit', function(e) {
+          e.preventDefault();
+          const subject = $('#subject').val().trim();
+          const message = $('#message').val().trim();
+          if (!subject || !message) {
+            alert('Subject and message are required.');
+            return;
+          }
+          $.ajax({
+            url: '/Support/CreateTicket',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ subject, message })
+          })
+          .done(res => {
+            if (res.success) location.reload();
+            else alert('Failed to submit ticket.');
+          })
+          .fail(() => alert('Error creating ticket.'));
+        });
+
+        $(document).on('click', '.open-chat', function() {
+          const ticketId = $(this).data('ticket-id');
+          $('#chatContent')
+            .empty()
+            .load(`/Support/Chat/${ticketId}`, () => {
+              $('.chat-wrapper').addClass('showChat');
+              connection.invoke('JoinGroup', ticketId)
+                        .catch(console.error);
+            });
+        });
+
+        $(document).on('click', '.chat-toggle-btn-close', () =>
+          $('.chat-wrapper').removeClass('showChat')
+        );
+
+        let lastSentText = null;
+        $(document).on('submit', '#chatForm', function(e) {
+          e.preventDefault();
+              const isAdminUser = @Html.Raw(Json.Serialize(User.IsInRole("Admin")));
+          const ticketId = +$('#TicketId').val();
+          const text     = $('#messageInput').val().trim();
+          if (!text) return;
+          $('#sendBtn').prop('disabled', true);
+          lastSentText = text;
+
+          // optimistic render
+          const now = new Date();
+          const timestamp = now.toLocaleString('en-GB', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          }).replace(',', '');
+          const avatarFile = isAdminUser ? '09.png' : '11.png';
+          const $chat = $('#chatBox');
+          $chat.append(`
+            <div class="chat-content-leftside">
+              <div class="d-flex">
+                    <img src="/assets/images/avatars/${avatarFile}" width="42" height="42" class="rounded-circle" alt="${currentUser}" />
+                <div class="flex-grow-1 ms-2">
+                  <p class="mb-0 chat-time">${timestamp}</p>
+                  <p class="chat-left-msg">${text}</p>
+                </div>
+              </div>
+            </div>`);
+          $chat[0].scrollTop = $chat[0].scrollHeight;
+
+          $.ajax({
+            url: '/Support/RespondToTicket',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ ticketId, responseText: text })
+          })
+          .always(() => {
+            $('#messageInput').val('').focus();
+            $('#charCount').text('0/2000');
+            $('#sendBtn').prop('disabled', false);
+          });
+        });
+
+        // 6) Chat input char counter
+        $(document).on('input', '#messageInput', function() {
+          $('#charCount').text(`${this.value.length}/2000`);
+        });
+
+      });  // ← this closes the $(function(){…})
+        document.getElementById('createTicketForm')
+          .addEventListener('submit', function(e) {
+            const btn = this.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = 'Sending…';
+            // let the form continue to post
+        });
+    </script>
+
+}

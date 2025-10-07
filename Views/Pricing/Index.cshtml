@@ -1,0 +1,98 @@
+﻿@{
+    ViewData["Title"] = "Pricing";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header d-flex justify-content-between">
+    <h3 class="page-title"># @SharedResource.Pricing</h3>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+<div class="row">
+    <!-- Pricing Form -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">@SharedResource.Pricing</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="/Pricing/Update" autocomplete="off">
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.Currency</label>
+                        <select name="currency" class="form-select" required>
+                            <option value="">@SharedResource.Currency</option>
+                            <option value="TRY" selected>TRY</option>
+                            <!-- Add more currencies if needed -->
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.Low__1_500_000_SMS_unit_price_</label>
+                        <input type="number" name="low" class="form-control" step="0.0001" min="0" required
+                               value="@(ViewBag.LatestPricing != null ? ViewBag.LatestPricing.Low.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) : "")">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.Medium__500_000_1_000_000_SMS_unit_price_</label>
+                        <input type="number" name="middle" class="form-control" step="0.0001" min="0" required
+                               value="@(ViewBag.LatestPricing != null ? ViewBag.LatestPricing.Middle.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) : "")">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.High__1_000_000__SMS_unit_price_</label>
+                        <input type="number" name="high" class="form-control" step="0.0001" min="0" required
+                               value="@(ViewBag.LatestPricing != null ? ViewBag.LatestPricing.High.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) : "")">
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" name="action" value="update" class="btn btn-success">@SharedResource.Update</button>
+                        <button type="submit" name="action" value="remove" class="btn btn-danger">@SharedResource.Remove_Special_Pricing</button>
+                        <!-- Optional: implement Remove if needed -->
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pricing History Table -->
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">@SharedResource.Pricing_History</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                <table class="table table-bordered align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>@SharedResource.Currency</th>
+                            <th>@SharedResource.Low</th>
+                            <th>@SharedResource.Medium</th>
+                            <th>@SharedResource.High</th>
+                            <th>@SharedResource.Creation_Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var pricing in ViewBag.PricingHistory as List<GittBilSmsCore.Models.Pricing>)
+                        {
+                            <tr>
+                                <td>@pricing.Currency</td>
+                                <td>@pricing.Low</td>
+                                <td>@pricing.Middle</td>
+                                <td>@pricing.High</td>
+                                <td>@pricing.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
