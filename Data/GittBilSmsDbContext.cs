@@ -30,7 +30,7 @@ namespace GittBilSmsCore.Data
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<Notifications> Notifications { get; set; }
         public DbSet<Ticket> Tickets { get; set; }
-        public DbSet<TicketResponse> TicketResponses { get; set; } 
+        public DbSet<TicketResponse> TicketResponses { get; set; }  
 
         public DbSet<ApiCallLog> ApiCallLogs { get; set; }
 
