@@ -1,14 +1,15 @@
-﻿using GittBilSmsCore.Data;
+﻿using DocumentFormat.OpenXml.ExtendedProperties;
+using GittBilSmsCore.Data;
+using GittBilSmsCore.Helpers;
 using GittBilSmsCore.Models;
 using GittBilSmsCore.ViewModels;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
-using GittBilSmsCore.Helpers;
 using Microsoft.Extensions.Localization;
-using Microsoft.AspNetCore.Identity;
-using DocumentFormat.OpenXml.ExtendedProperties;
+using System.ComponentModel.Design;
 namespace GittBilSmsCore.Controllers
 {
 
@@ -448,24 +449,33 @@ namespace GittBilSmsCore.Controllers
 
                 int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
 
-                string dataJson = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    transaction.CompanyId,
-                    transaction.TransactionType,
-                    transaction.Credit,
-                    transaction.TotalPrice,
-                    transaction.UnitPrice,
-                    transaction.Currency,
-                    transaction.Note,
-                    transaction.TransactionDate,
-                    UserId = performedByUserId,
-                    IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    UserAgent = Request.Headers["User-Agent"].ToString()
-                });
+                //string dataJson = System.Text.Json.JsonSerializer.Serialize(new
+                //{
+                //    transaction.CompanyId,
+                //    transaction.TransactionType,
+                //    transaction.Credit,
+                //    transaction.TotalPrice,
+                //    transaction.UnitPrice,
+                //    transaction.Currency,
+                //    transaction.Note,
+                //    transaction.TransactionDate,
+                //    UserId = performedByUserId,
+                //    IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                //    UserAgent = Request.Headers["User-Agent"].ToString()
+                //});
 
-                var textMsg = "Credit added to your account by admin:";
+                // companyId is the target company
+                decimal? availableCredit = await (
+                        from c in _context.Companies
+                        join u in _context.Users on c.CompanyId equals u.CompanyId
+                        where u.IsMainUser == true && c.CompanyId == companyId
+                        select (decimal?)c.CreditLimit
+                    ).FirstOrDefaultAsync();
 
-                 await _svc.SendToUsersAsync(companyId, performedByUserId, dataJson);
+                var textMsg = $"Credit added to your account amount: {credit}. Now the credit in your account: {availableCredit}";
+
+
+                await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg);
 
                 return Json(new
                 {
@@ -515,7 +525,15 @@ namespace GittBilSmsCore.Controllers
 
                 await _context.SaveChangesAsync();
             }
-
+            decimal? availableCredit = await (
+                        from c in _context.Companies
+                        join u in _context.Users on c.CompanyId equals u.CompanyId
+                        where u.IsMainUser == true && c.CompanyId == companyId
+                        select (decimal?)c.CreditLimit
+                    ).FirstOrDefaultAsync();
+            int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            var textMsg = $"Credit deleted from your account amount: {credit}. Now the credit in your account: {availableCredit}";
+            await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg);
             return RedirectToAction("Index", new { companyId });
         }
         [HttpPost("Deactivate/{id}")]
