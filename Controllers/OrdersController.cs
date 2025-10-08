@@ -1563,31 +1563,7 @@ namespace GittBilSmsCore.Controllers
 
             return PartialView("_OrderDetailsPartial", order);
         }
-        private async Task LogReportDownloadAsync(int orderId, string fileName, string userAgent)
-        {
-            try
-            {
-                var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
-                var companyId = HttpContext.Session.GetInt32("CompanyId");
-
-                _context.DownloadLogs.Add(new DownloadLog
-                {
-                    OrderId = orderId,
-                    FileName = fileName,
-                    UserId = userId,
-                    CompanyId = companyId,
-                    IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    UserAgent = userAgent,
-                    DownloadedAt = TimeHelper.NowInTurkey()
-                });
-
-                await _context.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"⚠️ Error logging download: {ex.Message}");
-            }
-        }
+       
         [HttpPost]
         public async Task<IActionResult> CancelOrder(int orderId)
         {
