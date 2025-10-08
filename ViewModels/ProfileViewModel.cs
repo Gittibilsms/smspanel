@@ -36,6 +36,9 @@ namespace GittBilSmsCore.ViewModels
         public TwoFactorMethod PreferredTwoFactorMethod { get; set; }
 
         [Display(Name = "Roles")]
-        public List<string> Roles { get; set; } = new List<string>(); 
+        public List<string> Roles { get; set; } = new List<string>();
+        public long? TelegramUserId { get; set; }
+
+        public string? BindTelegramId { get; set; }
     }
 }

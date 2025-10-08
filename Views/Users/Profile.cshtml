@@ -140,7 +140,35 @@
                                     <span asp-validation-for="PreferredTwoFactorMethod"
                                           class="text-danger"></span>
                                 </div>
+                                <!-- TELEGRAM (aligned like upload) -->
+                                <div class="row mb-3">
+                                    <div class="col-sm-9">
 
+                                        <input asp-for="TelegramUserId" class="form-control" placeholder="click to verify Telegram" disabled />
+
+                                        @if (Model.TelegramUserId != null && Model.TelegramUserId > 0)
+                                        {
+                                            <a id="bindTelegram"
+                                               class="btn btn-secondary disabled"
+                                               tabindex="-1"
+                                               aria-disabled="true">
+                                                Telegram Linked
+                                            </a>
+                                        }
+                                        else
+                                        {
+
+                                            <a id="bindTelegram"
+                                               class="btn btn-outline-primary"
+                                               href="@Model.BindTelegramId"
+                                               target="_blank"
+                                               rel="noopener noreferrer">
+                                                @Model.BindTelegramId
+                                            </a>
+                                        }
+
+                                    </div>
+                                </div>
                                 <!-- Upload Photo -->
                                 <div class="col-md-12 mb-3">
                                     <label class="form-label">
