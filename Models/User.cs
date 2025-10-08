@@ -36,6 +36,7 @@ namespace GittBilSmsCore.Models
         public int? CreatedByUserId { get; set; }
 
         public Company? Company { get; set; }
+        public long? TelegramUserId { get; set; }
         public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public TwoFactorMethod PreferredTwoFactorMethod { get; set; } = TwoFactorMethod.None;
     }

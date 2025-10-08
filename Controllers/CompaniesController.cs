@@ -18,11 +18,13 @@ namespace GittBilSmsCore.Controllers
         private readonly GittBilSmsDbContext _context;
         private readonly IStringLocalizer _sharedLocalizer;
         private readonly UserManager<User> _userManager;
-        public CompaniesController(GittBilSmsDbContext context, IStringLocalizerFactory factory, UserManager<User> userManager  ) : base(context)
+        private readonly TelegramMessageService _svc;
+        public CompaniesController(GittBilSmsDbContext context, IStringLocalizerFactory factory, UserManager<User> userManager, TelegramMessageService svc  ) : base(context)
         {
             _context = context;
             _sharedLocalizer = factory.Create("SharedResource", "GittBilSmsCore");
             _userManager = userManager;
+            _svc = svc;
         }
         [HttpGet("")]
         public async Task<IActionResult> Index()
@@ -443,6 +445,27 @@ namespace GittBilSmsCore.Controllers
                 }
 
                 await _context.SaveChangesAsync();
+
+                int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+
+                string dataJson = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    transaction.CompanyId,
+                    transaction.TransactionType,
+                    transaction.Credit,
+                    transaction.TotalPrice,
+                    transaction.UnitPrice,
+                    transaction.Currency,
+                    transaction.Note,
+                    transaction.TransactionDate,
+                    UserId = performedByUserId,
+                    IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    UserAgent = Request.Headers["User-Agent"].ToString()
+                });
+
+                var textMsg = "Credit added to your account by admin:";
+
+                 await _svc.SendToUsersAsync(companyId, performedByUserId, dataJson);
 
                 return Json(new
                 {
