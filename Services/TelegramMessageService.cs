@@ -300,7 +300,7 @@ Reply quickly:
             await Task.Delay(50, ct); // keep a tiny gap for rate limits
         }
     }
-    public async Task SendToUsersAsync(int companyId,int performedByUserId, string text)
+    public async Task SendToUsersAsync(int companyId,int performedByUserId, string text, string txtToSaveBody)
     {
         var users = await _context.Users
               .Where(u => u.CompanyId == companyId && u.IsMainUser == true)   // <-- filter by company + main user
@@ -326,7 +326,7 @@ Reply quickly:
                     UserId = u.Id,                   
                     TelegramMessageId = sent.MessageId,
                     ChatId = sent.Chat.Id,
-                    Body = text,
+                    Body = txtToSaveBody,
                     Status = "Sent"
                 };
                 _context.TelegramMessages.Add(telegrammsg);
