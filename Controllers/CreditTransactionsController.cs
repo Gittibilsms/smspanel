@@ -10,10 +10,12 @@ namespace GittBilSmsCore.Controllers
     {
         private readonly GittBilSmsDbContext _context;
         private readonly IStringLocalizer _sharedLocalizer;
-        public CreditTransactionsController(GittBilSmsDbContext context, IStringLocalizerFactory factory) : base(context)
+        private readonly TelegramMessageService _svc;
+        public CreditTransactionsController(GittBilSmsDbContext context, IStringLocalizerFactory factory, TelegramMessageService svc) : base(context)
         {
             _context = context;
             _sharedLocalizer = factory.Create("SharedResource", "GittBilSmsCore");
+            _svc = svc;
         }
 
         // GET: /CreditTransactions?companyId=123
@@ -67,7 +69,25 @@ namespace GittBilSmsCore.Controllers
 
                 _context.CreditTransactions.Add(transaction);
                 await _context.SaveChangesAsync();
+                int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+                decimal? availableCredit = await (
+                        from c in _context.Companies
+                        join u in _context.Users on c.CompanyId equals u.CompanyId
+                        where u.IsMainUser == true && c.CompanyId == companyId
+                        select (decimal?)c.CreditLimit
+                    ).FirstOrDefaultAsync();
 
+                var textMsg = $"Credit added to your account amount: {credit}. Now the credit in your account: {availableCredit}";
+                var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
+                string dataJson = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    Message = "Credit Deleted by : " + userName,
+                    TelegramMessage = textMsg,
+                    Time = TimeHelper.NowInTurkey(),
+                    IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    UserAgent = Request.Headers["User-Agent"].ToString()
+                });
+                await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson);
                 return Json(new
                 {
                     success = true,
@@ -113,6 +133,25 @@ namespace GittBilSmsCore.Controllers
             company.CreditLimit -= credit;
 
             await _context.SaveChangesAsync();
+            decimal? availableCredit = await (
+                        from c in _context.Companies
+                        join u in _context.Users on c.CompanyId equals u.CompanyId
+                        where u.IsMainUser == true && c.CompanyId == companyId
+                        select (decimal?)c.CreditLimit
+                    ).FirstOrDefaultAsync();
+            int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            var textMsg = $"Credit deleted from your account amount: {credit}. Now the credit in your account: {availableCredit}";
+            var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
+            string dataJson = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                Message = "Credit Deleted by : " + userName,
+                TelegramMessage = textMsg,
+                Time = TimeHelper.NowInTurkey(),
+                IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = Request.Headers["User-Agent"].ToString()
+            });
+
+            await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson);
 
             // ✅ Return updated values
             return Json(new
