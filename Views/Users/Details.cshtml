@@ -1,0 +1,146 @@
+﻿@model GittBilSmsCore.ViewModels.UserDetailsViewModel
+
+@{
+    ViewData["Title"] = "User Details";
+    var assignedRoleIds = Model.Roles.Select(r => r.RoleId).ToList();
+}
+
+<form asp-action="Details" method="post" autocomplete="off">
+    <input type="hidden" name="Id" value="@Model.User.Id" />
+
+    <div class="d-flex justify-content-end align-items-center mb-4">
+        <a asp-action="Index" class="btn btn-link">
+            <i class="bi bi-arrow-left"></i> @SharedResource.All_Users
+        </a>
+        <button type="submit" class="btn btn-success me-2">
+            <i class="bi bi-check2-square"></i>
+            @SharedResource.Update
+        </button>
+           <button type="button" class="btn btn-danger" onclick="confirmDelete(@Model.User.Id)">
+            <i class="bi bi-trash"></i> @SharedResource.Delete
+        </button>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <!-- Editable user fields -->
+            <div class="mb-3">
+                <label class="form-label">@SharedResource.Name</label>
+                <input type="text" class="form-control" name="FullName" value="@Model.User.FullName" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">@SharedResource.User_name</label>
+                <input type="text" class="form-control" name="UserName" value="@Model.User.UserName" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">@SharedResource.Email</label>
+                <input type="text" class="form-control" name="Email" value="@Model.User.Email" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">@SharedResource.Telephone</label>
+                <input type="text" class="form-control" name="Phone" value="@Model.User.PhoneNumber" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">@SharedResource.Verification_type</label>
+                <input type="text" class="form-control" name="VerificationType" value="@Model.User.VerificationType" />
+            </div>
+           @*  <div class="mb-3">
+                <label class="form-label">User type</label>
+                <input type="text" class="form-control" name="UserType" value="@Model.User.UserType" />
+            </div> *@
+            <div class="mb-3">
+                <label class="form-label">@SharedResource.Password</label>
+                <div class="input-group"  id="show_hide_password">
+            
+                    <button type="button" class="btn btn-success password-generator" id="generatePasswordBtn" data-password-target="Password">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                    <input type="password" class="form-control" id="Password" name="Password" value="@Model.User.Password" placeholder="Password" />
+                                   <a href="javascript:;" class="input-group-text bg-transparent"><i class="bi bi-eye-slash-fill"></i></a>
+                </div>
+                <small class="form-text text-muted">
+                @SharedResource.Password_Information                </small>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <h5>@SharedResource.Roles</h5>
+            <table class="table table-dark table-bordered">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;"></th>
+                        <th>@SharedResource.Role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var role in ViewBag.AllRoles as List<GittBilSmsCore.Models.Role>)
+                    {
+                        var collapseId = "collapseRole" + role.RoleId;
+                        var isChecked = assignedRoleIds.Contains(role.RoleId);
+                        <tr class="align-middle">
+                            <td>
+                                <input type="checkbox" name="selectedRoles" value="@role.RoleId" @(isChecked ? "checked" : "") />
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-white">@role.RoleName</span>
+                                    <button class="btn btn-sm has-arrow p-0" type="button" data-bs-toggle="collapse" data-bs-target="#@collapseId" aria-expanded="false" aria-controls="@collapseId">
+                                        <i class="lni lni-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr class="collapse bg-dark text-white" id="@collapseId">
+                            <td colspan="2" class="p-0">
+                                <table class="table table-sm table-dark text-white mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>@SharedResource.Process</th>
+                                            <th>@SharedResource.Authority</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (Model.RolePermissions.ContainsKey(role.RoleId))
+                                        {
+                                            foreach (var perm in Model.RolePermissions[role.RoleId])
+                                            {
+                                                var actions = new List<string>();
+                                                if (perm.CanRead) actions.Add("Read");
+                                                if (perm.CanCreate) actions.Add("Create");
+                                                if (perm.CanEdit) actions.Add("Edit");
+                                                if (perm.CanDelete) actions.Add("Delete");
+                                                if (perm.Special) actions.Add("Special");
+                                                <tr>
+                                                    <td>@perm.Module</td>
+                                                    <td>@string.Join(", ", actions)</td>
+                                                </tr>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <tr><td colspan="2" class="text-center">@SharedResource.No_permissions_assigned_</td></tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</form>
+@* @section Scripts {
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <text>toastr.success("@TempData["SuccessMessage"]");</text>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <text>toastr.error("@TempData["ErrorMessage"]");</text>
+        }
+        });
+    </script>
+} *@

@@ -1,0 +1,303 @@
+﻿@using GittBilSmsCore.Models
+@model GittBilSmsCore.ViewModels.ProfileViewModel
+@{
+    ViewData["Title"] = "User Profile";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-content">
+    <div class="container">
+        <div class="row">
+            <!-- Profile Card -->
+            <div class="col-xl-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <input type="hidden"
+                               name="ExistingProfilePhotoUrl"
+                               value="@Model.ExistingProfilePhotoUrl" />
+
+                        <img src="@(string.IsNullOrEmpty(Model.ExistingProfilePhotoUrl)
+                          ? "/assets/images/avatars/01.png"
+                          : Model.ExistingProfilePhotoUrl)"
+                             alt="Profile Photo"
+                             class="rounded-circle mb-3"
+                             width="60"
+                             height="60" />
+                        <h5 class="mb-1">@Model.FullName</h5>
+                        <p class="text-muted">@Model.FullName</p>
+                        <span class="badge bg-info">@string.Join(", ", Model.Roles)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Info Form -->
+            <div class="col-xl-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="header-title">@SharedResource.Edit_Profile</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="profileForm" enctype="multipart/form-data" autocomplete="off">
+                            <div class="row">
+                                <!-- Full Name -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="FullName" class="form-label">
+                                        @SharedResource.Full_Name
+                                    </label>
+                                    <input asp-for="FullName" class="form-control" />
+                                </div>
+
+                                <!-- Username -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="Username" class="form-label">
+                                        @SharedResource.User_name
+                                    </label>
+                                    <input asp-for="Username"
+                                           class="form-control"
+                                           readonly />
+                                </div>
+
+                                <!-- Email -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="Email" class="form-label">
+                                        @SharedResource.Email
+                                    </label>
+                                    <input asp-for="Email" class="form-control" />
+                                </div>
+
+                                <!-- Phone -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="PhoneNumber" class="form-label">
+                                        @SharedResource.Telephone
+                                    </label>
+                                    <input asp-for="PhoneNumber"
+                                           class="form-control phoneNumberinput"
+                                           placeholder="(5__) ___-____"
+                                           maxlength="14" />
+                                </div>
+
+                                <!-- Password -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="NewPassword" class="form-label">
+                                        @SharedResource.Password
+                                    </label>
+                                    <div class="input-group" id="show_hide_password">
+                                        <button type="button"
+                                                class="btn btn-success password-generator"
+                                                data-password-target="Password">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                        <input type="password"
+                                               asp-for="NewPassword"
+                                               class="form-control"
+                                               id="Password"
+                                               name="NewPassword"
+                                               autocomplete="new-password" />
+                                        <a href="javascript:;"
+                                           class="input-group-text bg-transparent">
+                                            <i class="bi bi-eye-slash-fill"></i>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <!-- 2FA Type Radios -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label d-block">
+                                        @SharedResource._2FA_Type
+                                    </label>
+                                    <div class="form-check">
+                                        <input asp-for="PreferredTwoFactorMethod"
+                                               type="radio"
+                                               class="form-check-input"
+                                               id="fa_app"
+                                               value="Authenticator" />
+                                        <label class="form-check-label" for="fa_app">
+                                            @SharedResource.Enable_2FA
+                                        </label>
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input asp-for="PreferredTwoFactorMethod"
+                                               type="radio"
+                                               class="form-check-input"
+                                               id="fa_email"
+                                               value="Email" />
+                                        <label class="form-check-label" for="fa_email">
+                                            @SharedResource.emailauth
+                                            <span class="text-white">(@Model.Email)</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-check mt-2">
+                                        <input asp-for="PreferredTwoFactorMethod"
+                                               type="radio"
+                                               class="form-check-input"
+                                               id="fa_none"
+                                               value="None" />
+                                        <label class="form-check-label" for="fa_none">
+                                            @SharedResource.None   @* e.g. “No Two-Factor Authentication” *@
+                                        </label>
+                                    </div>
+
+                                    <span asp-validation-for="PreferredTwoFactorMethod"
+                                          class="text-danger"></span>
+                                </div>
+
+                                <!-- Upload Photo -->
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">
+                                        @SharedResource.Upload_Profile_Photo
+                                    </label>
+                                    <input name="ProfilePhoto"
+                                           type="file"
+                                           class="form-control" />
+                                </div>
+                            </div>
+
+                            <div class="text-end">
+                                <button type="submit"
+                                        class="btn btn-primary">
+                                    @SharedResource.Save_Changes
+                                </button>
+                            </div>
+                        </form>
+
+                   
+                    </div> <!-- end card-body -->
+                </div> <!-- end card -->
+            </div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="twoFactorModal" tabindex="-1" aria-labelledby="twoFactorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="twoFactorModalLabel">
+                    @SharedResource.Enable_Two_Factor_Authentication
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="twoFactorModalBody">
+                <!-- QR + form will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        $(function(){
+                 function open2FAModal() {
+          $('#twoFactorModalBody')
+            .load('@Url.Action("Enable2FA", "Users")', function(){
+              new bootstrap.Modal(
+                document.getElementById('twoFactorModal')
+              ).show();
+            });
+        }
+
+        // 2) When the “Authenticator” radio is selected
+        $('#fa_app').on('change', function(){
+          if ($(this).is(':checked')) {
+            open2FAModal();
+          }
+        });
+
+        // 3) If the page loads and it’s already selected
+        // if ($('#fa_app').is(':checked')) {
+        //   open2FAModal();
+        // }
+
+        // 4) Intercept the form inside the modal for AJAX submission
+              $('#twoFactorModalBody').on('submit', 'form', function(e){
+          e.preventDefault();
+          var $form = $(this);
+
+          $.post($form.attr('action'), $form.serialize())
+            .done(function(res){
+              if (res.redirectUrl) {
+                // 1) grab the modal instance
+                var modalEl = document.getElementById('twoFactorModal');
+                var twoFAModal = bootstrap.Modal.getInstance(modalEl);
+                if (twoFAModal) twoFAModal.hide();
+
+                // 2) then navigate away
+                window.location.href = res.redirectUrl;
+              }
+            })
+            .fail(function(xhr){
+              var msg = xhr.responseJSON?.message || xhr.responseText;
+              $('#twoFactorModalBody #enable2faError').text(msg);
+            });
+        });
+          // Load or clear the 2FA-setup partial
+          function refreshQr() {
+            if ($('#fa_app').is(':checked')) {
+              $('#authenticatorSetup')
+                .show()
+                .load('@Url.Action("Enable2FA", "Users")');
+            } else {
+              $('#authenticatorSetup').hide().empty();
+            }
+          }
+
+          // When the user changes the 2FA-method radio buttons
+          $('input[name="PreferredTwoFactorMethod"]')
+            .on('change', refreshQr);
+
+          // And run once on page load (for pre-selected cases)
+          refreshQr();
+
+          // Intercept any form inside #authenticatorSetup to do AJAX submit
+          $('#authenticatorSetup').on('submit', 'form', function(e){
+            e.preventDefault();
+            var $f = $(this);
+            $.post($f.attr('action'), $f.serialize())
+              .done(function(res){
+                if (res.redirectUrl) {
+                  window.location.href = res.redirectUrl;
+                }
+              })
+              .fail(function(xhr){
+                // Look for JSON + message or fallback
+                var msg = xhr.responseJSON?.message || xhr.responseText;
+                // Render into a div you place inside your partial, e.g. #enable2faError
+                $('#authenticatorSetup')
+                  .find('#enable2faError')
+                  .text(msg);
+              });
+          });
+               $(document)
+          .off('submit', '#twoFactorModalBody form')
+          .on('submit', '#twoFactorModalBody form', function(e) {
+            e.preventDefault();
+            const $form  = $(this);
+            const $error = $form.find('#enable2faError').empty();
+
+            $.ajax({
+              type:     'POST',
+              url:      $form.attr('action'),
+              data:     $form.serialize(),
+              dataType: 'json'
+            })
+            .done(function(res) {
+              if (res.success) {
+                // --- Success: hide modal and show toast ---
+                bootstrap.Modal
+                  .getInstance(document.getElementById('twoFactorModal'))
+                  .hide();
+                toastr.success(res.message);
+              } else {
+                // --- Failure (200 OK + success:false): show inline error ---
+                $error.text(res.message);
+              }
+            })
+            .fail(function(xhr) {
+              // Network/server error
+              const msg = xhr.responseJSON?.message
+                        || 'An unexpected error occurred.';
+              $error.text(msg);
+            });
+        });
+    
+        });
+    </script>
+}

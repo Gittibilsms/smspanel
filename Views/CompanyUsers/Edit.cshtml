@@ -1,0 +1,296 @@
+﻿@model GittBilSmsCore.ViewModels.UserEditViewModel
+@using System.Linq
+@using GittBilSmsCore.Helpers
+@using Newtonsoft.Json
+@using GittBilSmsCore.Models
+@{
+    ViewData["Title"] = "Edit Company User";
+    var userType = (Context.Session.GetString("UserType") ?? "").ToLower(); // Normalize casing
+}
+@{
+    var roleIdsRaw = Context.Session.GetString("RoleIds") ?? "";
+    var permissionsJson = Context.Session.GetString("UserPermissions") ?? "[]";
+    var roleIds = roleIdsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                              .Select(id => Convert.ToInt32(id))
+                              .Distinct()
+                              .ToList();
+
+    var allPermissions = JsonConvert.DeserializeObject<List<RolePermission>>(permissionsJson) ?? new List<RolePermission>();
+
+    // Custom roles are roles not in 5, 6, 7
+    var customRoles = roleIds.Except(new[] { 5, 6, 7 }).ToList();
+
+    var permissions = customRoles.Any()
+        ? allPermissions.Where(p => customRoles.Contains(p.RoleId)).ToList()
+        : allPermissions.Where(p => new[] { 5, 6, 7 }.Contains(p.RoleId)).ToList();
+
+    bool HasAccess(string module, string action) =>
+        permissions.Any(p =>
+            string.Equals(p.Module, module, StringComparison.OrdinalIgnoreCase) &&
+            (action == "Read" && p.CanRead ||
+             action == "Create" && p.CanCreate ||
+             action == "Edit" && p.CanEdit ||
+             action == "Delete" && p.CanDelete)
+        );
+    var canCreateUsers = HasAccess("Company_User", "Create");
+    var canEditUsers = HasAccess("Company_User", "Edit");
+    var isCompanyUser = userType.Equals("CompanyUser", StringComparison.OrdinalIgnoreCase);
+
+}
+<div class="d-flex align-items-center mb-3">
+    <a href="/CompanyUsers/Index" class="btn btn-link">
+        <i class="bi bi-arrow-left"></i>@SharedResource.All_Company_Users
+    </a>
+</div>
+
+<h4 class="mb-3"># @SharedResource._Edit_Company_User</h4>
+
+<div class="card">
+    <div class="card-body">
+        <form id="editCompanyUserForm" method="post" autocomplete="off">
+
+            <input type="hidden" name="Id" value="@Model.Id" />
+            @if (canEditUsers)
+            {
+                <div class="d-flex justify-content-end">
+                    <button type="button"
+                            class="btn me-2"
+                            id="toggleUserBtn"
+                            data-user-id="@Model.Id"
+                            data-is-active="@Model.IsActive.ToString().ToLower()"
+                            onclick="toggleUserActive(this)">
+                    </button>
+                    <button type="submit" class="btn btn-primary">@SharedResource.Update</button>
+                </div>
+            }
+       
+
+            <div class="row">
+                @if (userType == "companyuser")
+                {
+                    <!-- Left Column: Form Fields -->
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div class="col-md-12 d-flex justify-content-between">
+                                <div class="col-md-5">
+                                    <div class="mb-3">
+                                        <label for="CompanyId" class="form-label">@SharedResource.Firm</label>
+                                        <select class="form-select" id="CompanyId" disabled>
+                                            <option value="">@SharedResource.Select_Firm</option>
+                                            @foreach (var company in ViewBag.Companies as List<SelectListItem>)
+                                            {
+                                                var isSelected = Model.CompanyId == int.Parse(company.Value);
+                                                <option value="@company.Value" selected="@(isSelected ? "selected" : null)">
+                                                    @company.Text
+                                                </option>
+                                            }
+                                        </select>
+                                        <input type="hidden" name="CompanyId" value="@Model.CompanyId" />
+                                    </div>
+
+                                </div>
+                                <div class="col-md-5">
+                                    <label for="Email" class="form-label">@SharedResource.Created_By</label>
+                                    <input type="text" class="form-control" id="createdBy" name="createdBy" value="@Model.createdBy" readonly />
+                                </div>
+                            </div>
+                        @* Shared Fields *@
+                    
+                        </div>
+                      
+
+                        <div class="mb-3">
+                            <label for="Email" class="form-label">@SharedResource.Email</label>
+                            <input type="email" class="form-control" id="Email" name="Email" value="@Model.Email" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="FullName" class="form-label">@SharedResource.Name</label>
+                            <input type="text" class="form-control" id="FullName" name="FullName" value="@Model.FullName" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="Phone" class="form-label">@SharedResource.Telephone</label>
+                            <input type="text" class="form-control phoneNumberinput" id="CompanyPhone" name="Phone" value="@Model.PhoneNumber" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="UserName" class="form-label">@SharedResource.User_name</label>
+                            <input type="text" class="form-control" id="UserName" name="UserName" value="@Model.UserName" required />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="Password" class="form-label">@SharedResource.Password</label>
+                            <div class="input-group" id="show_hide_password">
+                                <button type="button" class="btn btn-success password-generator" data-password-target="Password">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <input type="password" class="form-control" id="Password" name="Password" value="@Model.Password" />
+                                <a href="javascript:;" class="input-group-text bg-transparent"><i class="bi bi-eye-slash-fill"></i></a>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="QuotaType" class="form-label">@SharedResource.Quota_Type</label>
+                            <select class="form-select QuotaType" id="QuotaType" name="QuotaType">
+                                <option value="No Quota" selected="@(Model.QuotaType == "No Quota" ? "selected" : null)">@SharedResource.Noquota</option>
+                                <option value="Variable Quota" selected="@(Model.QuotaType == "Variable Quota" ? "selected" : null)">@SharedResource.Variable_Quota</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="Quota" class="form-label">@SharedResource.Quota</label>
+                            <input type="number" class="form-control QuotaValue" id="Quota" name="Quota" value="@Model.Quota" disabled />
+                        </div>
+                        <p class="text-muted">@SharedResource.No_roles_found_</p>
+                    </div>
+
+                    <!-- Right Column: Roles -->
+                    <div class="col-md-6">
+                        <h5 class="mb-3">@SharedResource.Roles</h5>
+                        <table class="table table-dark table-bordered">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;"></th>
+                                    <th>@SharedResource.Role</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var role in ViewBag.AllRoles as List<GittBilSmsCore.Models.Role>)
+                                {
+                                    var collapseId = "collapseRole" + role.RoleId;
+                                    var isChecked = (ViewBag.AssignedRoleIds as List<int>)?.Contains(role.RoleId) ?? false;
+                                    <tr class="align-middle">
+                                        <td>
+                                            <input type="checkbox" name="SelectedRoleIds" value="@role.RoleId" @(isChecked ? "checked" : "") />
+                                        </td>
+                                        <td>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="text-white">@role.RoleName</span>
+                                                <button class="btn btn-sm has-arrow p-0" type="button"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#@collapseId"
+                                                        aria-expanded="false"
+                                                        aria-controls="@collapseId">
+                                                    <i class="lni lni-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <tr class="collapse bg-dark text-white" id="@collapseId">
+                                        <td colspan="2" class="p-0">
+                                            <table class="table table-sm table-dark text-white mb-0">
+                                                <thead>
+                                                    <tr>
+                                                        <th>@SharedResource.Process</th>
+                                                        <th>@SharedResource.Authority</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @if (Model.RolePermissions.ContainsKey(role.RoleId))
+                                                    {
+                                                        @foreach (var perm in Model.RolePermissions[role.RoleId])
+                                                        {
+                                                            var actions = new List<string>();
+                                                            if (perm.CanRead) actions.Add("Read");
+                                                            if (perm.CanCreate) actions.Add("Create");
+                                                            if (perm.CanEdit) actions.Add("Edit");
+                                                            if (perm.CanDelete) actions.Add("Delete");
+                                                            if (perm.Special) actions.Add("Special");
+
+                                                            if (actions.Any())
+                                                            {
+                                                                <tr>
+                                                                    <td>@perm.Module</td>
+                                                                    <td>@string.Join(", ", actions)</td>
+                                                                </tr>
+                                                            }
+                                                        }
+                                                    }
+                                                    else
+                                                    {
+                                                        <tr>
+                                                            <td colspan="2" class="text-center">@SharedResource.No_permissions_assigned_</td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <!-- Admin/Other Users Full Width -->
+                    <div class="row">
+                        @* Shared Fields *@
+                        <div class="col-md-6 mb-3">
+                            <label for="CompanyId" class="form-label">@SharedResource.Firm</label>
+                            <select class="form-select" id="CompanyId" disabled>
+                                <option value="">@SharedResource.Select_Firm</option>
+                                @foreach (var company in ViewBag.Companies as List<SelectListItem>)
+                                {
+                                    var isSelected = Model.CompanyId == int.Parse(company.Value);
+                                    <option value="@company.Value" selected="@(isSelected ? "selected" : null)">
+                                        @company.Text
+                                    </option>
+                                }
+                            </select>
+                            <input type="hidden" name="CompanyId" value="@Model.CompanyId" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="Email" class="form-label">@SharedResource.Email</label>
+                            <input type="email" class="form-control" id="Email" name="Email" value="@Model.Email" required />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="FullName" class="form-label">@SharedResource.Name</label>
+                            <input type="text" class="form-control" id="FullName" name="FullName" value="@Model.FullName" required />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="Phone" class="form-label">@SharedResource.Telephone</label>
+                            <input type="text" class="form-control phoneNumberinput" id="CompanyPhone" name="Phone" value="@Model.PhoneNumber" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="UserName" class="form-label">@SharedResource.User_name</label>
+                            <input type="text" class="form-control" id="UserName" name="UserName" value="@Model.UserName" required />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="Password" class="form-label">@SharedResource.Password</label>
+                            <div class="input-group" id="show_hide_password">
+                                <button type="button" class="btn btn-success password-generator" data-password-target="Password">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <input type="password" class="form-control" id="Password" name="Password" value="@Model.Password" />
+                                <a href="javascript:;" class="input-group-text bg-transparent"><i class="bi bi-eye-slash-fill"></i></a>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="QuotaType" class="form-label">@SharedResource.Quota_Type</label>
+                            <select class="form-select QuotaType" id="QuotaType" name="QuotaType">
+                                <option value="No Quota" selected="@(Model.QuotaType == "No Quota" ? "selected" : null)">@SharedResource.Noquota</option>
+                                <option value="Variable Quota" selected="@(Model.QuotaType == "Variable Quota" ? "selected" : null)">@SharedResource.Variable_Quota</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label for="Quota" class="form-label">@SharedResource.Quota</label>
+                            <input type="number" class="form-control QuotaValue" id="Quota" name="Quota" value="@Model.Quota" disabled />
+                        </div>
+
+                      
+                    </div>
+                }
+            </div>
+        </form>
+    </div>
+</div>

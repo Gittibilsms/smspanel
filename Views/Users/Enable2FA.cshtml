@@ -1,0 +1,20 @@
+﻿@model GittBilSmsCore.ViewModels.Enable2FAViewModel
+
+<div class="card">
+    <div class="card-body">
+        <h4>@SharedResource.Enable_Two_Factor_Authentication</h4>
+
+        <p>@SharedResource.Scan_the_QR_code_below_using_Google_Authenticator_or_any_TOTP_app_:</p>
+
+        <img src="data:image/png;base64,@Model.QrCodeImage" />
+
+        <form asp-action="Enable2FA" method="post" autocomplete="off">
+            <div class="form-group mt-3">
+                <label>@SharedResource.Enter_the_6_digit_code_from_your_app_</label>
+                <input type="text" name="VerificationCode" class="form-control" required />
+                <input type="hidden" name="SecretKey" value="@Model.SecretKey" />
+            </div>
+            <button type="submit" class="btn btn-primary mt-2">@SharedResource.Verify___Enable_2FA</button>
+        </form>
+    </div>
+</div>

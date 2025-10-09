@@ -85,79 +85,55 @@ var options = {
     labels: ['Total Orders'],
 };
 
-var chart = new ApexCharts(document.querySelector("#chart1"), options);
-chart.render();
 
 
-
-
- // chart 2
-
- var options = {
-    series: [{
-        name: "Net Sales",
-        data: [4, 10, 25, 12, 25, 18, 40, 22, 7]
-    }],
-    chart: {
-        //width:150,
-        height: 105,
-        type: 'area',
-        sparkline: {
-            enabled: !0
-        },
-        zoom: {
-            enabled: false
-        }
-    },
-    dataLabels: {
-        enabled: false
-    },
-    stroke: {
-        width: 3,
-        curve: 'smooth'
-    },
-    fill: {
-        type: 'gradient',
-        gradient: {
-            shade: 'dark',
-            gradientToColors: ['#0866ff'],
-            shadeIntensity: 1,
-            type: 'vertical',
-            opacityFrom: 0.5,
-            opacityTo: 0.0,
-            //stops: [0, 100, 100, 100]
-        },
-    },
-
-    colors: ["#02c27a"],
-    tooltip: {
-        theme: "dark",
-        fixed: {
-            enabled: !1
-        },
-        x: {
-            show: !1
-        },
-        y: {
-            title: {
-                formatter: function (e) {
-                    return ""
+    $(function () {
+        // Chart 2 – only if #chart2 exists
+        var $chart2 = $("#chart2");
+        if ($chart2.length) {
+            var options = {
+                series: [{
+                    name: "Net Sales",
+                    data: [4, 10, 25, 12, 25, 18, 40, 22, 7]
+                }],
+                chart: {
+                    height: 105,
+                    type: 'area',
+                    sparkline: { enabled: true },
+                    zoom: { enabled: false }
+                },
+                dataLabels: { enabled: false },
+                stroke: { width: 3, curve: 'smooth' },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shade: 'dark',
+                        gradientToColors: ['#0866ff'],
+                        shadeIntensity: 1,
+                        type: 'vertical',
+                        opacityFrom: 0.5,
+                        opacityTo: 0.0
+                    },
+                },
+                colors: ["#02c27a"],
+                tooltip: {
+                    theme: "dark",
+                    fixed: { enabled: false },
+                    x: { show: false },
+                    y: { title: { formatter: () => "" } },
+                    marker: { show: false }
+                },
+                xaxis: {
+                    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']
                 }
-            }
-        },
-        marker: {
-            show: !1
+            };
+
+            var chart = new ApexCharts($chart2[0], options);
+            chart.render();
         }
-    },
-    xaxis: {
-        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
-    }
-};
 
-var chart = new ApexCharts(document.querySelector("#chart2"), options);
-chart.render();
-
-
+       
+    });
 
 
     // chart 3
@@ -233,11 +209,6 @@ chart.render();
         }
     };
 
-    var chart = new ApexCharts(document.querySelector("#chart3"), options);
-    chart.render();
-
-
-
 
     // chart 4
 
@@ -306,12 +277,7 @@ chart.render();
         }
     };
 
-    var chart = new ApexCharts(document.querySelector("#chart4"), options);
-    chart.render();
 
-
-
-    
     // chart 5
 
     var options = {
@@ -377,132 +343,87 @@ chart.render();
         },
     };
 
-    var chart = new ApexCharts(document.querySelector("#chart5"), options);
-    chart.render();
 
-
-
-    
-    // chart 6
-    var options = {
-        series: [58, 25, 25],
-        chart: {
-            height: 290,
-            type: 'donut',
-        },
-        legend: {
-            position: 'bottom',
-            show: !1
-        },
-        fill: {
-            type: 'gradient',
-            gradient: {
-                shade: 'dark',
-                gradientToColors: ['#ee0979', '#17ad37', '#ec6ead'],
-                shadeIntensity: 1,
-                type: 'vertical',
-                opacityFrom: 1,
-                opacityTo: 1,
-                //stops: [0, 100, 100, 100]
-            },
-        },
-        colors: ["#ff6a00", "#98ec2d", "#3494e6"],
-        dataLabels: {
-            enabled: !1
-        },
-        plotOptions: {
-            pie: {
-                donut: {
-                    size: "85%"
-                }
-            }
-        },
-        responsive: [{
-            breakpoint: 480,
-            options: {
-                chart: {
-                    height: 270
+    $(function () {
+        var $chart6 = $("#chart6");
+        if ($chart6.length) {
+            var options = {
+                series: [58, 25, 25],
+                chart: { height: 290, type: 'donut' },
+                legend: { position: 'bottom', show: false },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shade: 'dark',
+                        gradientToColors: ['#ee0979', '#17ad37', '#ec6ead'],
+                        shadeIntensity: 1,
+                        type: 'vertical',
+                        opacityFrom: 1,
+                        opacityTo: 1
+                    },
                 },
-                legend: {
-                    position: 'bottom',
-                    show: !1
-                }
-            }
-        }]
-    };
+                colors: ["#ff6a00", "#98ec2d", "#3494e6"],
+                dataLabels: { enabled: false },
+                plotOptions: { pie: { donut: { size: "85%" } } },
+                responsive: [{
+                    breakpoint: 480,
+                    options: {
+                        chart: { height: 270 },
+                        legend: { position: 'bottom', show: false }
+                    }
+                }]
+            };
 
-    var chart = new ApexCharts(document.querySelector("#chart6"), options);
-    chart.render();
-
-
-
+            var chart6 = new ApexCharts($chart6[0], options);
+            chart6.render();
+        }
+    });
 
  // chart 7
- var options = {
-    series: [{
-        name: "Total Accounts",
-        data: [4, 10, 25, 12, 25, 18, 40, 22, 7]
-    }],
-    chart: {
-        //width:150,
-        height: 105,
-        type: 'area',
-        sparkline: {
-            enabled: !0
-        },
-        zoom: {
-            enabled: false
-        }
-    },
-    dataLabels: {
-        enabled: false
-    },
-    stroke: {
-        width: 3,
-        curve: 'smooth'
-    },
-    fill: {
-        type: 'gradient',
-        gradient: {
-            shade: 'dark',
-            gradientToColors: ['#fc185a'],
-            shadeIntensity: 1,
-            type: 'vertical',
-            opacityFrom: 0.8,
-            opacityTo: 0.2,
-            //stops: [0, 100, 100, 100]
-        },
-    },
-
-    colors: ["#ffc107"],
-    tooltip: {
-        theme: "dark",
-        fixed: {
-            enabled: !1
-        },
-        x: {
-            show: !1
-        },
-        y: {
-            title: {
-                formatter: function (e) {
-                    return ""
+    $(function () {
+        var $chart7 = $("#chart7");
+        if ($chart7.length) {
+            var options = {
+                series: [{
+                    name: "Total Accounts",
+                    data: [4, 10, 25, 12, 25, 18, 40, 22, 7]
+                }],
+                chart: {
+                    height: 105,
+                    type: 'area',
+                    sparkline: { enabled: true },
+                    zoom: { enabled: false }
+                },
+                dataLabels: { enabled: false },
+                stroke: { width: 3, curve: 'smooth' },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shade: 'dark',
+                        gradientToColors: ['#fc185a'],
+                        shadeIntensity: 1,
+                        type: 'vertical',
+                        opacityFrom: 0.8,
+                        opacityTo: 0.2
+                    }
+                },
+                colors: ["#ffc107"],
+                tooltip: {
+                    theme: "dark",
+                    fixed: { enabled: false },
+                    x: { show: false },
+                    y: { title: { formatter: () => "" } },
+                    marker: { show: false }
+                },
+                xaxis: {
+                    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']
                 }
-            }
-        },
-        marker: {
-            show: !1
+            };
+
+            var chart7 = new ApexCharts($chart7[0], options);
+            chart7.render();
         }
-    },
-    xaxis: {
-        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
-    }
-};
-
-var chart = new ApexCharts(document.querySelector("#chart7"), options);
-chart.render();
-
-
+    });
 
  // chart 8
 
@@ -569,9 +490,6 @@ chart.render();
         categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
     }
 };
-
-var chart = new ApexCharts(document.querySelector("#chart8"), options);
-chart.render();
 
 
 

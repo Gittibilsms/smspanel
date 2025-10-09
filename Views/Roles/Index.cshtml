@@ -1,0 +1,50 @@
+﻿@model List<GittBilSmsCore.Models.Role>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3># @SharedResource.All_Roles</h3>
+    <a href="/Roles/Create" class="btn btn-grd-primary d-flex">
+        <i class="material-icons-outlined">add</i> @SharedResource.Create
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-bordered dTable" id="rolesTable">
+                <thead>
+                    <tr>
+                        <th>@SharedResource.Role</th>
+                        <th>@SharedResource.Read_Only</th>
+                        <th>@SharedResource.Creation_Date</th>
+                        <th>@SharedResource.Updated_Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var role in Model)
+                    {
+                        var isReadOnly = role.IsReadOnly;
+                        <tr>
+                            <td>
+                                <a href="@Url.Action("Permissions", "Roles", new { roleId = role.RoleId })" class="text-warning fw-bold">
+                                    @role.RoleName
+                                </a>
+                            </td>
+                            <td>
+                                @if (role.IsReadOnly)
+                                {
+                                    <i class="lni lni-checkmark text-success"></i>
+                                }
+                                else
+                                {
+                                    <i class="lni lni-close text-danger"></i>
+                                }
+                            </td>
+                            <td>@role.CreatedAt.ToString("dd/MM/yyyy")</td>
+                            <td>@role.UpdatedAt?.ToString("dd/MM/yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

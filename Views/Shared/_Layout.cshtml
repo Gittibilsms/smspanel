@@ -1,659 +1,720 @@
-﻿@{
+﻿@using GittBilSmsCore.Helpers
+@using Newtonsoft.Json
+@using GittBilSmsCore.Models
+
+@{
     var hideLayoutElements = ViewData["HideLayoutElements"] as bool? ?? false;
+    var userType = Context.Session.GetString("UserType") ?? "Unknown";
+    var isCompanyUser = userType.Equals("CompanyUser", StringComparison.OrdinalIgnoreCase);
+    var isMainUser = Context.Session.GetInt32("IsMainUser") == 1;
+    var userId = Context.Session.GetInt32("UserId") ?? 0;
+    var companyId = Context.Session.GetInt32("CompanyId") ?? 0;
+    var canSendSupportRequest = Context.Session.GetInt32("CanSendSupportRequest") == 1;
+    var roleId = Context.Session.GetInt32("RoleId");
+    var roleIdsRaw = Context.Session.GetString("RoleIds") ?? "";
+    var permissionsJson = Context.Session.GetString("UserPermissions") ?? "[]";
+    var isAdmin = roleId == 1;
+    var isSupervisor = roleId == 2;
+    var isSupport = roleId == 4;
+
+    var defaultRoles = new[] { 5, 6, 7 };
+
+    var roleIds = roleIdsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                             .Select(id => Convert.ToInt32(id))
+                             .Distinct()
+                             .ToList();
+
+    var allPermissions = JsonConvert.DeserializeObject<List<RolePermission>>(permissionsJson) ?? new List<RolePermission>();
+
+    var hasCustomRoles = roleIds.Except(defaultRoles).Any();
+    var filteredRoles = hasCustomRoles
+        ? roleIds.Except(new[] { 5 }).ToList()
+        : roleIds;
+
+    var permissions = allPermissions
+        .Where(p => filteredRoles.Contains(p.RoleId))
+        .ToList();
+
+    bool HasAccess(string module, string action) =>
+        permissions.Any(p =>
+            string.Equals(p.Module, module, StringComparison.OrdinalIgnoreCase) &&
+            (action == "Read" && p.CanRead ||
+             action == "Create" && p.CanCreate ||
+             action == "Edit" && p.CanEdit ||
+             action == "Delete" && p.CanDelete)
+        );
+
+
+    var canSeeOrders = HasAccess("Order", "Read");
+
+    var canEditOrders = HasAccess("Order", "Edit");
+    var canCreateOrders = HasAccess("Order", "Create");
+    var canSeeBlacklist = HasAccess("Blacklist", "Read") || HasAccess("Blacklist", "Edit");
+    var canSeeCompanies = HasAccess("Firm", "Read");
+    var canSeeCompanyUsers = HasAccess("Company_User", "Read") || HasAccess("Company_User", "Edit");
+    var canSeeDirectory = HasAccess("Directory", "Read") || HasAccess("Directory", "Edit");
+    var canSupport =
+        (!isCompanyUser && (HasAccess("Request_for_support", "Read") || HasAccess("Request_for_support", "Edit")))
+        || (isCompanyUser && (HasAccess("Request_for_support", "Read") || HasAccess("Request_for_support", "Edit")));
+    var canSeeReports = HasAccess("Credit", "Read") || HasAccess("Account_transactions", "Read");
+    var canSeeTransactions = HasAccess("Account_transactions", "Read");
+    var canSeeCredit = HasAccess("Credit", "Read") || HasAccess("Credit", "Edit") || HasAccess("Credit", "Edit") || HasAccess("Credit", "Edit");
+
+
 }
+
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="blue-theme">
 <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="company-id" content='@companyId' />
+    <meta name="is-admin"    content='@(isAdmin ? "true" : "false")' />
     <title>GittBilSMS</title>
     @{
         var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
         var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
         var isLoginPage = currentController == "Account" && currentAction == "Index";
     }
-    
-@if (!isLoginPage)
-{
-    <link href="assets/css/pace.min.css" rel="stylesheet">
-    <script src="assets/js/pace.min.js"></script>
-}
+
+    @if (!isLoginPage)
+    {
+        <link href="~/assets/css/pace.min.css" rel="stylesheet">
+        <script src="~/assets/js/pace.min.js"></script>
+    }
     <!--plugins-->
-    <link href="assets/plugins/bs-stepper/css/bs-stepper.css" rel="stylesheet">
-    <link href="assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css" rel="stylesheet">
-    <link rel="stylesheet" type="text/css" href="assets/plugins/metismenu/metisMenu.min.css">
-    <link rel="stylesheet" type="text/css" href="assets/plugins/metismenu/mm-vertical.css">
-    <link rel="stylesheet" type="text/css" href="assets/plugins/simplebar/css/simplebar.css">
+    <link rel="icon" href="~/images/fav.png" type="image/png">
+    <link href="~/assets/plugins/perfect-scrollbar/css/perfect-scrollbar.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="~/assets/plugins/metismenu/metisMenu.min.css">
+    <link rel="stylesheet" type="text/css" href="~/assets/plugins/metismenu/mm-vertical.css">
+    <link rel="stylesheet" type="text/css" href="~/assets/plugins/simplebar/css/simplebar.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
-    <link href="assets/plugins/fancy-file-uploader/fancy_fileupload.css" rel="stylesheet">
-    <link href="assets/plugins/Drag-And-Drop/dist/imageuploadify.min.css" rel="stylesheet">
-  
+    <link href="~/assets/plugins/fancy-file-uploader/fancy_fileupload.css" rel="stylesheet">
+    <link href="~/assets/plugins/Drag-And-Drop/dist/imageuploadify.min.css" rel="stylesheet">
+
     <!--bootstrap css-->
-    <link href="assets/css/bootstrap.min.css" rel="stylesheet">
+    <link href="~/assets/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css?family=Material+Icons+Outlined" rel="stylesheet">
     <!--main css-->
-    <link href="assets/css/bootstrap-extended.css" rel="stylesheet">
-    <link href="assets/plugins/datatable/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
-    <link href="sass/main.css" rel="stylesheet">
-    <link href="sass/dark-theme.css" rel="stylesheet">
-    <link href="sass/blue-theme.css" rel="stylesheet">
-    <link href="sass/semi-dark.css" rel="stylesheet">
-    <link href="sass/bordered-theme.css" rel="stylesheet">
-    <link href="sass/responsive.css" rel="stylesheet">
+    <link rel="stylesheet" href="~/assets/css/extra-icons.css">
+    <link href="~/assets/css/bootstrap-extended.css" rel="stylesheet">
+    <link href="~/assets/plugins/datatable/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    <link href="~/sass/main.css" rel="stylesheet">
+    <link href="~/sass/dark-theme.css" rel="stylesheet">
+    <link href="~/sass/blue-theme.css" rel="stylesheet">
+    <link href="~/sass/semi-dark.css" rel="stylesheet">
+    <link href="~/sass/bordered-theme.css" rel="stylesheet">
+    <link href="~/sass/responsive.css" rel="stylesheet">
+    <link href="~/assets/css/custom.css"  rel="stylesheet"/>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-   
+    <link href="https://fonts.googleapis.com/css?family=Material+Icons+Outlined" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" />
+
     @if (isLoginPage)
     {
         <style>
             .main-wrapper {
-               margin:0px;
+            margin:0px;
             }
         </style>
     }
+    <style>
+
+        .was-validated .form-control:valid {
+        border: var(--bs-border-width) solid var(--bs-border-color);
+        background-image:none;
+        }
+
+        .was-validated .form-check-input:valid ~ .form-check-label{
+        color: var(--bs-card-color);
+        }
+        .was-validated .form-select:valid:not([multiple]):not([size]), .was-validated .form-select:valid:not([multiple])[size="1"]{
+        --bs-form-select-bg-icon:none;
+        }
+
+        .was-validated .form-select:valid, .was-validated .form-check-input:valid {
+        border-color:var(--bs-border-color);
+        }
+
+        .ff_fileupload_start_upload {
+        display: none !important;
+        }
+
+        #toggleDateFilter i {
+        vertical-align: middle;
+        }
+
+        /*     #ordersList th:nth-child(13),
+        #ordersList td:nth-child(13),
+        #ordersList th:nth-child(14),
+        #ordersList td:nth-child(14) {
+        display: none;
+        } */
+        /*       .filter-container {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        }
+
+        .filter-icon {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #6c757d;
+        font-size: 12px;
+        }
+
+        .filter-icon:hover {
+        color: #007bff;
+        }
+
+        .column-filter {
+        width: 100%;
+        padding: 5px 25px 5px 5px;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        font-size: 12px;
+        }
+
+        .column-filter:focus {
+        border-color: #007bff;
+        outline: none;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+
+        .filter-row th {
+        padding: 8px !important;
+        } */
+
+        .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        }
+
+        .header-text {
+        flex-grow: 1;
+        }
+
+        .header-filter-icon {
+        margin-left: 8px;
+        color: #6c757d;
+        cursor: pointer;
+        font-size: 12px;
+        }
+
+        .header-filter-icon:hover {
+        color: #007bff;
+        }
+
+        .active-filter {
+        color: #007bff !important;
+        }
+
+        .date-filter-container {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+        }
+
+        .date-range-wrapper {
+        display: flex;
+        gap: 2px;
+        width: 100%;
+        }
+
+        .date-filter {
+        flex: 1;
+        padding: 4px;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        font-size: 11px;
+        }
+
+        .date-filter:focus {
+        border-color: #007bff;
+        outline: none;
+        box-shadow: 0 0 0 0.1rem rgba(0, 123, 255, 0.25);
+        }
+
+        .clear-date-filter {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #6c757d;
+        font-size: 12px;
+        z-index: 10;
+        }
+
+        .clear-date-filter:hover {
+        color: #dc3545;
+        }
+
+        input.flatpickr-input::placeholder {
+        color: #aaa;
+        opacity: 1;
+        }
+        .sidebar-nav .material-icons-outlined{
+        color: #008b88!important
+        }
+        #globalSpinnerOverlay {
+        display: none;
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.4);
+        z-index: 9999;
+        display: flex;             /* 👈 this centers content */
+        align-items: center;
+        justify-content: center;
+        }
+        .toggle-arrow .material-icons {
+        transition: transform 0.3s ease;
+        }
+
+        .toggle-arrow[aria-expanded="true"] .material-icons {
+        transform: rotate(90deg);
+        }
+
+        .auth-cover-left, .auth-cover-right {
+        min-height: 70vh
+        }
+
+        .btn-grd-primary {
+        background-image: linear-gradient(310deg, #11ad9b, #11928c)!important;
+        color:#fff;
+        }
+
+      
+        .iconLink{
+        font-size:14px;
+        color: #d3d7dc;
+        }
+        .ff_fileupload_wrap .ff_fileupload_dropzone{
+        height:60px;
+        background-size: contain;
+        }
+        .steper-sub-title{
+        font-size:10px;
+        }
+    </style>
 </head>
-<body>
+<body class="@(ViewData["PageClass"] ?? "default-page")">
 
     @if (!hideLayoutElements)
-{
-    <header class="top-header">
-        <nav class="navbar navbar-expand align-items-center gap-4">
-            <div class="btn-toggle">
-                <a href="javascript:;"><i class="material-icons-outlined">menu</i></a>
-            </div>
-            <div class="search-bar flex-grow-1">
-                <div class="position-relative">
-                    <input class="form-control rounded-5 px-5 search-control d-lg-block d-none" type="text" placeholder="Search">
-                    <span class="material-icons-outlined position-absolute d-lg-block d-none ms-3 translate-middle-y start-0 top-50">search</span>
-                    <span class="material-icons-outlined position-absolute me-3 translate-middle-y end-0 top-50 search-close">close</span>
-                    <div class="search-popup p-3">
-                        <div class="card rounded-4 overflow-hidden">
-                            <div class="card-header d-lg-none">
-                                <div class="position-relative">
-                                    <input class="form-control rounded-5 px-5 mobile-search-control" type="text" placeholder="Search">
-                                    <span class="material-icons-outlined position-absolute ms-3 translate-middle-y start-0 top-50">search</span>
-                                    <span class="material-icons-outlined position-absolute me-3 translate-middle-y end-0 top-50 mobile-search-close">close</span>
-                                </div>
-                            </div>
-                            <div class="card-body search-content">
-                          
-                                <p class="search-title">Tutorials</p>
-                                <div class="search-list d-flex flex-column gap-2">
-                                    <div class="search-list-item d-flex align-items-center gap-3">
-                                        <div class="list-icon">
-                                            <i class="material-icons-outlined fs-5">play_circle</i>
-                                        </div>
-                                        <div class="">
-                                            <h5 class="mb-0 search-list-title ">Orders</h5>
-                                        </div>
-                                    </div>
-                                    <div class="search-list-item d-flex align-items-center gap-3">
-                                        <div class="list-icon">
-                                            <i class="material-icons-outlined fs-5">shopping_basket</i>
-                                        </div>
-                                        <div class="">
-                                            <h5 class="mb-0 search-list-title">Companies</h5>
-                                        </div>
-                                    </div>
-
-                                    <div class="search-list-item d-flex align-items-center gap-3">
-                                        <div class="list-icon">
-                                            <i class="material-icons-outlined fs-5">laptop</i>
-                                        </div>
-                                        <div class="">
-                                            <h5 class="mb-0 search-list-title">Support Requests</h5>
-                                        </div>
+    {
+        <header class="top-header">
+            <nav class="navbar navbar-expand align-items-center gap-4">
+                <div class="btn-toggle">
+                    <a href="javascript:;"><i class="material-icons-outlined">menu</i></a>
+                </div>
+                <div class="search-bar flex-grow-1">
+                    <div class="position-relative">
+                        <input class="form-control rounded-5 px-5 search-control d-lg-block d-none" id="globalSearch" type="text" placeholder="@SharedResource.Search">
+                        <span class="material-icons-outlined position-absolute d-lg-block d-none ms-3 translate-middle-y start-0 top-50">search</span>
+                        <span class="material-icons-outlined position-absolute me-3 translate-middle-y end-0 top-50 search-close">close</span>
+                        <div class="search-popup p-3">
+                            <div class="card rounded-4 overflow-hidden">
+                                <div class="card-header d-lg-none">
+                                    <div class="position-relative">
+                                            <input class="form-control rounded-5 px-5 mobile-search-control" id="globalSearchMobile"  type="text" placeholder="@SharedResource.Search">
+                                        <span class="material-icons-outlined position-absolute ms-3 translate-middle-y start-0 top-50">search</span>
+                                        <span class="material-icons-outlined position-absolute me-3 translate-middle-y end-0 top-50 mobile-search-close">close</span>
                                     </div>
                                 </div>
-
-                            </div>
-                            <div class="card-footer text-center bg-transparent">
-                                <a href="javascript:;" class="btn w-100">See All Search Results</a>
+                                <div class="card-body search-content">
+                                    <p class="search-title">@SharedResource.Results</p>
+                                    <div id="searchResults" class="search-list d-flex flex-column gap-2"></div>
+                                </div>
+                                <div class="card-footer text-center bg-transparent">
+                                    <a href="javascript:;" class="btn w-100">@SharedResource.See_All_Search_Results</a>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <ul class="navbar-nav gap-1 nav-right-links align-items-center">
-                <li class="nav-item d-lg-none mobile-search-btn">
-                    <a class="nav-link" href="javascript:;"><i class="material-icons-outlined">search</i></a>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle dropdown-toggle-nocaret" href="avascript:;" data-bs-toggle="dropdown">
-                        @{
-                            var culture = System.Globalization.CultureInfo.CurrentUICulture.Name;
-                            var flag = culture.StartsWith("tr") ? "02.png" : "01.png"; // adjust file names if different
-                        }
-                        <img src="assets/images/county/@flag" width="22" alt="">
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end">
+                <div>
+                    <button class="btn btn-grd btn-grd-primary bottom-0 end-0 m-3 d-flex align-items-center gap-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#staticBackdrop">
+                        <i class="material-icons-outlined">tune</i>
+                    </button>
+                </div>
+                <ul class="navbar-nav gap-1 nav-right-links align-items-center">
+                    <li class="nav-item d-lg-none mobile-search-btn">
+                        <a class="nav-link" href="javascript:;"><i class="material-icons-outlined">search</i></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle dropdown-toggle-nocaret" href="avascript:;" data-bs-toggle="dropdown">
+                            @{
+                                var culture = System.Globalization.CultureInfo.CurrentUICulture.Name;
+                                var flag = culture.StartsWith("tr") ? "02.png" : "01.png"; // adjust file names if different
+                            }
+                            <img src="~/assets/images/county/@flag" width="22" alt="">
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center py-2" href="#" onclick="setLanguage('tr')">
+                                    <img src="~/assets/images/county/02.png" width="20" alt="">
+                                    <span class="ms-2">Turkey</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center py-2" href="#" onclick="setLanguage('en')">
+                                    <img src="~/assets/images/county/01.png" width="20" alt="">
+                                    <span class="ms-2">English</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
 
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center py-2" href="?culture=tr"><img src="assets/images/county/02.png" width="20" alt=""><span class="ms-2">Turkey</span></a>
-                        </li>
-                        <li>
-                            <a class="dropdown-item d-flex align-items-center py-2" href="?culture=en"><img src="assets/images/county/01.png" width="20" alt=""><span class="ms-2">English</span></a>
-                        </li>
-                    </ul>
-                </li>
-
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle dropdown-toggle-nocaret" data-bs-auto-close="outside"
-                       data-bs-toggle="dropdown" href="javascript:;"><i class="material-icons-outlined">apps</i></a>
-                    <div class="dropdown-menu dropdown-menu-end dropdown-apps shadow-lg p-3">
-                        <div class="border rounded-4 overflow-hidden">
-                            <div class="row row-cols-3 g-0 border-bottom">
-                                <div class="col border-end">
-                                    <div class="app-wrapper d-flex flex-column gap-2 text-center">
-                                        <div class="app-icon">
-                                            <img src="assets/images/apps/01.png" width="36" alt="">
-                                        </div>
-                                        <div class="app-name">
-                                            <p class="mb-0">Gmail</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col border-end">
-                                    <div class="app-wrapper d-flex flex-column gap-2 text-center">
-                                        <div class="app-icon">
-                                            <img src="assets/images/apps/02.png" width="36" alt="">
-                                        </div>
-                                        <div class="app-name">
-                                            <p class="mb-0">Skype</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col">
-                                    <div class="app-wrapper d-flex flex-column gap-2 text-center">
-                                        <div class="app-icon">
-                                            <img src="assets/images/apps/03.png" width="36" alt="">
-                                        </div>
-                                        <div class="app-name">
-                                            <p class="mb-0">Slack</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div><!--end row-->
-
-                            <div class="row row-cols-3 g-0 border-bottom">
-                                <div class="col border-end">
-                                    <div class="app-wrapper d-flex flex-column gap-2 text-center">
-                                        <div class="app-icon">
-                                            <img src="assets/images/apps/04.png" width="36" alt="">
-                                        </div>
-                                        <div class="app-name">
-                                            <p class="mb-0">YouTube</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col border-end">
-                                    <div class="app-wrapper d-flex flex-column gap-2 text-center">
-                                        <div class="app-icon">
-                                            <img src="assets/images/apps/05.png" width="36" alt="">
-                                        </div>
-                                        <div class="app-name">
-                                            <p class="mb-0">Google</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col">
-                                    <div class="app-wrapper d-flex flex-column gap-2 text-center">
-                                        <div class="app-icon">
-                                            <img src="assets/images/apps/06.png" width="36" alt="">
-                                        </div>
-                                        <div class="app-name">
-                                            <p class="mb-0">Instagram</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div><!--end row-->
-
-                            <div class="row row-cols-3 g-0 border-bottom">
-                                <div class="col border-end">
-                                    <div class="app-wrapper d-flex flex-column gap-2 text-center">
-                                        <div class="app-icon">
-                                            <img src="assets/images/apps/07.png" width="36" alt="">
-                                        </div>
-                                        <div class="app-name">
-                                            <p class="mb-0">Spotify</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col border-end">
-                                    <div class="app-wrapper d-flex flex-column gap-2 text-center">
-                                        <div class="app-icon">
-                                            <img src="assets/images/apps/08.png" width="36" alt="">
-                                        </div>
-                                        <div class="app-name">
-                                            <p class="mb-0">Yahoo</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col">
-                                    <div class="app-wrapper d-flex flex-column gap-2 text-center">
-                                        <div class="app-icon">
-                                            <img src="assets/images/apps/09.png" width="36" alt="">
-                                        </div>
-                                        <div class="app-name">
-                                            <p class="mb-0">Facebook</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div><!--end row-->
-
-                        </div>
-                    </div>
-                </li>
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle dropdown-toggle-nocaret position-relative" data-bs-auto-close="outside"
-                       data-bs-toggle="dropdown" href="javascript:;">
-                        <i class="material-icons-outlined">notifications</i>
-                        <span class="badge-notify">5</span>
-                    </a>
-                    <div class="dropdown-menu dropdown-notify dropdown-menu-end shadow">
-                        <div class="px-3 py-1 d-flex align-items-center justify-content-between border-bottom">
-                            <h5 class="notiy-title mb-0">Notifications</h5>
-                            <div class="dropdown">
-                                <button class="btn btn-secondary dropdown-toggle dropdown-toggle-nocaret option" type="button"
-                                        data-bs-toggle="dropdown" aria-expanded="false">
-                                    <span class="material-icons-outlined">
-                                        more_vert
-                                    </span>
-                                </button>
-                                <div class="dropdown-menu dropdown-option dropdown-menu-end shadow">
-                                    <div>
-                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="javascript:;">
-                                            <i class="material-icons-outlined fs-6">inventory_2</i>Archive All
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle dropdown-toggle-nocaret" data-bs-auto-close="outside"
+                        data-bs-toggle="dropdown" href="javascript:;"><i class="material-icons-outlined">apps</i></a>
+                        <div class="dropdown-menu dropdown-menu-end dropdown-apps shadow-lg p-3">
+                            <div class="border rounded-4 overflow-hidden">
+                                <div class="row row-cols-3 g-0 border-bottom">
+                                    <div class="col border-end">
+                                        <a href="mailto:smsgittibil@gmail.com" target="_blank" class="text-decoration-none text-reset">
+                                            <div class="app-wrapper d-flex flex-column gap-2 text-center">
+                                                <div class="app-icon">
+                                                    <img src="~/assets/images/apps/01.png" width="36" alt="">
+                                                </div>
+                                                <div class="app-name">
+                                                    <p class="mb-0">Gmail</p>
+                                                </div>
+                                            </div>
                                         </a>
                                     </div>
-                                    <div>
-                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="javascript:;">
-                                            <i class="material-icons-outlined fs-6">done_all</i>Mark all as read
+                                    <div class="col border-end">
+                                        @{
+                                            var teamsEmail = "smsgittibil@gmail.com";
+                                            var teamsUrl = $"https://teams.microsoft.com/l/chat/0/0?users={teamsEmail}";
+                                        }
+                                        <a href="@teamsUrl" target="_blank" class="text-decoration-none text-reset">
+                                        <div class="app-wrapper d-flex flex-column gap-2 text-center">
+                                            <div class="app-icon">
+                                                <img src="~/assets/images/apps/teams.png" width="36" alt="">
+                                            </div>
+                                            <div class="app-name">
+                                                <p class="mb-0">Teams</p>
+                                      
+                                                
+                                            </div>
+                                        </div>
                                         </a>
                                     </div>
-                                    <div>
-                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="javascript:;">
-                                            <i class="material-icons-outlined fs-6">mic_off</i>Disable Notifications
+                                    <div class="col">
+                                        <a href="https://t.me/Gittibilsms" target="_blank" class="text-decoration-none text-reset">
+                                            <div class="app-wrapper d-flex flex-column gap-2 text-center">
+                                                <div class="app-icon">
+                                                    <img src="~/assets/images/apps/telegram.png" width="36" alt="Telegram">
+                                                </div>
+                                                <div class="app-name">
+                                                    <p class="mb-0">Telegram</p>
+                                                </div>
+                                            </div>
                                         </a>
                                     </div>
-                                    <div>
-                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="javascript:;">
-                                            <i class="material-icons-outlined fs-6">grade</i>What's new ?
-                                        </a>
-                                    </div>
-                                    <div>
-                                        <hr class="dropdown-divider">
-                                    </div>
-                                    <div>
-                                        <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="javascript:;">
-                                            <i class="material-icons-outlined fs-6">leaderboard</i>Reports
-                                        </a>
-                                    </div>
-                                </div>
+                                </div><!--end row-->
+
+
                             </div>
                         </div>
-                        <div class="notify-list">
-                            <div>
-                                <a class="dropdown-item border-bottom py-2" href="javascript:;">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="">
-                                            <img src="assets/images/avatars/01.png" class="rounded-circle" width="45" height="45" alt="">
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle dropdown-toggle-nocaret position-relative" data-bs-auto-close="outside"
+                        data-bs-toggle="dropdown" href="javascript:;">
+                            <i class="material-icons-outlined">notifications</i>
+                            <span class="badge-notify text-center" id="notificationCount" >0</span>
+                        </a>
+                        <div class="dropdown-menu dropdown-notify dropdown-menu-end shadow">
+                            <div class="px-3 py-1 d-flex align-items-center justify-content-between border-bottom">
+                                <h5 class="notiy-title mb-0">@SharedResource.Notifications</h5>
+                                <div class="dropdown">
+                                    <button class="btn btn-secondary dropdown-toggle dropdown-toggle-nocaret option" type="button"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                        <span class="material-icons-outlined">
+                                            more_vert
+                                        </span>
+                                    </button>
+                                    <div class="dropdown-menu dropdown-option dropdown-menu-end shadow">
+
+                                        <div>
+                                            <a id="markAllAsRead" class="dropdown-item d-flex align-items-center gap-2 py-2" href="javascript:;">
+                                                <i class="material-icons-outlined fs-6">done_all</i>@SharedResource.Mark_all_as_read
+                                            </a>
                                         </div>
-                                        <div class="">
-                                            <h5 class="notify-title">Congratulations Jhon</h5>
-                                            <p class="mb-0 notify-desc">Many congtars jhon. You have won the gifts.</p>
-                                            <p class="mb-0 notify-time">Today</p>
-                                        </div>
-                                        <div class="notify-close position-absolute end-0 me-3">
-                                            <i class="material-icons-outlined fs-6">close</i>
-                                        </div>
+
                                     </div>
-                                </a>
+                                </div>
                             </div>
-                            <div>
-                                <a class="dropdown-item border-bottom py-2" href="javascript:;">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="user-wrapper bg-primary text-primary bg-opacity-10">
-                                            <span>RS</span>
-                                        </div>
-                                        <div class="">
-                                            <h5 class="notify-title">New Account Created</h5>
-                                            <p class="mb-0 notify-desc">From USA an user has registered.</p>
-                                            <p class="mb-0 notify-time">Yesterday</p>
-                                        </div>
-                                        <div class="notify-close position-absolute end-0 me-3">
-                                            <i class="material-icons-outlined fs-6">close</i>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                            <div>
-                                <a class="dropdown-item border-bottom py-2" href="javascript:;">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="">
-                                            <img src="assets/images/apps/13.png" class="rounded-circle" width="45" height="45" alt="">
-                                        </div>
-                                        <div class="">
-                                            <h5 class="notify-title">Payment Recived</h5>
-                                            <p class="mb-0 notify-desc">New payment recived successfully</p>
-                                            <p class="mb-0 notify-time">1d ago</p>
-                                        </div>
-                                        <div class="notify-close position-absolute end-0 me-3">
-                                            <i class="material-icons-outlined fs-6">close</i>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                            <div>
-                                <a class="dropdown-item border-bottom py-2" href="javascript:;">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="">
-                                            <img src="assets/images/apps/14.png" class="rounded-circle" width="45" height="45" alt="">
-                                        </div>
-                                        <div class="">
-                                            <h5 class="notify-title">New Order Recived</h5>
-                                            <p class="mb-0 notify-desc">Recived new order from michle</p>
-                                            <p class="mb-0 notify-time">2:15 AM</p>
-                                        </div>
-                                        <div class="notify-close position-absolute end-0 me-3">
-                                            <i class="material-icons-outlined fs-6">close</i>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                            <div>
-                                <a class="dropdown-item border-bottom py-2" href="javascript:;">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="">
-                                            <img src="assets/images/avatars/06.png" class="rounded-circle" width="45" height="45" alt="">
-                                        </div>
-                                        <div class="">
-                                            <h5 class="notify-title">Congratulations Jhon</h5>
-                                            <p class="mb-0 notify-desc">Many congtars jhon. You have won the gifts.</p>
-                                            <p class="mb-0 notify-time">Today</p>
-                                        </div>
-                                        <div class="notify-close position-absolute end-0 me-3">
-                                            <i class="material-icons-outlined fs-6">close</i>
-                                        </div>
-                                    </div>
-                                </a>
-                            </div>
-                            <div>
-                                <a class="dropdown-item py-2" href="javascript:;">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="user-wrapper bg-danger text-danger bg-opacity-10">
-                                            <span>PK</span>
-                                        </div>
-                                        <div class="">
-                                            <h5 class="notify-title">New Account Created</h5>
-                                            <p class="mb-0 notify-desc">From USA an user has registered.</p>
-                                            <p class="mb-0 notify-time">Yesterday</p>
-                                        </div>
-                                        <div class="notify-close position-absolute end-0 me-3">
-                                            <i class="material-icons-outlined fs-6">close</i>
-                                        </div>
-                                    </div>
-                                </a>
+                            <div class="notify-list">
+                                <!-- JavaScript will dynamically populate this block -->
                             </div>
                         </div>
-                    </div>
-                </li>
-                <li class="nav-item d-md-flex d-none">
+                    </li>
+                    @*       <li class="nav-item d-md-flex d-none">
                     <a class="nav-link position-relative" data-bs-toggle="offcanvas" href="#offcanvasCart">
                         <i class="material-icons-outlined">shopping_cart</i>
                         <span class="badge-notify">8</span>
                     </a>
-                </li>
-                <li class="nav-item dropdown">
-                    <a href="javascrpt:;" class="dropdown-toggle dropdown-toggle-nocaret" data-bs-toggle="dropdown">
-                        <img src="assets/images/avatars/01.png" class="rounded-circle p-1 border" width="45" height="45" alt="">
-                    </a>
-                    <div class="dropdown-menu dropdown-user dropdown-menu-end shadow">
-                        <a class="dropdown-item  gap-2 py-2" href="javascript:;">
-                            <div class="text-center">
-                                <img src="assets/images/avatars/01.png" class="rounded-circle p-1 shadow mb-3" width="90" height="90"
-                                     alt="">
-                                <h5 class="user-name mb-0 fw-bold">Hello, Jhon</h5>
-                            </div>
+                </li> *@
+                    @{
+                        var profilePhotoUrl = ViewBag.ProfilePhotoUrl as string ?? "/assets/images/avatars/01.png";
+                        var fullName = ViewBag.FullName as string ?? "User";
+                    }
+                    <li class="nav-item dropdown">
+                        <a href="javascript:;" class="dropdown-toggle dropdown-toggle-nocaret" data-bs-toggle="dropdown">
+                            <img src="@ViewBag.ProfilePhotoUrl"
+                            onerror="this.onerror=null;this.src='/assets/images/avatars/01.png';"
+                            class="rounded-circle p-1 border" width="45" height="45" alt="Profile Picture">
                         </a>
-                        <hr class="dropdown-divider">
-                        <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/">
-                            <i class="material-icons-outlined">person_outline</i>@SharedResource.Profile
-                        </a>
-                        <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="javascript:;">
-                            <i class="material-icons-outlined">local_bar</i>@SharedResource.Settings
-                        </a>
-                        <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/">
-                            <i class="material-icons-outlined">dashboard</i>@SharedResource.Dashboard
-                        </a>
-                       
-                        <hr class="dropdown-divider">
+                        <div class="dropdown-menu dropdown-user dropdown-menu-end shadow">
+                            <a class="dropdown-item gap-2 py-2" href="javascript:;">
+                                <div class="text-center">
+                                    <img src="@ViewBag.ProfilePhotoUrl"
+                                    onerror="this.onerror=null;this.src='/assets/images/avatars/01.png';"
+                                    class="rounded-circle p-1 shadow mb-3" width="90" height="90" alt="Profile Picture">
+                                    <h5 class="user-name mb-0 fw-bold">@SharedResource.hello, @fullName</h5>
+                                    @if (isCompanyUser && canSeeCredit)
+                                    {
+                                        var credit = Context.Session.GetString("AvailableCredit") ?? "0";
+                                        <div class="text-white small">
+                                            @SharedResource.Credit: @decimal.Parse(credit).ToString("N0")
+                                        </div>                                        
+                                    }
+                                </div>
+                            </a>
+                            <hr class="dropdown-divider">
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2" asp-controller="Users" asp-action="Profile">
+                                <i class="material-icons-outlined">person_outline</i>@SharedResource.Profile
+                            </a>
+                            <a class="dropdown-item d-flex align-items-center gap-2 py-2 d-none" href="javascript:;">
+                                <i class="material-icons-outlined">local_bar</i>@SharedResource.Settings
+                            </a>
+                            <hr class="dropdown-divider">
                             <a class="dropdown-item d-flex align-items-center gap-2 py-2" href="/Account/Logout">
-                            <i class="material-icons-outlined">power_settings_new</i>@SharedResource.Logout
-                        </a>
-                    </div>
-                </li>
-            </ul>
+                                <i class="material-icons-outlined">power_settings_new</i>@SharedResource.Logout
+                            </a>
+                        </div>
+                    </li>
+                </ul>
 
-        </nav>
-    </header>
-    <!--end top header-->
-    <!--start sidebar-->
-    <aside class="sidebar-wrapper" data-simplebar="true">
-        <div class="sidebar-header">
-            <div class="logo-icon">
-                <img src="assets/images/Logo.png" class="logo-img" alt="">
-            </div>
-            <div class="logo-name flex-grow-1">
+            </nav>
+
+        </header>
+        <!--end top header-->
+        <!--start sidebar-->
+        <aside class="sidebar-wrapper" data-simplebar="true">
+            <div class="sidebar-header">
+                <div class="logo-icon">
+                       <a asp-controller="Home" asp-action="Index"> <img src="~/assets/images/Gittibil_Logo.png" class="logo-img originalIcon logo-light" alt=""></a>
+                    <a asp-controller="Home" asp-action="Index">  <img src="~/assets/images/Gittibil_Logo_dark.png" class="logo-img originalIcon logo-dark" alt="Dark Logo" style="display: none;"></a>
+                  <a asp-controller="Home" asp-action="Index">    <img src="~/images/fav.png" class="toggleIcon " alt="" style="display:none"></a>
+                </div>
+                @*      <div class="logo-name flex-grow-1">
                 <h5 class="mb-0">GittBilSMS</h5>
+            </div> *@
+                <div class="sidebar-close">
+                    <span class="material-icons-outlined">close</span>
+                </div>
             </div>
-            <div class="sidebar-close">
-                <span class="material-icons-outlined">close</span>
-            </div>
-        </div>
-        <div class="sidebar-nav">
-            <!--navigation-->
-            <ul class="metismenu" id="sidenav">
-                <li class="mm-active">
-                    <a href="/" class="has-arrow" area-expanded="true">
-                        <div class="parent-icon">
-                            <i class="material-icons-outlined">home</i>
-                        </div>
-                        <div class="menu-title">@SharedResource.Dashboard </div>
-                    </a>
-                    <ul class="mm-collapse mm-show">
-                        <li>
-                            <a href="javascript:;" onclick="showSmsFormModal()"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Sendsms</a>
-                        </li>
-                    </ul>
-                    
-                </li>
-                <li>
-                    <a href="javascript:;" class="has-arrow" >
-                        <div class="parent-icon">
-                            <i class="material-icons-outlined">widgets</i>
-                        </div>
-                        <div class="menu-title">@SharedResource.Operation</div>
-                    </a>
-                    <ul>
-                        <li>
-                            <a href=""><i class="material-icons-outlined">arrow_right</i>@SharedResource.Orders</a>
-                        </li>
-                        <li>
-                            <a href="/Companies"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Companies</a>
-                        </li>
-                        <li>
-                            <a href=""><i class="material-icons-outlined">arrow_right</i>@SharedResource.Users</a>
-                        </li>
-                        <li>
-                            <a href=""><i class="material-icons-outlined">arrow_right</i>@SharedResource.Invalid_Numbers</a>
-                        </li>
-                        <li>
-                            <a href=""><i class="material-icons-outlined">arrow_right</i>@SharedResource.Pricing</a>
-                        </li>
-                        <li>
-                            <a href=""><i class="material-icons-outlined">arrow_right</i>@SharedResource.API_Management</a>
-                        </li>
-                        <li>
-                            <a href=""><i class="material-icons-outlined">arrow_right</i>@SharedResource.Support_Requests</a>
-                        </li>
-                    </ul>
-                </li>
-                <li>
-                    <a class="has-arrow" href="javascript:;">
-                        <div class="parent-icon">
-                            <i class="material-icons-outlined">apps</i>
-                        </div>
-                        <div class="menu-title">@SharedResource.Reports</div>
-                    </a>
-                    <ul>
-                        <li>
-                            <a href="app-emailbox.html"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Credit_Topups</a>
-                        </li>
-                    </ul>
-                </li>
+            <div class="sidebar-nav">
 
-           
-                <li>
-                    <a class="has-arrow" href="javascript:;">
-                        <div class="parent-icon">
-                            <i class="material-icons-outlined">toc</i>
-                        </div>
-                        <div class="menu-title">@SharedResource.Management</div>
-                    </a>
-                    <ul>
+                <!--navigation-->
+                @*      @if (userType == "Admin")
+                { *@
+                <ul class="metismenu" id="sidenav">
+
+                    @* Dashboard *@
+                    @if (canSeeOrders || canCreateOrders)
+                    {
                         <li>
-                            <a href=""><i class="material-icons-outlined">arrow_right</i>@SharedResource.Users</a>
+                            <a asp-controller="Home" asp-action="Index" class="has-arrow" aria-expanded="true">
+                                <div class="parent-icon"><i class="material-icons-outlined">home</i></div>
+                                <div class="menu-title">@SharedResource.Dashboard</div>
+                            </a>
+                            @if (canCreateOrders)
+                            {
+                                <ul class="mm-collapse mm-show">
+                                    <li>
+                                        <a href="javascript:;" onclick="showSmsFormModal()">
+                                            <i class="material-icons-outlined">arrow_right</i>@SharedResource.Sendsms
+                                        </a>
+                                    </li>
+                                </ul>
+                            }
                         </li>
+                    }
+
+                    @* Operation Section *@
+                    @if (canSeeOrders || canSeeCompanies || canSeeCompanyUsers || canSupport || canSeeDirectory || canSeeBlacklist)
+                    {
                         <li>
-                            <a href=""><i class="material-icons-outlined">arrow_right</i>@SharedResource.Dealers</a>
+                            <a href="javascript:;" class="has-arrow">
+                                <div class="parent-icon"><i class="material-icons-outlined">widgets</i></div>
+                                <div class="menu-title">@SharedResource.Operation</div>
+                            </a>
+                            <ul>
+                                @if (canSeeOrders)
+                                {
+                                    <li>
+                                        <a asp-controller="Orders" asp-action="Index"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Orders</a>
+                                    </li>
+                                }
+                                @if (canSeeCompanies)
+                                {
+                                    <li>
+                                        <a asp-controller="Companies" asp-action="Index"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Companies</a>
+                                    </li>
+                                }
+                                @if (canSeeCompanyUsers)
+                                {
+                                    <li>
+                                        <a asp-controller="CompanyUsers" asp-action="Index"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Company_Users</a>
+                                    </li>
+                                }
+                                @if (isCompanyUser && canSeeDirectory)
+                                {
+                                    <li>
+                                        <a asp-controller="Directory" asp-action="Index"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Directory</a>
+
+                                    </li>
+                                }
+                                 @if (isCompanyUser && canSeeBlacklist)
+                                 {
+                                     <li>
+                                         <a asp-controller="Blacklist" asp-action="Index"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Blacklist</a>
+                                     </li>
+                                 }
+                                @if(isAdmin)
+                                {
+                                    <li>
+                                        <a asp-controller="Pricing" asp-action="Index"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Pricing</a>
+
+                                    </li>
+                                    <li>
+                                        <a asp-controller="Api" asp-action="Index"><i class="material-icons-outlined">arrow_right</i>@SharedResource.API</a>
+
+                                    </li>
+                                }
+
+                                @if (canSupport)
+                                {
+                                 
+                                        // pull it out as a strongly‐typed int
+                                        var badgeCount = (int)(ViewBag.SupportBadgeCount ?? 0);
+                                    
+                                    <li>
+                                      <a asp-controller="Support" asp-action="Index" class="d-flex align-items-center">
+                                            <i class="material-icons-outlined me-1">arrow_right</i>
+                                            @SharedResource.Support_Requests
+
+                                            @* Only render the badge if there’s at least one open ticket *@
+                                            @if (badgeCount > 0)
+                                            {
+                                                <span id="supportBadge"
+                                                      class="badge bg-danger rounded-pill ms-2">
+                                                    @badgeCount
+                                                </span>
+                                            }
+                                          </a>
+                                    </li>
+                                }
+                                @if (HasAccess("Passive_numbers", "Read"))
+                                {
+                                    <li style="display:none">
+                                        <a href=""><i class="material-icons-outlined">arrow_right</i>@SharedResource.Invalid_Numbers</a>
+                                    </li>
+                                }
+                            </ul>
                         </li>
+                    }
+
+                    @* Reports Section *@
+                    @if (canSeeReports || canSeeTransactions)
+                    {
                         <li>
-                            <a href=""><i class="material-icons-outlined">arrow_right</i>@SharedResource.Roles</a>
+                            <a class="has-arrow" href="javascript:;">
+                                <div class="parent-icon"><i class="material-icons-outlined">analytics</i></div>
+                                <div class="menu-title">@SharedResource.Reports</div>
+                            </a>
+                            <ul>
+                                @if (isCompanyUser && canSeeTransactions)
+                                {
+                                    <li>
+                                        <a asp-controller="Transactions" asp-action="Index">
+                                            <i class="material-icons-outlined">arrow_right</i>@SharedResource.transactionhistory
+                                        </a>
+                                    </li>
+                                }
+                                @if (isAdmin || isSupervisor || isSupport || canSeeCredit && !isCompanyUser)
+                                {
+                                    <li>
+                                        <a asp-controller="Credit" asp-action="Index"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Credit_Topups</a>
+                                    </li>
+                                    <li>
+                                        <a asp-controller="Payments" asp-action="Index"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Payment_Options</a>
+                                    </li>
+                                }
+                                @if(isAdmin)
+                                {
+                                               <li>
+                                                       <a asp-controller="UserInfo" asp-action="Index">
+                                                            <i class="material-icons-outlined">arrow_right</i>@SharedResource.userinfo
+                                                        </a>
+                                        </li>
+                                }
+                             
+                            </ul>
                         </li>
+                    }
+
+                    @* Management Section *@
+                    @if (Context.Session.HasSpecial("AssignRole") || (isCompanyUser && isMainUser))
+                    {
                         <li>
-                            <a href=""><i class="material-icons-outlined">arrow_right</i>@SharedResource.Settings</a>
+                            <a class="has-arrow" href="javascript:;">
+                                <div class="parent-icon"><i class="material-icons-outlined">manage_accounts</i></div>
+                                <div class="menu-title">@SharedResource.Management</div>
+                            </a>
+                            <ul>
+                                @if (Context.Session.HasSpecial("AssignRole"))
+                                {
+                                    <li>
+                                        <a asp-controller="Users" asp-action="Index"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Users</a>
+                                    </li>
+                                    <li style="display:none">
+                                        <a href=""><i class="material-icons-outlined">arrow_right</i>@SharedResource.Dealers</a>
+                                    </li>
+                                }
+                                @if (Context.Session.HasSpecial("AssignRole") || (isCompanyUser && isMainUser))
+                                {
+                                    <li>
+                                        <a asp-controller="Roles" asp-action="Index"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Roles</a>
+                                    </li>
+                                }
+                                <li class="d-none">
+                                    <a href=""><i class="material-icons-outlined">arrow_right</i>@SharedResource.Settings</a>
+                                </li>
+                            </ul>
                         </li>
-                       
-                    </ul>
-                </li>
-             
-            </ul>
+                    }
+                </ul>
+
+                @* } *@
+
             <!--end navigation-->
         </div>
     </aside>
     
-    <button class="btn btn-grd btn-grd-primary position-fixed bottom-0 end-0 m-3 d-flex align-items-center gap-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#staticBackdrop">
-        <i class="material-icons-outlined">tune</i>Customize
-    </button>
+
     }
-    <!-- Modal -->
-    <div class="modal fade" id="smsModal" tabindex="-1">
-        <div class="modal-dialog modal-xl">
-            <div class="modal-content">
-           <div class="row">
-                <div class="col-lg-12 mx-auto">
-                    <div class="card">
-                            <div class="card-header modal-header px-4 py-3">
-                                <h5 class="mb-0 modal-title">@SharedResource.Sendsms</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="card-body p-4">
-                            <form id="smsForm">
-                                <div class="row mb-3">
-                                    <label for="input35" class="col-sm-3 col-form-label">@SharedResource.Firm</label>
-                                    <div class="col-sm-9">
-                                            <select class="form-select" id="selectFirm" data-placeholder="Choose one thing">
 
-                                                <option>Test</option>
-                                                <option>Test2</option>
-                                            </select>
-                                    </div>
-                                </div>
-                               <div class="dependent-fields">
-                                <div class="row mb-3">
-                                        <label for="input36" class="col-sm-3 col-form-label">@SharedResource.Directory</label>
-                                    <div class="col-sm-9">
-                                            <select class="form-select" id="selectDirectory" data-placeholder="Choose one thing">
-
-                                                <option>Test</option>
-                                            </select>
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                        <label for="input37a" class="col-sm-3 col-form-label">@SharedResource.Numbers</label>
-                                    <div class="col-sm-9">
-                                                <textarea class="form-control" id="bsValidation13" placeholder="@SharedResource.Numbers" rows="3" required></textarea>
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                        <label for="input37" class="col-sm-3 col-form-label">@SharedResource.File</label>
-                                    <div class="col-sm-9">
-                                            <div class="card">
-                                                <div class="card-body">
-                                                        <input id="numberUpload" type="file" name="files" accept=".jpg, .png, image/jpeg, image/png" multiple>
-                                                        <p class="mb-0 steper-sub-title">
-                                                          @SharedResource.Filemessage1
-                                                            <br/>
-                                                        @SharedResource.Filemessage2
-                                                        </p>
-                                                </div>
-                                            </div>
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                        <label for="input38a" class="col-sm-3 col-form-label">@SharedResource.Dateofshipment</label>
-                                    <div class="col-sm-9">
-                                            <input type="text" class="form-control date-time">
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                        <label for="input38" class="col-sm-3 col-form-label">@SharedResource.Past_messages</label>
-                                    <div class="col-sm-9">
-                                            <select class="form-select" id="pastMessaages" data-placeholder="Choose one thing">
-
-                                                <option>Test</option>
-                                            </select>
-                                        </div>
-                                </div>
-                                <div class="row mb-3">
-                                        <label for="input39" class="col-sm-3 col-form-label">@SharedResource.Message</label>
-                                    <div class="col-sm-9">
-                                            <textarea class="form-control" id="message" placeholder="@SharedResource.Message" rows="3" required></textarea>
-                                            <p class="mb-0 steper-sub-title">@SharedResource.MessageText</p>
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                        <label for="input40" class="col-sm-3 col-form-label">@SharedResource.Choose_API</label>
-                                    <div class="col-sm-9">
-                                            <select class="form-select" id="chooseApi" data-placeholder="Choose one thing">
-
-                                                <option>Telsim</option>
-                                                <option>Test</option>
-                                                <option>Yurtici</option>
-                                            </select>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <label class="col-sm-3 col-form-label"></label>
-                                    <div class="col-sm-9">
-                                        <div class="d-md-flex d-grid align-items-center gap-3">
-                                            <button type="submit" class="btn btn-grd-primary px-4">@SharedResource.Submit</button>
-                                            <button type="reset" class="btn btn-grd-info px-4">@SharedResource.Reset</button>
-                                        </div>
-                                    </div>
-                                </div>
-                                </div>
-                            </form>
-
-                        </div>
-                    </div>
-                </div>
-           </div>
-           </div>
-        </div>
-    </div>
     <div class="offcanvas offcanvas-end" data-bs-scroll="true" tabindex="-1" id="staticBackdrop">
         <div class="offcanvas-header border-bottom h-70">
             <div class="">
@@ -710,43 +771,316 @@
         </div>
     </div>
     <!-- Main Content -->
-    <main class="main-wrapper">
-        <div class="main-content">
+   <main class="main-wrapper" id="mainContent" style="position: relative;">
+    <div class="main-content">
             @RenderBody()
-        </div>
-    </main>
-    <script src="assets/js/jquery.min.js"></script>
-    <script src="assets/plugins/datatable/js/jquery.dataTables.min.js"></script>
+    </div>
+
+
+</main>
+<div id="modalContainer"></div>
+<div
+    id="globalSpinnerOverlay"
+    style="
+      display: none;
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;">
+    <div class="spinner-border text-light" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    </div>
+    <script src="~/assets/js/jquery.min.js"></script>
+
     <!-- Scripts -->
-    <script src="assets/js/bootstrap.bundle.min.js"></script>
+    <script src="~/assets/js/bootstrap.bundle.min.js"></script>
 
     <!--plugins-->
-
+    <script src="~/assets/plugins/datatable/js/jquery.dataTables.min.js"></script>
     <!--plugins-->
-    <script src="assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js"></script>
-    <script src="assets/plugins/metismenu/metisMenu.min.js"></script>
+    <script src="~/assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js"></script>
+    <script src="~/assets/plugins/metismenu/metisMenu.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-
-    <script src="assets/plugins/apexchart/apexcharts.min.js"></script>
-    <script src="assets/plugins/simplebar/js/simplebar.min.js"></script>
-    <script src="assets/plugins/peity/jquery.peity.min.js"></script>
-    <script src="assets/plugins/fancy-file-uploader/jquery.ui.widget.js"></script>
-    <script src="assets/plugins/fancy-file-uploader/jquery.fileupload.js"></script>
-    <script src="assets/plugins/fancy-file-uploader/jquery.iframe-transport.js"></script>
-    <script src="assets/plugins/fancy-file-uploader/jquery.fancy-fileupload.js"></script>
-    <script src="assets/plugins/Drag-And-Drop/dist/imageuploadify.min.js"></script>
-    <script src="assets/plugins/bs-stepper/js/bs-stepper.min.js"></script>
-    <script src="assets/plugins/bs-stepper/js/main.js"></script>
+    
+    <script src="~/assets/plugins/apexchart/apexcharts.min.js"></script>
+    <script src="~/assets/plugins/simplebar/js/simplebar.min.js"></script>
+    <script src="~/assets/plugins/peity/jquery.peity.min.js"></script>
+    <script src="~/assets/plugins/fancy-file-uploader/jquery.ui.widget.js"></script>
+    <script src="~/assets/plugins/fancy-file-uploader/jquery.fileupload.js"></script>
+    <script src="~/assets/plugins/fancy-file-uploader/jquery.iframe-transport.js"></script>
+    <script src="~/assets/plugins/fancy-file-uploader/jquery.fancy-fileupload.js"></script>
+    <script src="~/assets/plugins/Drag-And-Drop/dist/imageuploadify.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="~/assets/plugins/validation/jquery.validate.min.js"></script>
+    <script src="~/assets/plugins/validation/validation-script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3/build/global/luxon.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+   <script>
+          // 1) Build & start one HubConnection for both tickets and notifications
+          const hub = new signalR.HubConnectionBuilder()
+            .withUrl("/chathub")
+            .build();
+
+          // 2) Ticket–badge handler (already in place)
+          hub.on("ReceiveNewTicket", ticket => {
+            const badge = document.getElementById("supportBadge");
+            if (!badge) return;
+            let n = parseInt(badge.textContent, 10) || 0;
+            badge.textContent = n + 1;
+          });
+
+          // 3) New: Notification handler
+          hub.on("ReceiveNotification", n => {
+            // 3a) Update the little badge
+            const notifBadge = document.getElementById("notificationCount");
+            if (notifBadge) {
+              let count = parseInt(notifBadge.textContent, 10) || 0;
+              notifBadge.textContent = count + 1;
+              notifBadge.style.display = 'inline-block';
+            }
+
+            // 3b) Prepend to the dropdown list
+            const container = document.querySelector(".notify-list");
+            if (!container) return;
+
+            const html = `
+              <div>
+                <a class="dropdown-item border-bottom py-2"
+                   href="javascript:;"
+                   onclick="markAsRead(${n.notificationId}, this)">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="user-wrapper bg-primary text-primary bg-opacity-10">
+                      <span>${n.title.substring(0,2).toUpperCase()}</span>
+                    </div>
+                    <div>
+                      <h5 class="notify-title">${n.title}</h5>
+                      <p class="mb-0 notify-desc">${n.description}</p>
+                      <p class="mb-0 notify-time">
+                        ${new Date(n.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <div class="notify-close position-absolute end-0 me-3">
+                      <i class="material-icons-outlined fs-6">close</i>
+                    </div>
+                  </div>
+                </a>
+              </div>
+            `;
+            container.insertAdjacentHTML('afterbegin', html);
+          });
+
+          // 4) Start & auto‐join your groups
+          hub.start()
+            .then(() => {
+              // company group (if you want company‐wide broadcasts)
+              const companyId = document
+                .querySelector('meta[name="company-id"]')
+                ?.getAttribute('content');
+              if (companyId) {
+                hub.invoke('JoinCompanyGroup', parseInt(companyId,10))
+                   .catch(console.error);
+              }
+              // admin group
+              const isAdmin = document
+                .querySelector('meta[name="is-admin"]')
+                ?.getAttribute('content') === 'true';
+              // if (isAdmin) {
+              //   hub.invoke('JoinGroup', 'Admins')
+              //      .catch(console.error);
+              // }
+              // your personal user group is already joined in OnConnectedAsync()
+              // so no need to invoke it here unless you overrode that behavior
+            })
+            .catch(console.error);
+        </script>
+    <script>
+  const savedTheme = localStorage.getItem("selectedTheme") || "light";
+  document.documentElement.setAttribute("data-bs-theme", savedTheme);
+</script>
+    <script>
+      toastr.options = {
+        closeButton: true,
+        progressBar: true,
+        positionClass: "toast-bottom-right",
+        timeOut: "3000"
+      };
+    </script>
+    <script>
+        // Example starter JavaScript for disabling form submissions if there are invalid fields
+            (function () {
+              'use strict'
+
+              // Fetch all the forms we want to apply custom Bootstrap validation styles to
+              var forms = document.querySelectorAll('.needs-validation')
+
+              // Loop over them and prevent submission
+              Array.prototype.slice.call(forms)
+                .forEach(function (form) {
+                  form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                      event.preventDefault()
+                      event.stopPropagation()
+                    }
+
+                    form.classList.add('was-validated')
+                  }, false)
+                })
+            })()
+    </script>
+    <script>
+        window.currentUserType = "@userType";
+        window.canEditOrder = "@canEditOrders";
+       window.canReadOrder = "@canSeeOrders";
+    </script>
+    <script>
+
+        window.localizedTextDT = {
+            search: "@SharedResource.Search",
+            first: "@SharedResource.First",
+            last: "@SharedResource.Last",
+            next: "@SharedResource.Next",
+            previous: "@SharedResource.Previous",
+            noRecords: "@SharedResource.No_matching_records_found",
+            noData: "@SharedResource.No_data_available_in_table",
+            copy: "@SharedResource.Copy",
+            excel: "@SharedResource.Excel",
+            pdf: "@SharedResource.PDF",
+            print: "@SharedResource.Print",
+            info: "@SharedResource.Showing__START__to_END__of__TOTAL__entries",
+            lengthMenu: "@SharedResource.Show_MENU__entries",
+            FillAllRequiredFields : "@SharedResource.Please_fill_all_required_fields__",
+            Companyadded : "@SharedResource.Company_added_successfully_",
+            ErrorForm : "@SharedResource.Error_while_submitting_form_",
+            Ordercanceled: "@SharedResource.Ordercanceled",
+            OrderCannotBeCancelled : "@SharedResource.OrderCannotBeCancelled",
+            Pleaseenterreceipt : "@SharedResource.Pleaseenterreceipt",
+            Receiptsubmittedsuccess : "@SharedResource.Receiptsubmittedsuccess",
+            Receiptverify : "@SharedResource.Receiptverify",
+            Errorreceipt : "@SharedResource.Errorreceipt",
+            apisuccess : "@SharedResource.apisuccess",
+            SomethingWentWrong : "@SharedResource.SomethingWentWrong",
+            deleteapiconfirmation : "@SharedResource.deleteapiconfirmation",
+            Pleasefillapi : "@SharedResource.Pleasefillapi",
+            processingWithPercent : "@SharedResource.processingWithPercent",
+            TotalNumbers : "@Html.Raw(@SharedResource.TotalNumbers)",
+            validcounts : "@Html.Raw(@SharedResource.validcounts)",
+            invalidcounts: "@Html.Raw(@SharedResource.invalidcounts)",
+            ordercreeatedadminapproval : "@SharedResource.ordercreeatedadminapproval",
+            smssent : "@SharedResource.smssent",
+            profileupdatedsuccess : "@SharedResource.profileupdatedsuccess",
+            confirmchangeapi : "@SharedResource.confirmchangeapi",
+            apichangessmssent : "@SharedResource.apichangessmssent",
+            chooseapi : "@SharedResource.Choose_API",
+            deactivatecompany : "@SharedResource.deactivatecompany",
+            companydeactivatesuccess : "@SharedResource.companydeactivatesuccess",
+            Failed : "@SharedResource.Failed",
+            companydeleteconfirmation : "@SharedResource.companydeleteconfirmation",
+            companydeletesuccess : "@SharedResource.companydeletesuccess",
+            deleteuserconfirmation : "@Html.Raw(@SharedResource.deleteuserconfirmation)",
+            companyusersuccess : "@Html.Raw(@SharedResource.companyusersuccess)",
+            userdeletedsuccess : "@Html.Raw(@SharedResource.userdeletedsuccess)",
+            companyuserupdated : "@Html.Raw(@SharedResource.companyuserupdated)",
+            resendorder : "@Html.Raw(@SharedResource.resendorder)",
+            ticketcreated : "@SharedResource.ticketcreated",
+            notransactionsavailable : "@SharedResource.notransactionsavailable",
+            directorysuccess : "@SharedResource.directorysuccess",
+            deletedirectory : "@Html.Raw(@SharedResource.deletedirectory)",
+            phoneadded : "@SharedResource.phoneadded",
+            phoneremoved : "@SharedResource.phoneremoved",
+            companyactivated : "@SharedResource.companyactivated",
+            companydeactivated : "@SharedResource.companydeactivated",
+            activate : "@SharedResource.Activate",
+            deactivate : "@SharedResource.Deactivate",
+            confirmsend : "@SharedResource.Confirm_Send",
+            resend : "@SharedResource.Resend",
+            changeApi : "@SharedResource.changeapi",
+            cancelorder : "@SharedResource.Cancel_Order",
+            waiting_to_be_sent : "@SharedResource.Waiting_to_be_sent",
+            sent : "@SharedResource.Sent",
+            failed : "@SharedResource.Failed",
+            cancelled : "@SharedResource.Cancelled",
+            awaitingApproval : "@SharedResource.Awaiting_Approval",
+            cancelconfirmation : "@SharedResource.Are_you_sure_you_want_to_cancel_this_order_",
+            selectdirectory : "@SharedResource.selectdirectory",
+            defaultupdated : "@Html.Raw(@SharedResource.defaultupdated)",
+            makedefault : "@Html.Raw(@SharedResource.makedefault)",
+            Default : "@Html.Raw(@SharedResource.Default)"
+        };
+    </script>
+    <script>
+  
+    if (window.location.pathname.toLowerCase().includes('/account/logout')) {
+        sessionStorage.removeItem('sessionRefreshed');
+    }
+</script>
     <script>
         $(".data-attributes span").peity("donut")
     </script>
-    <script src="assets/js/main.js"></script>
-    <script src="assets/js/dashboard1.js"></script>
-    <script src="js/Custom.js"></script>
-    <script>
-        new PerfectScrollbar(".user-list")
-    </script>
- 
+    <script src="~/assets/js/main.js"></script>
+    <script src="~/assets/js/dashboard1.js"></script>
+    <script src="~/js/Custom.js"></script>
+
+    @RenderSection("Scripts", required: false)
+
+ <div class="modal fade" id="smsModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content" id="smsModalContent">
+            <!-- AJAX content will be loaded here -->
+        </div>
+    </div>
+</div>
+    <div class="modal fade" id="changeApiModal" tabindex="-1" aria-labelledby="changeApiModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form id="changeApiForm" autocomplete="off">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="changeApiModalLabel">@SharedResource.changesmsapi</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="changeOrderId" name="OrderId" />
+                        <select id="newApiId" name="ApiId" class="form-select" required></select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">@SharedResource.changeapi</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+<span id="confirmText" data-value="@SharedResource.Approve" style="display:none;"></span>
+<div class="modal fade" id="smsPreviewModal" tabindex="-1" aria-labelledby="smsPreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="smsPreviewModalLabel">@SharedResource.SMS_Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+                <label for="previewMessage" class="form-label"><strong>Message:</strong></label>
+                <textarea readonly class="form-control bg-light border rounded" rows="6" style="resize: none;" id="previewMessage"></textarea>
+                    @*    <pre id="previewMessage" class="bg-light p-2 rounded border"></pre> *@
+
+                <p><strong>@SharedResource.Numbers</strong></p>
+               @*  <pre id="previewRecipients" class="bg-light p-2 rounded border"></pre> *@
+                    <textarea id="previewRecipients" class="form-control bg-light border rounded" rows="4" readonly></textarea>
+
+
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-grd-deep-blue" data-bs-dismiss="modal">@SharedResource.Edit</button>
+                <button type="button" class="btn btn-grd-primary" id="confirmSendSms">@SharedResource.Submit</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>

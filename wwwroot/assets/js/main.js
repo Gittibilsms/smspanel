@@ -6,9 +6,9 @@ $(function () {
 
   /* scrollar */
 
-  new PerfectScrollbar(".notify-list")
+  //new PerfectScrollbar(".notify-list")
 
-  new PerfectScrollbar(".search-content")
+  //new PerfectScrollbar(".search-content")
 
   // new PerfectScrollbar(".mega-menu-widgets")
 
@@ -48,11 +48,11 @@ $(function () {
   });
 
 
-  $(".dark-mode").click(function () {
-    $("html").attr("data-bs-theme", function (i, v) {
-      return v === 'dark' ? 'light' : 'dark';
-    })
-  })
+    $(".dark-mode").click(function () {
+        const newTheme = $("html").attr("data-bs-theme") === 'dark' ? 'light' : 'dark';
+        $("html").attr("data-bs-theme", newTheme);
+        localStorage.setItem("selectedTheme", newTheme);
+    });
 
 
   /* sticky header */
@@ -94,23 +94,28 @@ $(function () {
   /* switcher */
 
   $("#BlueTheme").on("click", function () {
-    $("html").attr("data-bs-theme", "blue-theme")
+      $("html").attr("data-bs-theme", "blue-theme");
+      localStorage.setItem("selectedTheme", "blue-theme");
   }),
 
   $("#LightTheme").on("click", function () {
-    $("html").attr("data-bs-theme", "light")
+      $("html").attr("data-bs-theme", "light");
+      localStorage.setItem("selectedTheme", "light");
   }),
 
     $("#DarkTheme").on("click", function () {
-      $("html").attr("data-bs-theme", "dark")
+        $("html").attr("data-bs-theme", "dark");
+        localStorage.setItem("selectedTheme", "dark");
     }),
 
     $("#SemiDarkTheme").on("click", function () {
-      $("html").attr("data-bs-theme", "semi-dark")
+        $("html").attr("data-bs-theme", "semi-dark");
+        localStorage.setItem("selectedTheme", "semi-dark");
     }),
 
     $("#BoderedTheme").on("click", function () {
-      $("html").attr("data-bs-theme", "bodered-theme")
+        $("html").attr("data-bs-theme", "bodered-theme");
+        localStorage.setItem("selectedTheme", "bodered-theme");
     })
 
 

@@ -1,32 +1,32 @@
 [data-bs-theme=blue-theme] body {
-  --bs-heading-color: #e6ecf0;
-  --bs-body-color: #d3d7dc;
-  --bs-body-bg: #0f1535;
-  --bs-body-bg-2: #181f4a;
-  --bs-transparent-bg: rgba(255, 255, 255, 0.10);
-  --bs-border-color-translucent: rgba(226, 232, 240, 0.15);
-  --bs-border-color: rgba(255, 255, 255, 0.15);
-  --sticky-header-bg: rgba(255, 255, 255, 0.45);
-  --bs-disabled-bg: #4b5481;
-  --bs-tertiary-bg: #181f4a;
-  --bs-card-bg: #070c29;
-  background-image: url(../assets/images/bg-themes/body-background-1.webp);
-  background-attachment: fixed;
-  background-size: cover;
-  background-repeat: no-repeat;
-  background-color: transparent;
-  color: var(--bs-body-color);
-  background-color: var(--bs-body-bg-2);
-  /* aligns */
-  /*header*/
-  /* sidebar */
-  /* main content */
-  /*page footer*/
-  /* Metis Menu */
-  /* order offcanvas */
-  /* utilities */
-  /* email box */
-  /* chat box */
+    --bs-heading-color: #00B19C;
+    --bs-body-color: #d3d7dc;
+    --bs-body-bg: #0f1535;
+    --bs-body-bg-2: #181f4a;
+    --bs-transparent-bg: rgba(255, 255, 255, 0.10);
+    --bs-border-color-translucent: rgba(226, 232, 240, 0.15);
+    --bs-border-color: rgba(255, 255, 255, 0.15);
+    --sticky-header-bg: rgba(255, 255, 255, 0.45);
+    --bs-disabled-bg: #4b5481;
+    --bs-tertiary-bg: #181f4a;
+    --bs-card-bg: #070c29;
+    background-image: url(../assets/images/bg-themes/body-background-1.webp);
+    background-attachment: fixed;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    color: var(--bs-body-color);
+    background-color: var(--bs-body-bg-2);
+    /* aligns */
+    /*header*/
+    /* sidebar */
+    /* main content */
+    /*page footer*/
+    /* Metis Menu */
+    /* order offcanvas */
+    /* utilities */
+    /* email box */
+    /* chat box */
 }
 [data-bs-theme=blue-theme] body .form-control:hover:not(:disabled):not([readonly])::file-selector-button {
   background-color: var(--bs-tertiary-bg);

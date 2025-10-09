@@ -117,8 +117,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name=" Enter Company Details" xml:space="preserve">
-    <value> Enter Company Details</value>
+  <data name=" Pay via Tronscan" xml:space="preserve">
+    <value>Pay via Tronscan</value>
   </data>
   <data name="Add Company" xml:space="preserve">
     <value>Add Company</value>
@@ -132,14 +132,20 @@
   <data name="API Management" xml:space="preserve">
     <value>API Management</value>
   </data>
+  <data name="Approve" xml:space="preserve">
+    <value>Approve</value>
+  </data>
   <data name="Average monthly sale for every author" xml:space="preserve">
     <value>Average monthly sale for every author</value>
   </data>
   <data name="Canceled" xml:space="preserve">
     <value>Canceled</value>
   </data>
-  <data name="Cannot send support request" xml:space="preserve">
-    <value>Cannot send support request</value>
+  <data name="Can send support request" xml:space="preserve">
+    <value>Can send support request</value>
+  </data>
+  <data name="Choose a company" xml:space="preserve">
+    <value>Choose a Company</value>
   </data>
   <data name="Choose API" xml:space="preserve">
     <value>Choose API</value>
@@ -165,6 +171,9 @@
   <data name="Creation Date" xml:space="preserve">
     <value>Creation Date</value>
   </data>
+  <data name="Credit" xml:space="preserve">
+    <value>Credit</value>
+  </data>
   <data name="Credit Topups" xml:space="preserve">
     <value>Credit Topups</value>
   </data>
@@ -183,14 +192,26 @@
   <data name="Dealers" xml:space="preserve">
     <value>Dealers</value>
   </data>
+  <data name="Default API" xml:space="preserve">
+    <value>Default API</value>
+  </data>
   <data name="Delivered" xml:space="preserve">
     <value>Delivered</value>
   </data>
   <data name="Directory" xml:space="preserve">
     <value>Directory</value>
   </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
   <data name="Email" xml:space="preserve">
     <value>Email</value>
+  </data>
+  <data name="End Date" xml:space="preserve">
+    <value>Bitiş Tarihi</value>
+  </data>
+  <data name="Enter Invoice Number" xml:space="preserve">
+    <value>Enter Invoice Number</value>
   </data>
   <data name="File" xml:space="preserve">
     <value>File</value>
@@ -213,6 +234,12 @@
   <data name="Invalid Numbers" xml:space="preserve">
     <value>Invalid Numbers</value>
   </data>
+  <data name="Invoice number" xml:space="preserve">
+    <value>Invoice number</value>
+  </data>
+  <data name="Is it active" xml:space="preserve">
+    <value>Is It Active?</value>
+  </data>
   <data name="Loaded" xml:space="preserve">
     <value>Loaded</value>
   </data>
@@ -224,6 +251,9 @@
   </data>
   <data name="Management" xml:space="preserve">
     <value>Management</value>
+  </data>
+  <data name="Mark as Paid" xml:space="preserve">
+    <value>Mark as Paid</value>
   </data>
   <data name="Medium (500,000-1,000,000 SMS unit price)" xml:space="preserve">
     <value>Medium (500,000-1,000,000 SMS unit price)</value>
@@ -264,8 +294,17 @@
   <data name="Past messages" xml:space="preserve">
     <value>Past messages</value>
   </data>
+  <data name="Pay" xml:space="preserve">
+    <value>Pay</value>
+  </data>
+  <data name="Payment Options" xml:space="preserve">
+    <value>Payment Options</value>
+  </data>
   <data name="Pending" xml:space="preserve">
     <value>Pending</value>
+  </data>
+  <data name="Preview" xml:space="preserve">
+    <value>Preview</value>
   </data>
   <data name="Pricing" xml:space="preserve">
     <value>Pricing</value>
@@ -300,11 +339,20 @@
   <data name="Roles" xml:space="preserve">
     <value>Roles</value>
   </data>
+  <data name="Select Payment Option" xml:space="preserve">
+    <value>Select Payment Option</value>
+  </data>
   <data name="Sendsms" xml:space="preserve">
     <value>Send New SMS</value>
   </data>
   <data name="Settings" xml:space="preserve">
     <value>Settings</value>
+  </data>
+  <data name="SMS Preview" xml:space="preserve">
+    <value>SMS Preview</value>
+  </data>
+  <data name="Start Date" xml:space="preserve">
+    <value>Start Date</value>
   </data>
   <data name="Status" xml:space="preserve">
     <value>Status</value>
@@ -333,6 +381,9 @@
   <data name="Unsuccessful" xml:space="preserve">
     <value>Unsuccessful</value>
   </data>
+  <data name="Updated Date" xml:space="preserve">
+    <value>Updated Date</value>
+  </data>
   <data name="User Information" xml:space="preserve">
     <value>User Information</value>
   </data>
@@ -342,10 +393,988 @@
   <data name="Users" xml:space="preserve">
     <value>Users</value>
   </data>
+  <data name="Wallet ID" xml:space="preserve">
+    <value>Wallet ID</value>
+  </data>
   <data name="welcome" xml:space="preserve">
     <value>Welcome!</value>
   </data>
   <data name="Welcome Back" xml:space="preserve">
     <value>Welcome Back</value>
+  </data>
+  <data name=" Enter Company Details" xml:space="preserve">
+    <value> Enter Company Details</value>
+  </data>
+  <data name="All Status" xml:space="preserve">
+    <value>All Status</value>
+  </data>
+  <data name="Pending approval" xml:space="preserve">
+    <value>Pending approval</value>
+  </data>
+  <data name="Sent" xml:space="preserve">
+    <value>Sent</value>
+  </data>
+  <data name="Cancelled" xml:space="preserve">
+    <value>Cancelled</value>
+  </data>
+  <data name="Waiting to be sent" xml:space="preserve">
+    <value>Waiting to be sent</value>
+  </data>
+  <data name="Shipping has started" xml:space="preserve">
+    <value>Shipping has started</value>
+  </data>
+  <data name="Send Failed" xml:space="preserve">
+    <value>Send Failed</value>
+  </data>
+  <data name="All Companies" xml:space="preserve">
+    <value>All Companies</value>
+  </data>
+  <data name="Deactivate" xml:space="preserve">
+    <value>Deactivate</value>
+  </data>
+  <data name="All Orders" xml:space="preserve">
+    <value>All Orders</value>
+  </data>
+  <data name="Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="Submission Failed" xml:space="preserve">
+    <value>Submission Failed</value>
+  </data>
+  <data name="Directories" xml:space="preserve">
+    <value>Directories</value>
+  </data>
+  <data name="Blacklist" xml:space="preserve">
+    <value>Blacklist</value>
+  </data>
+  <data name="Get Started Now" xml:space="preserve">
+    <value>Get Started Now</value>
+  </data>
+  <data name="Enter your credentials to login your account" xml:space="preserve">
+    <value>Enter your credentials to login your account</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Login</value>
+  </data>
+  <data name="Forgot Password ?" xml:space="preserve">
+    <value>Forgot Password ?</value>
+  </data>
+  <data name="Valid" xml:space="preserve">
+    <value>Valid</value>
+  </data>
+  <data name="Invalid" xml:space="preserve">
+    <value>Invalid</value>
+  </data>
+  <data name="Available credit" xml:space="preserve">
+    <value>Available Credit</value>
+  </data>
+  <data name="Price per SMS" xml:space="preserve">
+    <value>Price per SMS</value>
+  </data>
+  <data name="This order cost" xml:space="preserve">
+    <value>This order cost</value>
+  </data>
+  <data name="Total" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="Undelivered" xml:space="preserve">
+    <value>Undelivered</value>
+  </data>
+  <data name="Expired" xml:space="preserve">
+    <value>Expired</value>
+  </data>
+  <data name="Monthly SMS Sent" xml:space="preserve">
+    <value>Monthly SMS Sent</value>
+  </data>
+  <data name="Standard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="Low (1–500,000 SMS unit price)" xml:space="preserve">
+    <value>Low (1–500,000 SMS unit price)</value>
+  </data>
+  <data name="Medium (500,000–1,000,000 SMS unit price)" xml:space="preserve">
+    <value>Medium (500,000–1,000,000 SMS unit price)</value>
+  </data>
+  <data name="High (1,000,000+ SMS unit price)" xml:space="preserve">
+    <value>High (1,000,000+ SMS unit price)</value>
+  </data>
+  <data name="Credit Transactions" xml:space="preserve">
+    <value>Credit Transactions</value>
+  </data>
+  <data name="Add credit" xml:space="preserve">
+    <value>Add credit</value>
+  </data>
+  <data name="Delete credit" xml:space="preserve">
+    <value>Delete credit</value>
+  </data>
+  <data name="Update" xml:space="preserve">
+    <value>Update</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="Transaction Type" xml:space="preserve">
+    <value>Transaction Type</value>
+  </data>
+  <data name="Unit Price" xml:space="preserve">
+    <value>Unit Price</value>
+  </data>
+  <data name="Transaction Date" xml:space="preserve">
+    <value>Transaction Date</value>
+  </data>
+  <data name="Note" xml:space="preserve">
+    <value>Note</value>
+  </data>
+  <data name="Add New User" xml:space="preserve">
+    <value>Add New User</value>
+  </data>
+  <data name="Full Name" xml:space="preserve">
+    <value>Full Name</value>
+  </data>
+  <data name="Quota Type" xml:space="preserve">
+    <value>Quota Type</value>
+  </data>
+  <data name="Daily" xml:space="preserve">
+    <value>Daily</value>
+  </data>
+  <data name="Monthly" xml:space="preserve">
+    <value>Monthly</value>
+  </data>
+  <data name="Quota" xml:space="preserve">
+    <value>Quota</value>
+  </data>
+  <data name="2FA Type" xml:space="preserve">
+    <value>2FA Type</value>
+  </data>
+  <data name="Save User" xml:space="preserve">
+    <value>Save User</value>
+  </data>
+  <data name="Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Edit User" xml:space="preserve">
+    <value>Edit User</value>
+  </data>
+  <data name="Noquota" xml:space="preserve">
+    <value>No quota</value>
+  </data>
+  <data name="None" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Price" xml:space="preserve">
+    <value>Price</value>
+  </data>
+  <data name="Unit price options" xml:space="preserve">
+    <value>Unit price options</value>
+  </data>
+  <data name="Automatic" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="Manual" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="Credit to remove" xml:space="preserve">
+    <value>Credit to remove</value>
+  </data>
+  <data name="All Company Users" xml:space="preserve">
+    <value>All Company Users</value>
+  </data>
+  <data name=" Edit Company User" xml:space="preserve">
+    <value> Edit Company User</value>
+  </data>
+  <data name="Select Firm" xml:space="preserve">
+    <value>Select Firm</value>
+  </data>
+  <data name="Variable Quota" xml:space="preserve">
+    <value>Variable Quota</value>
+  </data>
+  <data name="New Company User" xml:space="preserve">
+    <value>New Company User</value>
+  </data>
+  <data name="Create" xml:space="preserve">
+    <value>Create</value>
+  </data>
+  <data name="Report will be available after 48 hours." xml:space="preserve">
+    <value>Report will be available after 48 hours.</value>
+  </data>
+  <data name="Report not yet generated." xml:space="preserve">
+    <value>Report not yet generated.</value>
+  </data>
+  <data name="Remove Special Pricing" xml:space="preserve">
+    <value>Remove Special Pricing</value>
+  </data>
+  <data name="Pricing History" xml:space="preserve">
+    <value>Pricing History</value>
+  </data>
+  <data name="Low" xml:space="preserve">
+    <value>Low</value>
+  </data>
+  <data name="Medium" xml:space="preserve">
+    <value>Medium</value>
+  </data>
+  <data name="High" xml:space="preserve">
+    <value>High</value>
+  </data>
+  <data name="Create New Role" xml:space="preserve">
+    <value>Create New Role</value>
+  </data>
+  <data name="Role Name" xml:space="preserve">
+    <value>Role Name</value>
+  </data>
+  <data name="The RoleName field is required." xml:space="preserve">
+    <value>The RoleName field is required.</value>
+  </data>
+  <data name="Read Only" xml:space="preserve">
+    <value>Read Only</value>
+  </data>
+  <data name="ReadOnly field is required." xml:space="preserve">
+    <value>ReadOnly field is required.</value>
+  </data>
+  <data name="Create Role" xml:space="preserve">
+    <value>Create Role</value>
+  </data>
+  <data name="All Roles" xml:space="preserve">
+    <value>All Roles</value>
+  </data>
+  <data name="Role" xml:space="preserve">
+    <value>Role</value>
+  </data>
+  <data name="User Based Authorizations" xml:space="preserve">
+    <value>User Based Authorizations</value>
+  </data>
+  <data name="Authority" xml:space="preserve">
+    <value>Authority</value>
+  </data>
+  <data name="Read" xml:space="preserve">
+    <value>Read</value>
+  </data>
+  <data name="Company User" xml:space="preserve">
+    <value>Company User</value>
+  </data>
+  <data name="Order" xml:space="preserve">
+    <value>Order</value>
+  </data>
+  <data name="User" xml:space="preserve">
+    <value>User</value>
+  </data>
+  <data name="Passive Numbers" xml:space="preserve">
+    <value>Passive Numbers</value>
+  </data>
+  <data name="Account transactions" xml:space="preserve">
+    <value>Account transactions</value>
+  </data>
+  <data name="Dealer transactions" xml:space="preserve">
+    <value>Dealer transactions</value>
+  </data>
+  <data name="Special Powers" xml:space="preserve">
+    <value>Special Powers</value>
+  </data>
+  <data name="Connecting to a user account" xml:space="preserve">
+    <value>Connecting to a user account</value>
+  </data>
+  <data name="Role assignment authority" xml:space="preserve">
+    <value>Role assignment authority</value>
+  </data>
+  <data name="Dealer Based Authorizations" xml:space="preserve">
+    <value>Dealer Based Authorizations</value>
+  </data>
+  <data name="Dealer" xml:space="preserve">
+    <value>Dealer</value>
+  </data>
+  <data name="Dealer credit" xml:space="preserve">
+    <value>Dealer Credit</value>
+  </data>
+  <data name="Dealer support request" xml:space="preserve">
+    <value>Dealer support request</value>
+  </data>
+  <data name="Dealer account transactions" xml:space="preserve">
+    <value>Dealer account transactions</value>
+  </data>
+  <data name="Dealer users" xml:space="preserve">
+    <value>Dealer users</value>
+  </data>
+  <data name="Role information could not be loaded." xml:space="preserve">
+    <value>Role information could not be loaded.</value>
+  </data>
+  <data name="Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Results" xml:space="preserve">
+    <value>Results</value>
+  </data>
+  <data name="See All Search Results" xml:space="preserve">
+    <value>See All Search Results</value>
+  </data>
+  <data name="Notifications" xml:space="preserve">
+    <value>Notifications</value>
+  </data>
+  <data name="Mark all as read" xml:space="preserve">
+    <value>Mark all as read</value>
+  </data>
+  <data name="No roles found." xml:space="preserve">
+    <value>No roles found.</value>
+  </data>
+  <data name="All Users" xml:space="preserve">
+    <value>All Users</value>
+  </data>
+  <data name="Verification type" xml:space="preserve">
+    <value>Verification type</value>
+  </data>
+  <data name="Process" xml:space="preserve">
+    <value>Process</value>
+  </data>
+  <data name="No permissions assigned." xml:space="preserve">
+    <value>No permissions assigned.</value>
+  </data>
+  <data name="Enable Two-Factor Authentication" xml:space="preserve">
+    <value>Enable Two-Factor Authentication</value>
+  </data>
+  <data name="Scan the QR code below using Google Authenticator or any TOTP app:" xml:space="preserve">
+    <value>Scan the QR code below using Google Authenticator or any TOTP app:</value>
+  </data>
+  <data name="Enter the 6-digit code from your app:" xml:space="preserve">
+    <value>Enter the 6-digit code from your app:</value>
+  </data>
+  <data name="Verify &amp; Enable 2FA" xml:space="preserve">
+    <value>Verify &amp; Enable 2FA</value>
+  </data>
+  <data name="No users found." xml:space="preserve">
+    <value>No users found.</value>
+  </data>
+  <data name="New User" xml:space="preserve">
+    <value>New User</value>
+  </data>
+  <data name="Edit Profile" xml:space="preserve">
+    <value>Edit Profile</value>
+  </data>
+  <data name="2FA is enabled" xml:space="preserve">
+    <value>2FA is enabled</value>
+  </data>
+  <data name="Enable 2FA" xml:space="preserve">
+    <value>Enable 2FA</value>
+  </data>
+  <data name="Upload Profile Photo" xml:space="preserve">
+    <value>Upload Profile Photo</value>
+  </data>
+  <data name="Save Changes" xml:space="preserve">
+    <value>Save Changes</value>
+  </data>
+  <data name="Add API" xml:space="preserve">
+    <value>Add API</value>
+  </data>
+  <data name="Service Name" xml:space="preserve">
+    <value>Service Name</value>
+  </data>
+  <data name="Originator" xml:space="preserve">
+    <value>Originator</value>
+  </data>
+  <data name="Edit API" xml:space="preserve">
+    <value>Edit API</value>
+  </data>
+  <data name="Service Type" xml:space="preserve">
+    <value>Service Type</value>
+  </data>
+  <data name="Activate" xml:space="preserve">
+    <value>Activate</value>
+  </data>
+  <data name="Choose Firm" xml:space="preserve">
+    <value>Choose Firm</value>
+  </data>
+  <data name="Order Timeline" xml:space="preserve">
+    <value>Order Timeline</value>
+  </data>
+  <data name="View Full Order Details" xml:space="preserve">
+    <value>View Full Order Details</value>
+  </data>
+  <data name="Report" xml:space="preserve">
+    <value>Report</value>
+  </data>
+  <data name="Resend" xml:space="preserve">
+    <value>Resend</value>
+  </data>
+  <data name="Scheduled" xml:space="preserve">
+    <value>Scheduled</value>
+  </data>
+  <data name="Approved" xml:space="preserve">
+    <value>Approved</value>
+  </data>
+  <data name="Awaiting Approval" xml:space="preserve">
+    <value>Awaiting Approval</value>
+  </data>
+  <data name="Order Status" xml:space="preserve">
+    <value>Order Status</value>
+  </data>
+  <data name="Details" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Order No" xml:space="preserve">
+    <value>Order No</value>
+  </data>
+  <data name="Summary" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Waiting" xml:space="preserve">
+    <value>Waiting</value>
+  </data>
+  <data name="Forwarded" xml:space="preserve">
+    <value>Forwarded</value>
+  </data>
+  <data name="Change API" xml:space="preserve">
+    <value>Change API</value>
+  </data>
+  <data name="Cancel Order" xml:space="preserve">
+    <value>Cancel Order</value>
+  </data>
+  <data name="Are you sure you want to cancel this order?" xml:space="preserve">
+    <value>Are you sure you want to cancel this order?</value>
+  </data>
+  <data name="Order ID" xml:space="preserve">
+    <value>Order ID</value>
+  </data>
+  <data name="Filter Order ID" xml:space="preserve">
+    <value>Filter Order ID</value>
+  </data>
+  <data name="Filter Company" xml:space="preserve">
+    <value>Filter Company</value>
+  </data>
+  <data name="Filter API" xml:space="preserve">
+    <value>Filter API</value>
+  </data>
+  <data name="Filter Submission Type" xml:space="preserve">
+    <value>Filter Submission Type</value>
+  </data>
+  <data name="Min Loaded" xml:space="preserve">
+    <value>Min Loaded</value>
+  </data>
+  <data name="Min Processed" xml:space="preserve">
+    <value>Min Processed</value>
+  </data>
+  <data name="Min Unsuccessful" xml:space="preserve">
+    <value>Min Unsuccessful</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Yes</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Confirm Send" xml:space="preserve">
+    <value>Confirm Send</value>
+  </data>
+  <data name="Files" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="Blacklisted" xml:space="preserve">
+    <value>Blacklisted</value>
+  </data>
+  <data name="Filtered" xml:space="preserve">
+    <value>Filtered</value>
+  </data>
+  <data name="Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Previous" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Copy</value>
+  </data>
+  <data name="Print" xml:space="preserve">
+    <value>Print</value>
+  </data>
+  <data name="Excel" xml:space="preserve">
+    <value>Excel</value>
+  </data>
+  <data name="PDF" xml:space="preserve">
+    <value>PDF</value>
+  </data>
+  <data name="No matching records found" xml:space="preserve">
+    <value>No matching records found</value>
+  </data>
+  <data name="No data available in table" xml:space="preserve">
+    <value>No data available in table</value>
+  </data>
+  <data name="First" xml:space="preserve">
+    <value>First</value>
+  </data>
+  <data name="Last" xml:space="preserve">
+    <value>Last</value>
+  </data>
+  <data name="Showing _START_ to_END_ of _TOTAL_ entries" xml:space="preserve">
+    <value>Showing _START_ to_END_ of _TOTAL_ entries</value>
+  </data>
+  <data name="Show_MENU_ entries" xml:space="preserve">
+    <value>Show _MENU_ entries</value>
+  </data>
+  <data name="Total Numbers" xml:space="preserve">
+    <value>Total Numbers</value>
+  </data>
+  <data name="Please fill all required fields. " xml:space="preserve">
+    <value>Please fill all required fields. </value>
+  </data>
+  <data name="Company added successfully!" xml:space="preserve">
+    <value>Company added successfully!</value>
+  </data>
+  <data name="Error while submitting form." xml:space="preserve">
+    <value>Error while submitting form.</value>
+  </data>
+  <data name="OrderNotFound" xml:space="preserve">
+    <value>Order not found. </value>
+  </data>
+  <data name="OrderCannotBeCancelled" xml:space="preserve">
+    <value>This order cannot be cancelled. </value>
+  </data>
+  <data name="OrderWasCancelled" xml:space="preserve">
+    <value>Order was cancelled </value>
+  </data>
+  <data name="Ordercanceled" xml:space="preserve">
+    <value>Order cancelled successfully. </value>
+  </data>
+  <data name="Pleaseenterreceipt" xml:space="preserve">
+    <value>Please enter a receipt number.</value>
+  </data>
+  <data name="Receiptsubmittedsuccess" xml:space="preserve">
+    <value>Receipt submitted successfully.</value>
+  </data>
+  <data name="Receiptverify" xml:space="preserve">
+    <value>Receipt received. We will verify your payment shortly.</value>
+  </data>
+  <data name="Receiptnumberrequired" xml:space="preserve">
+    <value>Receipt number is required.</value>
+  </data>
+  <data name="Errorreceipt" xml:space="preserve">
+    <value>Error submitting receipt.</value>
+  </data>
+  <data name="apisuccess" xml:space="preserve">
+    <value>API Created Successfully.</value>
+  </data>
+  <data name="SomethingWentWrong" xml:space="preserve">
+    <value>Something went wrong.</value>
+  </data>
+  <data name="deleteapiconfirmation" xml:space="preserve">
+    <value>Are you sure you want to delete this API?</value>
+  </data>
+  <data name="Totalsmssentpermonth" xml:space="preserve">
+    <value>Total SMS Sent Per Month</value>
+  </data>
+  <data name="hello" xml:space="preserve">
+    <value>Hello</value>
+  </data>
+  <data name="Pleasefillapi" xml:space="preserve">
+    <value>Please fill all the required fields.</value>
+  </data>
+  <data name="processingWithPercent" xml:space="preserve">
+    <value>Processing... {0}%</value>
+  </data>
+  <data name="TotalNumbers" xml:space="preserve">
+    <value>Total Numbers: {0}</value>
+  </data>
+  <data name="validcounts" xml:space="preserve">
+    <value>Valid: {0}</value>
+  </data>
+  <data name="invalidcounts" xml:space="preserve">
+    <value>Invalid: {0}</value>
+  </data>
+  <data name="smssuccess" xml:space="preserve">
+    <value>SMS order scheduled successfully for</value>
+  </data>
+  <data name="ordercreeatedadminapproval" xml:space="preserve">
+    <value>Order created and awaiting approval by admin.</value>
+  </data>
+  <data name="smssent" xml:space="preserve">
+    <value>SMS sent successfully.</value>
+  </data>
+  <data name="smsresentsuccess" xml:space="preserve">
+    <value>SMS re-sent successfully with new API</value>
+  </data>
+  <data name="ordernotfoundmsg" xml:space="preserve">
+    <value>Order not found or already approved.</value>
+  </data>
+  <data name="novalidreceipents" xml:space="preserve">
+    <value>No valid recipients. Cannot send SMS.</value>
+  </data>
+  <data name="insufficientbal" xml:space="preserve">
+    <value>Insufficient balance.</value>
+  </data>
+  <data name="orderapproved" xml:space="preserve">
+    <value>Order approved and SMS sent.</value>
+  </data>
+  <data name="ordernoteligible" xml:space="preserve">
+    <value>Order not eligible for resend.</value>
+  </data>
+  <data name="ordersuccessresend" xml:space="preserve">
+    <value>Order successfully scheduled for resend at</value>
+  </data>
+  <data name="orderresentsms" xml:space="preserve">
+    <value>Order resent and SMS sent successfully.</value>
+  </data>
+  <data name="profileupdatedsuccess" xml:space="preserve">
+    <value>Profile updated successfully!</value>
+  </data>
+  <data name="Updatefailed" xml:space="preserve">
+    <value>Update failed.</value>
+  </data>
+  <data name="confirmchangeapi" xml:space="preserve">
+    <value>Are you sure you want to change the API for this order?</value>
+  </data>
+  <data name="changesmsapi" xml:space="preserve">
+    <value>Change SMS API</value>
+  </data>
+  <data name="changeapi" xml:space="preserve">
+    <value>Change API &amp; Resend</value>
+  </data>
+  <data name="apichangessmssent" xml:space="preserve">
+    <value>API changed and SMS re-sent.</value>
+  </data>
+  <data name="notenoughcredit" xml:space="preserve">
+    <value>Not enough available credit.</value>
+  </data>
+  <data name="creditdeletedsuccess" xml:space="preserve">
+    <value>Credit deleted successfully.</value>
+  </data>
+  <data name="unauthorizedlogin" xml:space="preserve">
+    <value>Unauthorized Login Attempt</value>
+  </data>
+  <data name="invalidloginattempt" xml:space="preserve">
+    <value>An invalid login attempt was made with username: </value>
+  </data>
+  <data name="allfieldsrequired" xml:space="preserve">
+    <value>All fields are required.</value>
+  </data>
+  <data name="apinotfound" xml:space="preserve">
+    <value>API not found.</value>
+  </data>
+  <data name="companyupdatedsuccess" xml:space="preserve">
+    <value>Company updated successfully.</value>
+  </data>
+  <data name="userdeletedsuccess" xml:space="preserve">
+    <value>User deleted successfully.</value>
+  </data>
+  <data name="erroroccureddeletinguser" xml:space="preserve">
+    <value>An error occurred while deleting the user.</value>
+  </data>
+  <data name="usernamepasswordrequired" xml:space="preserve">
+    <value>Username and Password are required.</value>
+  </data>
+  <data name="usernameexists" xml:space="preserve">
+    <value>Username already exists.</value>
+  </data>
+  <data name="invalidorder" xml:space="preserve">
+    <value>Invalid order or API.</value>
+  </data>
+  <data name="changedapi" xml:space="preserve">
+    <value>Changed to Api</value>
+  </data>
+  <data name="smsapisuccess" xml:space="preserve">
+    <value>SMS API changed successfully.</value>
+  </data>
+  <data name="scheduledfor" xml:space="preserve">
+    <value>Scheduled for</value>
+  </data>
+  <data name="erroroccuredsendingsms" xml:space="preserve">
+    <value>An error occurred while sending the SMS.</value>
+  </data>
+  <data name="selectapi" xml:space="preserve">
+    <value>Select API</value>
+  </data>
+  <data name="creditadded" xml:space="preserve">
+    <value>Credit Added</value>
+  </data>
+  <data name="creditdeleted" xml:space="preserve">
+    <value>Credit deleted</value>
+  </data>
+  <data name="creditaddedsuccess" xml:space="preserve">
+    <value>Credit Added Successfully</value>
+  </data>
+  <data name="erroraddingcredit" xml:space="preserve">
+    <value>Error Adding Credit</value>
+  </data>
+  <data name="deactivatecompany" xml:space="preserve">
+    <value>Are you sure you want to deactivate this company?</value>
+  </data>
+  <data name="companydeactivatesuccess" xml:space="preserve">
+    <value>Company deactivated successfully.</value>
+  </data>
+  <data name="companydeleteconfirmation" xml:space="preserve">
+    <value>Are you sure you want to delete this company? This cannot be undone.</value>
+  </data>
+  <data name="companydeletesuccess" xml:space="preserve">
+    <value>Company deleted successfully.</value>
+  </data>
+  <data name="deleteuserconfirmation" xml:space="preserve">
+    <value>Are you sure you want to delete this user?</value>
+  </data>
+  <data name="companyusersuccess" xml:space="preserve">
+    <value>Company user created successfully!</value>
+  </data>
+  <data name="companyuserupdated" xml:space="preserve">
+    <value>Company user updated successfully!</value>
+  </data>
+  <data name="resendorder" xml:space="preserve">
+    <value>Are you sure you want to resend this order?</value>
+  </data>
+  <data name="Credittopups" xml:space="preserve">
+    <value>Credit Topups</value>
+  </data>
+  <data name="Allsupport" xml:space="preserve">
+    <value>Tüm Destek Talepleri</value>
+  </data>
+  <data name="Sender" xml:space="preserve">
+    <value>Sender</value>
+  </data>
+  <data name="Created" xml:space="preserve">
+    <value>Created</value>
+  </data>
+  <data name="assignedto" xml:space="preserve">
+    <value>Assigned To</value>
+  </data>
+  <data name="clearallfilters" xml:space="preserve">
+    <value>Clear All Filters</value>
+  </data>
+  <data name="send" xml:space="preserve">
+    <value>Send</value>
+  </data>
+  <data name="messagebox" xml:space="preserve">
+    <value>Message Box</value>
+  </data>
+  <data name="createsupportrequest" xml:space="preserve">
+    <value>Create Support Request</value>
+  </data>
+  <data name="subject" xml:space="preserve">
+    <value>Subject</value>
+  </data>
+  <data name="yourmessage" xml:space="preserve">
+    <value>Your Message</value>
+  </data>
+  <data name="viewresponse" xml:space="preserve">
+    <value>View Responses</value>
+  </data>
+  <data name="responses" xml:space="preserve">
+    <value>Responses</value>
+  </data>
+  <data name="noresponseyet" xml:space="preserve">
+    <value>No responses yet.</value>
+  </data>
+  <data name="newsupportticket" xml:space="preserve">
+    <value>New Support Ticket</value>
+  </data>
+  <data name="ticketcreated" xml:space="preserve">
+    <value>Ticket created.</value>
+  </data>
+  <data name="backtosupport" xml:space="preserve">
+    <value>Back to Support List</value>
+  </data>
+  <data name="supportticketdetails" xml:space="preserve">
+    <value>Support Ticket Details</value>
+  </data>
+  <data name="verify" xml:space="preserve">
+    <value>Verify</value>
+  </data>
+  <data name="backtologin" xml:space="preserve">
+    <value>Back to Login</value>
+  </data>
+  <data name="emailauth" xml:space="preserve">
+    <value>Email Auth</value>
+  </data>
+  <data name="6digitcodeemail" xml:space="preserve">
+    <value>Enter the 6 digit code sent to your email</value>
+  </data>
+  <data name="mysupporttickets" xml:space="preserve">
+    <value>My Support Tickets</value>
+  </data>
+  <data name="Set_As_Default" xml:space="preserve">
+    <value>Set As Default</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Make_Default" xml:space="preserve">
+    <value>Make Default</value>
+  </data>
+  <data name="Api_Url" xml:space="preserve">
+    <value>Api Url</value>
+  </data>
+  <data name="companyinactive" xml:space="preserve">
+    <value>Company is not active. Please contact your administrator.</value>
+  </data>
+  <data name="invalidcredentials" xml:space="preserve">
+    <value>Invalid username or password.</value>
+  </data>
+  <data name="quotanotavailable" xml:space="preserve">
+    <value>Quota not available or exceeded</value>
+  </data>
+  <data name="transactionhistory" xml:space="preserve">
+    <value>Transaction History</value>
+  </data>
+  <data name="balanceenquiry" xml:space="preserve">
+    <value>Balance inquiry</value>
+  </data>
+  <data name="notransactionsavailable" xml:space="preserve">
+    <value>No transactions available</value>
+  </data>
+  <data name="usernametaken" xml:space="preserve">
+    <value>Username '{0}' is already taken.</value>
+  </data>
+  <data name="companynameexists" xml:space="preserve">
+    <value>A company with the name '{0}' already exists..</value>
+  </data>
+  <data name="addnewdirectory" xml:space="preserve">
+    <value>Add New Directory</value>
+  </data>
+  <data name="Title" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="count" xml:space="preserve">
+    <value>Count</value>
+  </data>
+  <data name="Edit Directory" xml:space="preserve">
+    <value>Edit Directory</value>
+  </data>
+  <data name="downloaddirectory" xml:space="preserve">
+    <value>Download Directory</value>
+  </data>
+  <data name="remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="directorysuccess" xml:space="preserve">
+    <value>Directory created successfully!</value>
+  </data>
+  <data name="deletedirectory" xml:space="preserve">
+    <value>Are you sure you want to delete this directory?</value>
+  </data>
+  <data name="directorydeltesuccess" xml:space="preserve">
+    <value>Directory deleted successfully.</value>
+  </data>
+  <data name="Addphonenumber" xml:space="preserve">
+    <value>Add Phone Numbers (comma, semicolon or newline separated)</value>
+  </data>
+  <data name="addnumbers" xml:space="preserve">
+    <value>Add Numbers</value>
+  </data>
+  <data name="removenumbers" xml:space="preserve">
+    <value>Remove Phone Numbers</value>
+  </data>
+  <data name="uploadphonenumber" xml:space="preserve">
+    <value>Upload Phone Numbers File</value>
+  </data>
+  <data name="upload" xml:space="preserve">
+    <value>Upload</value>
+  </data>
+  <data name="phoneblacklisted" xml:space="preserve">
+    <value>Phone number is blacklisted</value>
+  </data>
+  <data name="phonenotblacklisted" xml:space="preserve">
+    <value>Phone number is not blacklisted</value>
+  </data>
+  <data name="searchphone" xml:space="preserve">
+    <value>Search phone number</value>
+  </data>
+  <data name="phoneadded" xml:space="preserve">
+    <value>Phone numbers added.</value>
+  </data>
+  <data name="phoneremoved" xml:space="preserve">
+    <value>Phone numbers removed.</value>
+  </data>
+  <data name="blacklistaddedsuccess" xml:space="preserve">
+    <value>{0} phone number(s) added to blacklist.</value>
+  </data>
+  <data name="userinactive" xml:space="preserve">
+    <value>Your account is not active. Please contact your administrator.</value>
+  </data>
+  <data name="assignedtickets" xml:space="preserve">
+    <value>Assigned Tickets</value>
+  </data>
+  <data name="companyactivated" xml:space="preserve">
+    <value>Company Activated.</value>
+  </data>
+  <data name="companydeactivated" xml:space="preserve">
+    <value>Company Deactivated. </value>
+  </data>
+  <data name="ipaddress" xml:space="preserve">
+    <value>IP Address</value>
+  </data>
+  <data name="Location" xml:space="preserve">
+    <value>Location</value>
+  </data>
+  <data name="Device" xml:space="preserve">
+    <value>Device</value>
+  </data>
+  <data name="logintime" xml:space="preserve">
+    <value>Login Time</value>
+  </data>
+  <data name="userinfo" xml:space="preserve">
+    <value>User Info</value>
+  </data>
+  <data name="loginhistory" xml:space="preserve">
+    <value>Login History</value>
+  </data>
+  <data name="choosedirectory" xml:space="preserve">
+    <value>Select Directory</value>
+  </data>
+  <data name="selectdirectory" xml:space="preserve">
+    <value>Select Directory</value>
+  </data>
+  <data name="defaultupdated" xml:space="preserve">
+    <value>Default API Updated</value>
+  </data>
+  <data name="makedefault" xml:space="preserve">
+    <value>Make Default</value>
+  </data>
+  <data name="Support Tickets" xml:space="preserve">
+    <value>Support Tickets</value>
+  </data>
+  <data name="Namecolumn" xml:space="preserve">
+    <value>Name Column</value>
+  </data>
+  <data name="Numbercolumn" xml:space="preserve">
+    <value>Number Column</value>
+  </data>
+  <data name="Filemode" xml:space="preserve">
+    <value>File Mode</value>
+  </data>
+  <data name="standardformat" xml:space="preserve">
+    <value>Standard (CSV, TXT, Excel)</value>
+  </data>
+  <data name="customformat" xml:space="preserve">
+    <value>Custom (Excel only)</value>
+  </data>
+  <data name="ColumnFormat" xml:space="preserve">
+    <value>Column {0}</value>
+  </data>
+  <data name="ColumnLabel" xml:space="preserve">
+    <value>Column</value>
+  </data>
+  <data name="personlisedmsg" xml:space="preserve">
+    <value>Personlized Message</value>
+  </data>
+  <data name="scancode" xml:space="preserve">
+    <value>Scan the QR code below using a Google Authenticator app</value>
+  </data>
+  <data name="totalorders" xml:space="preserve">
+    <value>Total Orders</value>
+  </data>
+  <data name="todayorders" xml:space="preserve">
+    <value>Today Orders</value>
+  </data>
+  <data name="OrderApprovedTitle" xml:space="preserve">
+    <value>SMS Order Approved</value>
+  </data>
+  <data name="OrderApprovedDesc" xml:space="preserve">
+    <value>Your SMS order #{0} has been approved and is now being sent.</value>
+  </data>
+  <data name="NewOrderAwaitingApproval" xml:space="preserve">
+    <value>New SMS Order Awaiting Approval</value>
+  </data>
+  <data name="OrderAwaitingAdminApprovalDesc" xml:space="preserve">
+    <value>Your SMS order #{0} has been created and is awaiting admin approval.</value>
   </data>
 </root>

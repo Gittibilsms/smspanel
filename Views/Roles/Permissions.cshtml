@@ -1,0 +1,249 @@
+﻿@model GittBilSmsCore.ViewModels.RolePermissionViewModel
+@{
+    var actionName = ViewContext.RouteData.Values["action"]?.ToString();
+    bool isCreatePage = actionName == "Create";
+    bool isReadOnly = Model.IsReadOnly;
+    var isAdmin = Context.Session.GetInt32("RoleId") == 1;
+    var userType = Context.Session.GetString("UserType") ?? "Unknown";
+    var isCompanyUser = userType.Equals("CompanyUser", StringComparison.OrdinalIgnoreCase);
+}
+@{
+    ViewData["Title"] = "Role Permissions";
+}
+
+@if (Model != null)
+{
+    <form asp-controller="Roles" asp-action="Permissions" method="post" autocomplete="off">
+        <div class="mb-4">
+ @*            <div class="d-flex mb-3">
+                <a asp-controller="Roles" asp-action="Index" class="text-decoration-none fw-bold">
+                    <i class="material-icons-outlined align-middle">arrow_back</i>
+                    <span class="ms-1">@SharedResource.All_Roles
+                    </span>
+                </a>
+            </div> *@
+            <div class="d-flex align-items-center justify-content-between gap-3">
+
+
+                <!-- role name -->
+                @if (!isCreatePage)
+                {
+                    <h3 class="mb-0 text-white"># @Model.RoleName</h3>
+                }
+                <div class="d-flex">
+
+                    @if (!isCreatePage && !isReadOnly)
+                    {
+                        <button type="submit" class="btn btn-success btn-sm d-none" id="updateRolesBtn" onclick="updateRoles()">
+                            @SharedResource.Update
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm me-2" style="margin-left:20px" onclick="deleteRole(@Model.RoleId)">
+                            @SharedResource.Delete
+                        </button>
+                    }
+
+                </div>
+            </div>
+        
+        </div>
+
+        <input type="hidden" name="RoleId" value="@Model.RoleId" />
+
+    
+        <!-- User Based Authorizations -->
+        <h5>@SharedResource.User_Based_Authorizations</h5>
+        <table class="table table-bordered text-center">
+            <thead>
+                <tr>
+                    <th>@SharedResource.Authority</th>
+                    <th>@SharedResource.Read</th>
+                    <th>@SharedResource.Create</th>
+                    <th>@SharedResource.Edit</th>
+                    <th>@SharedResource.Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (isAdmin)
+                {
+                <tr>
+                    <td>@SharedResource.Firm</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Firm_Read" @(Model.SelectedPermissions.Contains("Firm_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Firm_Create" @(Model.SelectedPermissions.Contains("Firm_Create") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Firm_Edit" @(Model.SelectedPermissions.Contains("Firm_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                </tr>
+                <tr class="d-none">
+                    <td>@SharedResource.Company_User</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Company_User_Read" @(Model.SelectedPermissions.Contains("Company_User_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Company_User_Create" @(Model.SelectedPermissions.Contains("Company_User_Create") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Company_User_Edit" @(Model.SelectedPermissions.Contains("Company_User_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Company_User_Delete" @(Model.SelectedPermissions.Contains("Company_User_Delete") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                </tr>
+                }
+                <tr>
+                    <td>@SharedResource.Order</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Order_Read" @(Model.SelectedPermissions.Contains("Order_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Order_Create" @(Model.SelectedPermissions.Contains("Order_Create") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Order_Edit" @(Model.SelectedPermissions.Contains("Order_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                </tr>
+                <tr>
+                    <td>@SharedResource.User</td>
+                    <td class="form-check-success">
+                        <input class="form-check-input" type="checkbox" name="SelectedPermissions" value="User_Read"
+                        @(Model.SelectedPermissions.Contains("Company_User_Read") || Model.SelectedPermissions.Contains("User_Read") ? "checked" : "")
+                        @(isReadOnly ? "disabled" : "") />
+                    </td>
+                    <td class="form-check-success">
+                        <input class="form-check-input" type="checkbox" name="SelectedPermissions" value="User_Create"
+                        @(Model.SelectedPermissions.Contains("Company_User_Create") || Model.SelectedPermissions.Contains("User_Create") ? "checked" : "")
+                        @(isReadOnly ? "disabled" : "") />
+                    </td>
+                    <td class="form-check-success">
+                        <input class="form-check-input" type="checkbox" name="SelectedPermissions" value="User_Edit"
+                        @(Model.SelectedPermissions.Contains("Company_User_Edit") || Model.SelectedPermissions.Contains("User_Edit") ? "checked" : "")
+                        @(isReadOnly ? "disabled" : "") />
+                    </td>
+                    <td class="form-check-success">
+                        <input class="form-check-input" type="checkbox" name="SelectedPermissions" value="User_Delete"
+                        @(Model.SelectedPermissions.Contains("Company_User_Delete") || Model.SelectedPermissions.Contains("User_Delete") ? "checked" : "")
+                        @(isReadOnly ? "disabled" : "") />
+                    </td>
+                </tr>
+                @if (isCompanyUser)
+                {
+                <tr>
+                    <td>@SharedResource.Directory</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Directory_Read" @(Model.SelectedPermissions.Contains("Directory_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Directory_Create" @(Model.SelectedPermissions.Contains("Directory_Create") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Directory_Edit" @(Model.SelectedPermissions.Contains("Directory_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Directory_Delete" @(Model.SelectedPermissions.Contains("Directory_Delete") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                </tr>
+                }
+                <tr>
+                    <td>@SharedResource.Blacklist</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Blacklist_Read" @(Model.SelectedPermissions.Contains("Blacklist_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Blacklist_Edit" @(Model.SelectedPermissions.Contains("Blacklist_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                </tr>
+                @if (isAdmin)
+                {
+                <tr>
+                    <td>@SharedResource.Passive_Numbers</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Passive_numbers_Read" @(Model.SelectedPermissions.Contains("Passive_numbers_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Passive_numbers_Edit" @(Model.SelectedPermissions.Contains("Passive_numbers_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                </tr>
+                }
+                <tr>
+                    <td>@SharedResource.Credit</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Credit_Read" @(Model.SelectedPermissions.Contains("Credit_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    @if (isAdmin)
+                    {
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Credit_Create" @(Model.SelectedPermissions.Contains("Credit_Create") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Credit_Edit" @(Model.SelectedPermissions.Contains("Credit_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Credit_Delete" @(Model.SelectedPermissions.Contains("Credit_Delete") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                     }
+                </tr>
+                <tr>
+                    <td>@SharedResource.Support_Requests</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Request_for_support_Read" @(Model.SelectedPermissions.Contains("Request_for_support_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Request_for_support_Create" @(Model.SelectedPermissions.Contains("Request_for_support_Create") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Request_for_support_Edit" @(Model.SelectedPermissions.Contains("Request_for_support_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                </tr>
+                <tr>
+                    <td>@SharedResource.Account_transactions</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Account_transactions_Read" @(Model.SelectedPermissions.Contains("Account_transactions_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Account_transactions_Create" @(Model.SelectedPermissions.Contains("Account_transactions_Create") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    @if (isAdmin)
+                    {
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Account_transactions_Edit" @(Model.SelectedPermissions.Contains("Account_transactions_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Account_transactions_Delete" @(Model.SelectedPermissions.Contains("Account_transactions_Delete") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                     }
+                </tr>
+                @if (isAdmin)
+                {
+                <tr>
+                    <td>@SharedResource.Dealer_transactions</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Dealer_transactions_Read" @(Model.SelectedPermissions.Contains("Dealer_transactions_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Dealer_transactions_Edit" @(Model.SelectedPermissions.Contains("Dealer_transactions_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                </tr>
+                }
+            </tbody>
+        </table>
+        @if (isAdmin)
+        {
+        <!-- Special Powers -->
+        <h5 class="d-none">@SharedResource.Special_Powers</h5>
+
+            <div class="form-check d-none">
+            <input class="form-check-input" type="checkbox" name="connectUserAccount" value="true" @(Model.ConnectUserAccount ? "checked" : "") @(isReadOnly ? "disabled" : "") />
+            <label class="form-check-label">@SharedResource.Connecting_to_a_user_account</label>
+        </div>
+            <div class="form-check d-none">
+            <input class="form-check-input" type="checkbox" name="roleAssignmentAuthority" value="true" @(Model.RoleAssignmentAuthority ? "checked" : "") @(isReadOnly ? "disabled" : "") />
+            <label class="form-check-label">@SharedResource.Role_assignment_authority</label>
+        </div>
+
+        <!-- Dealer Based Authorizations -->
+            <h5 class="mt-4 d-none">@SharedResource.Dealer_Based_Authorizations</h5>
+            <table class="table table-bordered text-center d-none">
+            <thead>
+                <tr>
+                    <th>@SharedResource.Authority</th>
+                    <th>@SharedResource.Read</th>
+                    <th>@SharedResource.Create</th>
+                    <th>@SharedResource.Edit</th>
+                    <th>@SharedResource.Delete</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>@SharedResource.Dealer</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Dealer_Read" @(Model.SelectedPermissions.Contains("Dealer_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Dealer_Create" @(Model.SelectedPermissions.Contains("Dealer_Create") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Dealer_Edit" @(Model.SelectedPermissions.Contains("Dealer_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                </tr>
+                <tr>
+                    <td>@SharedResource.Dealer_credit</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="DealerCredit_Read" @(Model.SelectedPermissions.Contains("DealerCredit_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                    <td class="form-check-success"></td>
+                    <td class="form-check-success"></td>
+                </tr>
+                <tr>
+                    <td>@SharedResource.Dealer_support_request</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="DealerSupportRequest_Read" @(Model.SelectedPermissions.Contains("DealerSupportRequest_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="DealerSupportRequest_Edit" @(Model.SelectedPermissions.Contains("DealerSupportRequest_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                </tr>
+                <tr>
+                    <td>@SharedResource.Dealer_account_transactions</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="DealerAccountTransactions_Read" @(Model.SelectedPermissions.Contains("DealerAccountTransactions_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="DealerAccountTransactions_Edit" @(Model.SelectedPermissions.Contains("DealerAccountTransactions_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"></td>
+                </tr>
+                <tr>
+                    <td>@SharedResource.Dealer_users</td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="DealerUsers_Read" @(Model.SelectedPermissions.Contains("DealerUsers_Read") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="DealerUsers_Create" @(Model.SelectedPermissions.Contains("DealerUsers_Create") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="DealerUsers_Edit" @(Model.SelectedPermissions.Contains("DealerUsers_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "")  /></td>
+                    <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="DealerUsers_Delete" @(Model.SelectedPermissions.Contains("DealerUsers_Delete") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
+                </tr>
+            </tbody>
+        </table>
+        }
+    </form>
+}
+else
+{
+    <div class="alert alert-danger">@SharedResource.Role_information_could_not_be_loaded_</div>
+}

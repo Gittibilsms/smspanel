@@ -1,0 +1,182 @@
+﻿@using System.Linq
+@using GittBilSmsCore.Helpers
+@using Newtonsoft.Json
+@using GittBilSmsCore.Models
+@model GittBilSmsCore.ViewModels.BlacklistViewModel
+@{
+    ViewData["Title"] = "Blacklist Management";
+}
+@{
+    var roleIdsRaw = Context.Session.GetString("RoleIds") ?? "";
+    var permissionsJson = Context.Session.GetString("UserPermissions") ?? "[]";
+    var roleIds = roleIdsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                              .Select(id => Convert.ToInt32(id))
+                              .Distinct()
+                              .ToList();
+
+    var allPermissions = JsonConvert.DeserializeObject<List<RolePermission>>(permissionsJson) ?? new List<RolePermission>();
+
+    // Custom roles are roles not in 5, 6, 7
+    var customRoles = roleIds.Except(new[] { 5, 6, 7 }).ToList();
+
+    var permissions = customRoles.Any()
+        ? allPermissions.Where(p => customRoles.Contains(p.RoleId)).ToList()
+        : allPermissions.Where(p => new[] { 5, 6, 7 }.Contains(p.RoleId)).ToList();
+
+    bool HasAccess(string module, string action) =>
+        permissions.Any(p =>
+            string.Equals(p.Module, module, StringComparison.OrdinalIgnoreCase) &&
+            (action == "Read" && p.CanRead ||
+             action == "Create" && p.CanCreate ||
+             action == "Edit" && p.CanEdit ||
+             action == "Delete" && p.CanDelete)
+        );
+
+    var canCreateBlacklist = HasAccess("Blacklist", "Create");
+    var canDeleteBlacklist = HasAccess("Blacklist", "Delete");
+    var canEditBlacklist = HasAccess("Blacklist", "Edit");
+    var canReadBlacklist = HasAccess("Blacklist", "Read");
+}
+<div class="container mt-4">
+    <h3># @SharedResource.Blacklist</h3>
+
+ 
+    <div class="row">
+        @if (canCreateBlacklist || canEditBlacklist)
+        {
+        <div class="col-md-6">
+            <!-- Add Numbers Manually -->
+            <form id="addBlacklistForm" method="post" data-action="/Blacklist/Add" class="mb-4">
+                <div class="mb-2">
+                    <label class="form-label">@SharedResource.Addphonenumber:</label>
+                    <textarea name="PhoneNumbersInput" class="form-control" rows="4" placeholder="e.g. 0501234567, 0509876543..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-success">@SharedResource.Add</button>
+            </form>
+
+            <!-- Remove Numbers Form -->
+            <form id="removeBlacklistForm" method="post" data-action="/Blacklist/Remove" class="mb-4">
+                <div class="mb-2">
+                    <label class="form-label">@SharedResource.removenumbers:</label>
+                    <textarea name="PhoneNumbersInput" class="form-control" rows="4" placeholder="e.g. 0501234567, 0509876543..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger">@SharedResource.Delete</button>
+            </form>
+
+            <!-- Upload from File -->
+            <form id="uploadFileForm" enctype="multipart/form-data" class="mb-4" data-action="/Blacklist/UploadFromFile">
+                <div class="mb-2">
+                    <label class="form-label">@SharedResource.uploadphonenumber (.txt, .csv):</label>
+                    <input type="file" name="file" class="form-control" accept=".txt,.csv" required />
+                </div>
+                <button type="submit" class="btn btn-primary">@SharedResource.upload</button>
+            </form>
+        </div>
+        }
+        @if (canReadBlacklist){
+        <div class="col-md-6">
+            <!-- Search -->
+            <form asp-action="Search" method="post" class="mb-4 row g-3">
+                <div class="col-auto">
+                    <input type="text" asp-for="SearchPhoneNumber" class="form-control" placeholder="@SharedResource.searchphone..." />
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-outline-primary">🔍 @SharedResource.Search</button>
+                </div>
+                @if (Model?.SearchPerformed == true)
+                {
+                    if (Model.SearchResultFound == true)
+                    {
+                        <div class="col-12 text-success mt-2">✅ @SharedResource.phoneblacklisted.</div>
+                    }
+                    else
+                    {
+                        <div class="col-12 text-danger mt-2">❌ @SharedResource.phonenotblacklisted.</div>
+                    }
+                }
+            </form>
+
+        </div>
+        }
+
+    </div>
+
+  
+</div>
+@section Scripts {
+
+    <script>
+            $(function () {
+            function handleFormSubmit(formId, successMessage, errorMessage) {
+                $(formId).on('submit', function (e) {
+                    e.preventDefault();
+
+                    const $form = $(this);
+                    const $button = $form.find('button[type=submit]');
+                    const url = $form.data('action');
+                    const data = $form.serialize();
+
+                    // Prevent double click
+                    $button.prop('disabled', true);
+                    $('#globalSpinnerOverlay').show();
+
+                    $.post(url, data)
+                        .done(function (res) {
+                            if (res.success) {
+                                toastr.success(successMessage);
+                                $form[0].reset();
+                            } else {
+                                toastr.error(res.message || errorMessage);
+                            }
+                        })
+                        .fail(function () {
+                            toastr.error(errorMessage);
+                        })
+                        .always(function () {
+                            $button.prop('disabled', false);
+                            $('#globalSpinnerOverlay').hide();
+                        });
+                });
+            }
+
+            handleFormSubmit('#addBlacklistForm', window.localizedTextDT.phoneadded || 'Phone numbers added.', window.localizedTextDT.Failed || 'Failed to add phone numbers.');
+            handleFormSubmit('#removeBlacklistForm', window.localizedTextDT.phoneremoved ||'Phone numbers removed.', window.localizedTextDT.Failed || 'Failed to remove phone numbers.');
+
+            $('#uploadFileForm').on('submit', function (e) {
+                e.preventDefault();
+
+                const $form = $(this);
+                const form = $form[0];
+                const $button = $form.find('button[type=submit]');
+                const formData = new FormData(form);
+                const url = $form.data('action');
+
+                $button.prop('disabled', true);
+                $('#globalSpinnerOverlay').show();
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (res) {
+                        if (res.success) {
+                            toastr.success(res.message.value || 'Upload successful.');
+                            form.reset();
+                        } else {
+                            toastr.error(res.message.value || 'Upload failed.');
+                        }
+                    },
+                    error: function () {
+                        toastr.error(window.localizedTextDT.Failed || 'An error occurred while uploading.');
+                    },
+                    complete: function () {
+                        $button.prop('disabled', false);
+                        $('#globalSpinnerOverlay').hide();
+                    }
+                });
+            });
+        });
+    </script>
+}

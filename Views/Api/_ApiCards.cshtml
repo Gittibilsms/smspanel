@@ -1,0 +1,47 @@
+﻿@model List<GittBilSmsCore.Models.Api>
+
+<div class="row" id="apiListContainer">
+    @foreach (var api in Model)
+    {
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card border shadow-sm h-100">
+                <div class="card-body">
+                    <p><strong>@SharedResource.Service_Type:</strong> @api.ServiceType</p>
+                    <p><strong>@SharedResource.Service_Name:</strong> @api.ServiceName</p>
+                    <p><strong>@SharedResource.User_name:</strong> @api.Username</p>
+                    <p><strong>@SharedResource.Password:</strong> @api.Password</p>
+                    <p>
+                        <strong>@SharedResource.Api_Url:</strong>
+                        <span title="@api.ApiUrl">@api.ApiUrl</span>
+                    </p>
+                    <p><strong>@SharedResource.Originator:</strong> @api.Originator</p>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <div>
+                        <button class="btn btn-sm set-default-api-btn @(api.IsDefault ? "btn-success" : "btn-outline-secondary")"
+                                data-id="@api.ApiId">
+                            @(api.IsDefault ? @SharedResource.Default : @SharedResource.Make_Default)
+                        </button>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm edit-api-btn"
+                                data-id="@api.ApiId"
+                                data-servicetype="@api.ServiceType"
+                                data-servicename="@api.ServiceName"
+                                data-username="@api.Username"
+                                data-password="@api.Password"
+                                data-apiurl="@api.ApiUrl"
+                                data-originator="@api.Originator">
+                            <i class="lni lni-pencil-alt"></i>
+                        </button>
+
+                        <button class="btn btn-outline-danger btn-sm delete-api-btn"
+                                data-id="@api.ApiId">
+                            <i class="lni lni-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

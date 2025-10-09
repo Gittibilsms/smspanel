@@ -1,0 +1,154 @@
+﻿@using System.Linq
+@using GittBilSmsCore.Helpers
+@using Newtonsoft.Json
+@using GittBilSmsCore.Models
+@model List<GittBilSmsCore.Models.PhoneDirectory>
+
+
+@{
+    ViewData["Title"] = "Directory";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+@{
+    var roleIdsRaw = Context.Session.GetString("RoleIds") ?? "";
+    var permissionsJson = Context.Session.GetString("UserPermissions") ?? "[]";
+    var roleIds = roleIdsRaw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                              .Select(id => Convert.ToInt32(id))
+                              .Distinct()
+                              .ToList();
+
+    var allPermissions = JsonConvert.DeserializeObject<List<RolePermission>>(permissionsJson) ?? new List<RolePermission>();
+
+    // Custom roles are roles not in 5, 6, 7
+    var customRoles = roleIds.Except(new[] { 5, 6, 7 }).ToList();
+
+    var permissions = customRoles.Any()
+        ? allPermissions.Where(p => customRoles.Contains(p.RoleId)).ToList()
+        : allPermissions.Where(p => new[] { 5, 6, 7 }.Contains(p.RoleId)).ToList();
+
+    bool HasAccess(string module, string action) =>
+        permissions.Any(p =>
+            string.Equals(p.Module, module, StringComparison.OrdinalIgnoreCase) &&
+            (action == "Read" && p.CanRead ||
+             action == "Create" && p.CanCreate ||
+             action == "Edit" && p.CanEdit ||
+             action == "Delete" && p.CanDelete)
+        );
+    var canReadDirectory = HasAccess("Directory", "Read");
+    var canCreateDirectory = HasAccess("Directory", "Create");
+    var canDeleteDirectory = HasAccess("Directory", "Delete");
+    var canEditDirectory = HasAccess("Directory", "Edit");
+}
+@if (canEditDirectory || canCreateDirectory)
+{
+    <button class="btn btn-primary d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#directoryModal"> <i class="material-icons-outlined">add</i>  @SharedResource.addnewdirectory</button>
+
+}
+@if (canReadDirectory)
+{
+<table id="directoriesTable" class="table table-striped mt-3">
+    <thead>
+        <tr>
+            <th>@SharedResource.Title</th>
+            <th>@SharedResource.count</th>
+            <th>@SharedResource.Created</th>
+             @if(canEditDirectory)
+             {
+                 <th>@SharedResource.Actions</th>
+             }
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null && Model.Any())
+        {
+            foreach (var d in Model)
+            {
+                <tr>
+                    <td>@d.DirectoryName</td>
+                    <td>@d.DirectoryNumbers?.Count()</td>
+                    <td>@d.CreatedAt.ToString("dd-MM-yyyy")</td>
+                    <td>
+                        @if(canEditDirectory)
+                        {
+                            <button class="btn btn-sm btn-outline-primary" onclick="openEditDirectory(@d.DirectoryId)">@SharedResource.Edit</button>
+                            @if (canDeleteDirectory)
+                            {
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteDirectory(@d.DirectoryId)">@SharedResource.Delete</button>
+                            }
+                        }
+                      
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="4" class="text-center text-muted">@SharedResource.No_data_available_in_table</td>
+            </tr>
+        }
+    </tbody>
+</table>
+}
+<!-- Modal -->
+<div class="modal fade" id="directoryModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="directoryForm" enctype="multipart/form-data">
+                <div class="modal-header"><h5>@SharedResource.addnewdirectory</h5></div>
+                <div class="modal-body">
+                    <input name="DirectoryName" class="form-control" placeholder="@SharedResource.Title" required />
+                    <textarea name="Numbers" class="form-control mt-2" placeholder="@SharedResource.Numbers"></textarea>
+                    <input type="file" name="UploadedFile" class="form-control mt-2" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="createDirectoryBtn" class="btn btn-primary">@SharedResource.Save_Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="editDirectoryModal" tabindex="-1" aria-labelledby="editDirectoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content p-3 bg-dark text-light rounded">
+            <div class="modal-header border-0">
+                <h5 class="modal-title">@SharedResource.Edit_Directory</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <a id="downloadPhonebookLink"
+                   href="javascript:void(0);"
+                   class="text-success mb-3 d-inline-block"
+                   onclick="downloadPhonebook(this)"
+                   data-url="">
+                    <i class="bi bi-download"></i> @SharedResource.downloaddirectory (<span id="downloadCount">0</span>)
+                </a>
+
+                <input type="hidden" id="editDirectoryId" />
+
+                <div class="mb-3">
+                    <label class="form-label">@SharedResource.Title</label>
+                    <input type="text" class="form-control" id="editDirectoryName" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">@SharedResource.Numbers</label>
+                    <textarea class="form-control" id="editNumbers" rows="4" placeholder="@SharedResource.Numbers..."></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">@SharedResource.File</label>
+                    <input type="file" class="form-control" id="editFile" />
+                    <small class="text-muted d-block mt-1">
+                     @SharedResource.Filemessage1<br />@SharedResource.Filemessage2
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@SharedResource.Cancel</button>
+                <button type="button" class="btn btn-success" onclick="submitEditDirectory()">+ @SharedResource.Add</button>
+                <button type="button" class="btn btn-danger" onclick="deleteDirectoryConfirmed()">– @SharedResource.remove</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,51 @@
+﻿@using GittBilSmsCore.ViewModels
+@model TicketChatViewModel
+
+<div  id="chatBox"   class="chat-content">
+    @if (Model.Responses.Any())
+    {
+        foreach (var r in Model.Responses)
+        {
+            if (r.IsAdmin)
+            {
+                    <div class="chat-content-leftside nothere">
+                      <div class="d-flex">
+                        <img src="~/assets/images/avatars/11.png"
+                             width="42" height="42"
+                             class="rounded-circle"
+                             alt=""/>
+                        <div class="flex-grow-1 ms-2">
+                          <p class="mb-0 chat-time">@r.CreatedDate.ToString("dd/MM/yyyy HH:mm")</p>
+                          <p class="chat-left-msg">@r.Message</p>
+                        </div>
+                      </div>
+                    </div>
+            }
+            else
+            {
+                    <div class="chat-content-rightside text-end">
+                      <p class="mb-0 chat-time">@r.CreatedDate.ToString("dd/MM/yyyy HH:mm")</p>
+                      <p class="chat-right-msg">@r.Message</p>
+                    </div>
+            }
+        }
+    }
+    else
+    {
+        <div class="text-center text-muted">No messages yet.</div>
+    }
+
+
+</div>
+
+  <!-- chat input footer -->
+  <div class="chat-footer d-flex align-items-center p-2">
+    <form id="chatForm" class="w-100 d-flex">
+      <input type="hidden" id="TicketId" value="@Model.TicketId" />
+      <textarea id="messageInput"
+                class="form-control me-2"
+                maxlength="2000"
+                placeholder="Type your message…"></textarea>
+      <button id="sendBtn" class="btn btn-success">Send</button>
+    </form>
+  </div>

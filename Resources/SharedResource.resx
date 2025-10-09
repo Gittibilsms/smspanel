@@ -117,8 +117,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name=" Enter Company Details" xml:space="preserve">
-    <value>Şirket Detaylarını Girin</value>
+  <data name=" Pay via Tronscan" xml:space="preserve">
+    <value>Tronscan ile ödeme yapın</value>
   </data>
   <data name="Add Company" xml:space="preserve">
     <value>Yeni Firma</value>
@@ -127,10 +127,13 @@
     <value>Miktar</value>
   </data>
   <data name="API" xml:space="preserve">
-    <value>API'si</value>
+    <value>API</value>
   </data>
   <data name="API Management" xml:space="preserve">
     <value>Api Yönetimi</value>
+  </data>
+  <data name="Approve" xml:space="preserve">
+    <value>Onayla</value>
   </data>
   <data name="Average monthly sale for every author" xml:space="preserve">
     <value>Her yazarın ortalama aylık satışı</value>
@@ -138,8 +141,11 @@
   <data name="Canceled" xml:space="preserve">
     <value>İptal edildi</value>
   </data>
-  <data name="Cannot send support request" xml:space="preserve">
-    <value>Destek talebi gönderemesin</value>
+  <data name="Can send support request" xml:space="preserve">
+    <value>Destek talebi gönderebilir</value>
+  </data>
+  <data name="Choose a company" xml:space="preserve">
+    <value>Bir kullanıcı seçin</value>
   </data>
   <data name="Choose API" xml:space="preserve">
     <value>Api seç</value>
@@ -165,6 +171,9 @@
   <data name="Creation Date" xml:space="preserve">
     <value>Oluşturulma Tarihi</value>
   </data>
+  <data name="Credit" xml:space="preserve">
+    <value>Kredi</value>
+  </data>
   <data name="Credit Topups" xml:space="preserve">
     <value>Kredi Yüklemeleri</value>
   </data>
@@ -178,10 +187,13 @@
     <value>Gönderim Tarihi</value>
   </data>
   <data name="Dateofshipment" xml:space="preserve">
-    <value>Gönderileceği tarihi ( ileri tarihli sipariş )</value>
+    <value>Gönderileceği tarihi(ileri tarihli sipariş)</value>
   </data>
   <data name="Dealers" xml:space="preserve">
     <value>Bayiler</value>
+  </data>
+  <data name="Default API" xml:space="preserve">
+    <value>Varsayılan Api</value>
   </data>
   <data name="Delivered" xml:space="preserve">
     <value>Teslim edilmiş</value>
@@ -189,8 +201,17 @@
   <data name="Directory" xml:space="preserve">
     <value>Rehber</value>
   </data>
+  <data name="Edit" xml:space="preserve">
+    <value>Düzenle</value>
+  </data>
   <data name="Email" xml:space="preserve">
     <value>E-posta</value>
+  </data>
+  <data name="End Date" xml:space="preserve">
+    <value>Bitiş Tarihi</value>
+  </data>
+  <data name="Enter Invoice Number" xml:space="preserve">
+    <value>Fatura Numarasını Girin</value>
   </data>
   <data name="File" xml:space="preserve">
     <value>Dosya</value>
@@ -213,6 +234,12 @@
   <data name="Invalid Numbers" xml:space="preserve">
     <value>Geçersiz Numaralar</value>
   </data>
+  <data name="Invoice number" xml:space="preserve">
+    <value>Fatura numarası</value>
+  </data>
+  <data name="Is it active" xml:space="preserve">
+    <value>Aktif mi?</value>
+  </data>
   <data name="Loaded" xml:space="preserve">
     <value>Yüklendi</value>
   </data>
@@ -224,6 +251,9 @@
   </data>
   <data name="Management" xml:space="preserve">
     <value>Yönetim</value>
+  </data>
+  <data name="Mark as Paid" xml:space="preserve">
+    <value>Ödendi Olarak İşaretle</value>
   </data>
   <data name="Medium (500,000-1,000,000 SMS unit price)" xml:space="preserve">
     <value>Orta (500.000-1.000.000 arası sms birim fiyat)</value>
@@ -264,8 +294,17 @@
   <data name="Past messages" xml:space="preserve">
     <value>Geçmiş mesajlar</value>
   </data>
+  <data name="Pay" xml:space="preserve">
+    <value>Ödeme</value>
+  </data>
+  <data name="Payment Options" xml:space="preserve">
+    <value>Ödeme Seçenekleri</value>
+  </data>
   <data name="Pending" xml:space="preserve">
     <value>Askıda olması</value>
+  </data>
+  <data name="Preview" xml:space="preserve">
+    <value>Önizleme</value>
   </data>
   <data name="Pricing" xml:space="preserve">
     <value>Fiyatlandırma</value>
@@ -300,11 +339,20 @@
   <data name="Roles" xml:space="preserve">
     <value>Roller</value>
   </data>
+  <data name="Select Payment Option" xml:space="preserve">
+    <value>Ödeme Seçeneğini Seçin</value>
+  </data>
   <data name="Sendsms" xml:space="preserve">
     <value>Yeni Sms Gönder</value>
   </data>
   <data name="Settings" xml:space="preserve">
     <value>Ayarlar</value>
+  </data>
+  <data name="SMS Preview" xml:space="preserve">
+    <value>SMS Önizlemesi</value>
+  </data>
+  <data name="Start Date" xml:space="preserve">
+    <value>Başlangıç ​​Tarihi</value>
   </data>
   <data name="Status" xml:space="preserve">
     <value>Durum</value>
@@ -333,6 +381,9 @@
   <data name="Unsuccessful" xml:space="preserve">
     <value>Başarısız</value>
   </data>
+  <data name="Updated Date" xml:space="preserve">
+    <value>Güncellenme Tarihi</value>
+  </data>
   <data name="User Information" xml:space="preserve">
     <value>Kullanıcı Bilgileri</value>
   </data>
@@ -342,10 +393,988 @@
   <data name="Users" xml:space="preserve">
     <value>Kullanıcılar</value>
   </data>
+  <data name="Wallet ID" xml:space="preserve">
+    <value>Cüzdan Kimliği</value>
+  </data>
   <data name="welcome" xml:space="preserve">
     <value>Welcometurkish</value>
   </data>
   <data name="Welcome Back" xml:space="preserve">
     <value>Tekrar hoşgeldiniz</value>
+  </data>
+  <data name=" Enter Company Details" xml:space="preserve">
+    <value>Şirket Detaylarını Girin</value>
+  </data>
+  <data name="All Status" xml:space="preserve">
+    <value>Tüm Durumlar</value>
+  </data>
+  <data name="Pending approval" xml:space="preserve">
+    <value>Onay bekleniyor</value>
+  </data>
+  <data name="Sent" xml:space="preserve">
+    <value>Gönderildi</value>
+  </data>
+  <data name="Cancelled" xml:space="preserve">
+    <value>İptal edildi</value>
+  </data>
+  <data name="Waiting to be sent" xml:space="preserve">
+    <value>Gönderilmeyi bekliyor</value>
+  </data>
+  <data name="Shipping has started" xml:space="preserve">
+    <value>Gönderim başladı</value>
+  </data>
+  <data name="Send Failed" xml:space="preserve">
+    <value>Gönderim başarısız</value>
+  </data>
+  <data name="All Companies" xml:space="preserve">
+    <value>Tüm Firmalar</value>
+  </data>
+  <data name="Deactivate" xml:space="preserve">
+    <value>Pasifleştir</value>
+  </data>
+  <data name="All Orders" xml:space="preserve">
+    <value>Tüm Siparişler</value>
+  </data>
+  <data name="Failed" xml:space="preserve">
+    <value>Gönderim başarısız</value>
+  </data>
+  <data name="Submission Failed" xml:space="preserve">
+    <value>Gönderim Başarısız</value>
+  </data>
+  <data name="Directories" xml:space="preserve">
+    <value>Rehber</value>
+  </data>
+  <data name="Blacklist" xml:space="preserve">
+    <value>Kara Liste</value>
+  </data>
+  <data name="Get Started Now" xml:space="preserve">
+    <value>Şimdi Başlayın</value>
+  </data>
+  <data name="Enter your credentials to login your account" xml:space="preserve">
+    <value>Hesabınıza giriş yapmak için kimlik bilgilerinizi girin</value>
+  </data>
+  <data name="Login" xml:space="preserve">
+    <value>Giriş yap</value>
+  </data>
+  <data name="Forgot Password ?" xml:space="preserve">
+    <value>Parolanızı mı unuttunuz ?</value>
+  </data>
+  <data name="Valid" xml:space="preserve">
+    <value>Geçerli</value>
+  </data>
+  <data name="Invalid" xml:space="preserve">
+    <value>Geçersiz</value>
+  </data>
+  <data name="Available credit" xml:space="preserve">
+    <value>Mevcut kredi</value>
+  </data>
+  <data name="Price per SMS" xml:space="preserve">
+    <value>SMS başına fiyat</value>
+  </data>
+  <data name="This order cost" xml:space="preserve">
+    <value>Bu Sipariş Ücreti</value>
+  </data>
+  <data name="Total" xml:space="preserve">
+    <value>Toplam</value>
+  </data>
+  <data name="Undelivered" xml:space="preserve">
+    <value>Teslim edilmedi</value>
+  </data>
+  <data name="Expired" xml:space="preserve">
+    <value>Zaman aşımı</value>
+  </data>
+  <data name="Monthly SMS Sent" xml:space="preserve">
+    <value>Aylık SMS Gönderimi</value>
+  </data>
+  <data name="Standard" xml:space="preserve">
+    <value>Standart</value>
+  </data>
+  <data name="Low (1–500,000 SMS unit price)" xml:space="preserve">
+    <value>Düşük (1–500.000 SMS birim fiyatı)</value>
+  </data>
+  <data name="Medium (500,000–1,000,000 SMS unit price)" xml:space="preserve">
+    <value>Orta (500.000–1.000.000 SMS birim fiyatı)</value>
+  </data>
+  <data name="High (1,000,000+ SMS unit price)" xml:space="preserve">
+    <value>Yüksek (1.000.000+ SMS birim fiyatı)</value>
+  </data>
+  <data name="Credit Transactions" xml:space="preserve">
+    <value>Kredi İşlemleri</value>
+  </data>
+  <data name="Add credit" xml:space="preserve">
+    <value>Kredi ekle</value>
+  </data>
+  <data name="Delete credit" xml:space="preserve">
+    <value>Krediyi sil</value>
+  </data>
+  <data name="Update" xml:space="preserve">
+    <value>Güncelleme</value>
+  </data>
+  <data name="Delete" xml:space="preserve">
+    <value>Sil</value>
+  </data>
+  <data name="Transaction Type" xml:space="preserve">
+    <value>İşlem Türü</value>
+  </data>
+  <data name="Unit Price" xml:space="preserve">
+    <value>Birim Fiyatı</value>
+  </data>
+  <data name="Transaction Date" xml:space="preserve">
+    <value>İşlem Tarihi</value>
+  </data>
+  <data name="Note" xml:space="preserve">
+    <value>Not</value>
+  </data>
+  <data name="Add New User" xml:space="preserve">
+    <value>Yeni Kullanıcı Ekle</value>
+  </data>
+  <data name="Full Name" xml:space="preserve">
+    <value>Ad Soyad</value>
+  </data>
+  <data name="Quota Type" xml:space="preserve">
+    <value>Kota Türü</value>
+  </data>
+  <data name="Daily" xml:space="preserve">
+    <value>Günlük</value>
+  </data>
+  <data name="Monthly" xml:space="preserve">
+    <value>Aylık</value>
+  </data>
+  <data name="Quota" xml:space="preserve">
+    <value>Kota</value>
+  </data>
+  <data name="2FA Type" xml:space="preserve">
+    <value>2FA Türü</value>
+  </data>
+  <data name="Save User" xml:space="preserve">
+    <value>Kullanıcıyı Kaydet</value>
+  </data>
+  <data name="Actions" xml:space="preserve">
+    <value>Eylemler</value>
+  </data>
+  <data name="Edit User" xml:space="preserve">
+    <value>Kullanıcıyı Düzenle</value>
+  </data>
+  <data name="Noquota" xml:space="preserve">
+    <value>Kota yok</value>
+  </data>
+  <data name="None" xml:space="preserve">
+    <value>Hiçbiri</value>
+  </data>
+  <data name="Cancel" xml:space="preserve">
+    <value>İptal Et</value>
+  </data>
+  <data name="Price" xml:space="preserve">
+    <value>Fiyat</value>
+  </data>
+  <data name="Unit price options" xml:space="preserve">
+    <value>Birim fiyat seçenekleri</value>
+  </data>
+  <data name="Automatic" xml:space="preserve">
+    <value>Otomatik</value>
+  </data>
+  <data name="Manual" xml:space="preserve">
+    <value>Manuel</value>
+  </data>
+  <data name="Add" xml:space="preserve">
+    <value>Ekle</value>
+  </data>
+  <data name="Credit to remove" xml:space="preserve">
+    <value>Silinecek kredi</value>
+  </data>
+  <data name="All Company Users" xml:space="preserve">
+    <value>Tüm Firma Kullanıcıları</value>
+  </data>
+  <data name=" Edit Company User" xml:space="preserve">
+    <value>Şirket Kullanıcısını Düzenle</value>
+  </data>
+  <data name="Select Firm" xml:space="preserve">
+    <value>Firma Seçiniz</value>
+  </data>
+  <data name="Variable Quota" xml:space="preserve">
+    <value>Değişken Kota</value>
+  </data>
+  <data name="New Company User" xml:space="preserve">
+    <value>Yeni Firma Kullanıcısı</value>
+  </data>
+  <data name="Create" xml:space="preserve">
+    <value>Yaratmak</value>
+  </data>
+  <data name="Report will be available after 48 hours." xml:space="preserve">
+    <value>Rapor 48 saat sonra hazır olacaktır.</value>
+  </data>
+  <data name="Report not yet generated." xml:space="preserve">
+    <value>Rapor henüz oluşturulmadı.</value>
+  </data>
+  <data name="Remove Special Pricing" xml:space="preserve">
+    <value>Özel Fiyatlandırmayı Kaldır</value>
+  </data>
+  <data name="Pricing History" xml:space="preserve">
+    <value>Fiyatlandırma Geçmişi</value>
+  </data>
+  <data name="Low" xml:space="preserve">
+    <value>Düşük</value>
+  </data>
+  <data name="Medium" xml:space="preserve">
+    <value>Orta</value>
+  </data>
+  <data name="High" xml:space="preserve">
+    <value>Yüksek</value>
+  </data>
+  <data name="Create New Role" xml:space="preserve">
+    <value>Yeni Rol Oluştur</value>
+  </data>
+  <data name="Role Name" xml:space="preserve">
+    <value>Rol Adı</value>
+  </data>
+  <data name="The RoleName field is required." xml:space="preserve">
+    <value>RoleName alanı zorunludur.</value>
+  </data>
+  <data name="Read Only" xml:space="preserve">
+    <value>Salt Okunur</value>
+  </data>
+  <data name="ReadOnly field is required." xml:space="preserve">
+    <value>Salt Okunur alanı zorunludur.</value>
+  </data>
+  <data name="Create Role" xml:space="preserve">
+    <value>Rol Oluştur</value>
+  </data>
+  <data name="All Roles" xml:space="preserve">
+    <value>Tüm Roller</value>
+  </data>
+  <data name="Role" xml:space="preserve">
+    <value>Rol</value>
+  </data>
+  <data name="User Based Authorizations" xml:space="preserve">
+    <value>Kullanıcı Tabanlı Yetkilendirmeler</value>
+  </data>
+  <data name="Authority" xml:space="preserve">
+    <value>Yetki</value>
+  </data>
+  <data name="Read" xml:space="preserve">
+    <value>Oku</value>
+  </data>
+  <data name="Company User" xml:space="preserve">
+    <value>Firma Kullanıcısı</value>
+  </data>
+  <data name="Order" xml:space="preserve">
+    <value>Sipariş</value>
+  </data>
+  <data name="User" xml:space="preserve">
+    <value>Kullanıcı</value>
+  </data>
+  <data name="Passive Numbers" xml:space="preserve">
+    <value>Pasif Numaralar</value>
+  </data>
+  <data name="Account transactions" xml:space="preserve">
+    <value>Hesap işlemleri</value>
+  </data>
+  <data name="Dealer transactions" xml:space="preserve">
+    <value>Bayi işlemleri</value>
+  </data>
+  <data name="Special Powers" xml:space="preserve">
+    <value>Özel Güçler</value>
+  </data>
+  <data name="Connecting to a user account" xml:space="preserve">
+    <value>Bir kullanıcı hesabına bağlan</value>
+  </data>
+  <data name="Role assignment authority" xml:space="preserve">
+    <value>Rol atama yetkisi</value>
+  </data>
+  <data name="Dealer Based Authorizations" xml:space="preserve">
+    <value>Bayi Bazlı Yetkilendirmeler</value>
+  </data>
+  <data name="Dealer" xml:space="preserve">
+    <value>Satıcı</value>
+  </data>
+  <data name="Dealer credit" xml:space="preserve">
+    <value>Bayi kredisi</value>
+  </data>
+  <data name="Dealer support request" xml:space="preserve">
+    <value>Bayi destek talebi</value>
+  </data>
+  <data name="Dealer account transactions" xml:space="preserve">
+    <value>Bayi hesap işlemleri</value>
+  </data>
+  <data name="Dealer users" xml:space="preserve">
+    <value>Bayi kullanıcıları</value>
+  </data>
+  <data name="Role information could not be loaded." xml:space="preserve">
+    <value>Rol bilgisi yüklenemedi.</value>
+  </data>
+  <data name="Search" xml:space="preserve">
+    <value>Aramak</value>
+  </data>
+  <data name="Results" xml:space="preserve">
+    <value>Sonuçlar</value>
+  </data>
+  <data name="See All Search Results" xml:space="preserve">
+    <value>Tüm Arama Sonuçlarını Gör</value>
+  </data>
+  <data name="Notifications" xml:space="preserve">
+    <value>Bildirimler</value>
+  </data>
+  <data name="Mark all as read" xml:space="preserve">
+    <value>Tümünü okundu olarak işaretle</value>
+  </data>
+  <data name="No roles found." xml:space="preserve">
+    <value>Hiçbir rol bulunamadı.</value>
+  </data>
+  <data name="All Users" xml:space="preserve">
+    <value>Tüm Kullanıcılar</value>
+  </data>
+  <data name="Verification type" xml:space="preserve">
+    <value>Doğrulama türü</value>
+  </data>
+  <data name="Process" xml:space="preserve">
+    <value>İşlem</value>
+  </data>
+  <data name="No permissions assigned." xml:space="preserve">
+    <value>Hiçbir izin atanmadı.</value>
+  </data>
+  <data name="Enable Two-Factor Authentication" xml:space="preserve">
+    <value>İki Faktörlü Kimlik Doğrulamayı Etkinleştir</value>
+  </data>
+  <data name="Scan the QR code below using Google Authenticator or any TOTP app:" xml:space="preserve">
+    <value>Aşağıdaki QR kodunu Google Authenticator veya herhangi bir TOTP uygulamasını kullanarak tarayın:</value>
+  </data>
+  <data name="Enter the 6-digit code from your app:" xml:space="preserve">
+    <value>Uygulamanızdan gelen 6 haneli kodu girin:</value>
+  </data>
+  <data name="Verify &amp; Enable 2FA" xml:space="preserve">
+    <value>2FA'yı Doğrulayın ve Etkinleştirin</value>
+  </data>
+  <data name="No users found." xml:space="preserve">
+    <value>Hiçbir kullanıcı bulunamadı.</value>
+  </data>
+  <data name="New User" xml:space="preserve">
+    <value>Yeni Kullanıcı</value>
+  </data>
+  <data name="Edit Profile" xml:space="preserve">
+    <value>Profili Düzenle</value>
+  </data>
+  <data name="2FA is enabled" xml:space="preserve">
+    <value>2FA etkinleştirildi</value>
+  </data>
+  <data name="Enable 2FA" xml:space="preserve">
+    <value>2FA'yı etkinleştir</value>
+  </data>
+  <data name="Upload Profile Photo" xml:space="preserve">
+    <value>Profil Fotoğrafını Yükle</value>
+  </data>
+  <data name="Save Changes" xml:space="preserve">
+    <value>Değişiklikleri Kaydet</value>
+  </data>
+  <data name="Add API" xml:space="preserve">
+    <value>API ekle</value>
+  </data>
+  <data name="Service Name" xml:space="preserve">
+    <value>Hizmet Adı</value>
+  </data>
+  <data name="Originator" xml:space="preserve">
+    <value>Numara</value>
+  </data>
+  <data name="Edit API" xml:space="preserve">
+    <value>API'yi düzenle</value>
+  </data>
+  <data name="Service Type" xml:space="preserve">
+    <value>Hizmet Türü</value>
+  </data>
+  <data name="Activate" xml:space="preserve">
+    <value>Etkinleştir</value>
+  </data>
+  <data name="Choose Firm" xml:space="preserve">
+    <value>Firma Seçiniz</value>
+  </data>
+  <data name="Order Timeline" xml:space="preserve">
+    <value>Sipariş Zaman Çizelgesi</value>
+  </data>
+  <data name="View Full Order Details" xml:space="preserve">
+    <value>Tüm Sipariş Ayrıntılarını Görüntüle</value>
+  </data>
+  <data name="Report" xml:space="preserve">
+    <value>Rapor</value>
+  </data>
+  <data name="Resend" xml:space="preserve">
+    <value>Yeniden gönder</value>
+  </data>
+  <data name="Scheduled" xml:space="preserve">
+    <value>planlanmış</value>
+  </data>
+  <data name="Approved" xml:space="preserve">
+    <value>Gönderim başladı</value>
+  </data>
+  <data name="Awaiting Approval" xml:space="preserve">
+    <value>Onay Bekliyor</value>
+  </data>
+  <data name="Order Status" xml:space="preserve">
+    <value>Sipariş Durumu</value>
+  </data>
+  <data name="Details" xml:space="preserve">
+    <value>Detaylar</value>
+  </data>
+  <data name="Order No" xml:space="preserve">
+    <value>Sipariş No</value>
+  </data>
+  <data name="Summary" xml:space="preserve">
+    <value>Özet</value>
+  </data>
+  <data name="All" xml:space="preserve">
+    <value>Tüm</value>
+  </data>
+  <data name="Waiting" xml:space="preserve">
+    <value>Bekleniyor</value>
+  </data>
+  <data name="Forwarded" xml:space="preserve">
+    <value>İletilen</value>
+  </data>
+  <data name="Change API" xml:space="preserve">
+    <value>API'yi değiştir</value>
+  </data>
+  <data name="Cancel Order" xml:space="preserve">
+    <value>Siparişi İptal Et</value>
+  </data>
+  <data name="Are you sure you want to cancel this order?" xml:space="preserve">
+    <value>Bu siparişi iptal etmek istediğinizden emin misiniz?</value>
+  </data>
+  <data name="Order ID" xml:space="preserve">
+    <value>Sipariş Kimliği</value>
+  </data>
+  <data name="Filter Order ID" xml:space="preserve">
+    <value>Sipariş Kimliğini Filtrele</value>
+  </data>
+  <data name="Filter Company" xml:space="preserve">
+    <value>Filtre Firma</value>
+  </data>
+  <data name="Filter API" xml:space="preserve">
+    <value>API'yi filtrele</value>
+  </data>
+  <data name="Filter Submission Type" xml:space="preserve">
+    <value>Filtre Gönderim Türü</value>
+  </data>
+  <data name="Min Loaded" xml:space="preserve">
+    <value>Minimum Yüklenen</value>
+  </data>
+  <data name="Min Processed" xml:space="preserve">
+    <value>Minimum İşlenen</value>
+  </data>
+  <data name="Min Unsuccessful" xml:space="preserve">
+    <value>Min Başarısız</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Evet</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>Hayır</value>
+  </data>
+  <data name="Confirm Send" xml:space="preserve">
+    <value>Gönderimi Onayla</value>
+  </data>
+  <data name="Files" xml:space="preserve">
+    <value>Dosyalar</value>
+  </data>
+  <data name="Blacklisted" xml:space="preserve">
+    <value>Kara listeye alındı</value>
+  </data>
+  <data name="Filtered" xml:space="preserve">
+    <value>Filtrelendi</value>
+  </data>
+  <data name="Next" xml:space="preserve">
+    <value>Sonraki</value>
+  </data>
+  <data name="Previous" xml:space="preserve">
+    <value>Öncesi</value>
+  </data>
+  <data name="Copy" xml:space="preserve">
+    <value>Kopyala</value>
+  </data>
+  <data name="Print" xml:space="preserve">
+    <value>Yazdır</value>
+  </data>
+  <data name="Excel" xml:space="preserve">
+    <value>Excel</value>
+  </data>
+  <data name="PDF" xml:space="preserve">
+    <value>PDF</value>
+  </data>
+  <data name="No matching records found" xml:space="preserve">
+    <value>Eşleşen kayıt bulunamadı</value>
+  </data>
+  <data name="No data available in table" xml:space="preserve">
+    <value>Tabloda veri yok</value>
+  </data>
+  <data name="First" xml:space="preserve">
+    <value>Birinci</value>
+  </data>
+  <data name="Last" xml:space="preserve">
+    <value>Son</value>
+  </data>
+  <data name="Showing _START_ to_END_ of _TOTAL_ entries" xml:space="preserve">
+    <value>Toplam _TOTAL_ kayıttan _START_ - _END_ arası gösteriliyor</value>
+  </data>
+  <data name="Show_MENU_ entries" xml:space="preserve">
+    <value>_MENU_ kayıt göster</value>
+  </data>
+  <data name="Total Numbers" xml:space="preserve">
+    <value>Toplam Sayılar</value>
+  </data>
+  <data name="Please fill all required fields. " xml:space="preserve">
+    <value>Lütfen tüm gerekli alanları doldurun.</value>
+  </data>
+  <data name="Company added successfully!" xml:space="preserve">
+    <value>Şirket başarıyla eklendi!</value>
+  </data>
+  <data name="Error while submitting form." xml:space="preserve">
+    <value>Form gönderilirken hata oluştu.</value>
+  </data>
+  <data name="OrderNotFound" xml:space="preserve">
+    <value>Sipariş bulunamadı.</value>
+  </data>
+  <data name="OrderCannotBeCancelled" xml:space="preserve">
+    <value>Bu sipariş iptal edilemez.</value>
+  </data>
+  <data name="OrderWasCancelled" xml:space="preserve">
+    <value>Sipariş iptal edildi</value>
+  </data>
+  <data name="Ordercanceled" xml:space="preserve">
+    <value>Sipariş başarıyla iptal edildi.</value>
+  </data>
+  <data name="Pleaseenterreceipt" xml:space="preserve">
+    <value>Lütfen fiş numarasını giriniz.</value>
+  </data>
+  <data name="Receiptsubmittedsuccess" xml:space="preserve">
+    <value>Makbuz başarıyla gönderildi.</value>
+  </data>
+  <data name="Receiptverify" xml:space="preserve">
+    <value>Makbuzunuz alındı. Ödemenizi kısa süre içinde doğrulayacağız.</value>
+  </data>
+  <data name="Receiptnumberrequired" xml:space="preserve">
+    <value>Fiş numarası zorunludur.</value>
+  </data>
+  <data name="Errorreceipt" xml:space="preserve">
+    <value>Makbuz gönderilirken hata oluştu.</value>
+  </data>
+  <data name="apisuccess" xml:space="preserve">
+    <value>API Başarıyla Oluşturuldu.</value>
+  </data>
+  <data name="SomethingWentWrong" xml:space="preserve">
+    <value>Bir şeyler ters gitti.</value>
+  </data>
+  <data name="deleteapiconfirmation" xml:space="preserve">
+    <value>Bu API'yi silmek istediğinizden emin misiniz?</value>
+  </data>
+  <data name="Totalsmssentpermonth" xml:space="preserve">
+    <value>Aylık Gönderilen Toplam SMS</value>
+  </data>
+  <data name="hello" xml:space="preserve">
+    <value>Merhaba</value>
+  </data>
+  <data name="Pleasefillapi" xml:space="preserve">
+    <value>Lütfen gerekli alanları doldurunuz.</value>
+  </data>
+  <data name="processingWithPercent" xml:space="preserve">
+    <value>İşleniyor... %{0}</value>
+  </data>
+  <data name="TotalNumbers" xml:space="preserve">
+    <value>Toplam Sayılar: {0}</value>
+  </data>
+  <data name="validcounts" xml:space="preserve">
+    <value>Geçerli: {0}</value>
+  </data>
+  <data name="invalidcounts" xml:space="preserve">
+    <value>Geçersiz: {0}</value>
+  </data>
+  <data name="smssuccess" xml:space="preserve">
+    <value>SMS siparişi başarıyla planlandı</value>
+  </data>
+  <data name="ordercreeatedadminapproval" xml:space="preserve">
+    <value>Sipariş oluşturuldu ve admin tarafından onay bekleniyor.</value>
+  </data>
+  <data name="smssent" xml:space="preserve">
+    <value>SMS başarıyla gönderildi.</value>
+  </data>
+  <data name="smsresentsuccess" xml:space="preserve">
+    <value>SMS yeni API ile başarıyla yeniden gönderildi</value>
+  </data>
+  <data name="ordernotfoundmsg" xml:space="preserve">
+    <value>Sipariş bulunamadı veya onaylandı.</value>
+  </data>
+  <data name="novalidreceipents" xml:space="preserve">
+    <value>Geçerli alıcı bulunamadı. SMS gönderilemiyor.</value>
+  </data>
+  <data name="insufficientbal" xml:space="preserve">
+    <value>Yetersiz bakiye.</value>
+  </data>
+  <data name="orderapproved" xml:space="preserve">
+    <value>Sipariş onaylandı ve SMS gönderildi.</value>
+  </data>
+  <data name="ordernoteligible" xml:space="preserve">
+    <value>Sipariş tekrar gönderime uygun değil.</value>
+  </data>
+  <data name="ordersuccessresend" xml:space="preserve">
+    <value>Sipariş yeniden gönderilmek üzere başarıyla planlandı</value>
+  </data>
+  <data name="orderresentsms" xml:space="preserve">
+    <value>Siparişiniz tekrar gönderildi ve SMS başarıyla gönderildi.</value>
+  </data>
+  <data name="profileupdatedsuccess" xml:space="preserve">
+    <value>Profil başarıyla güncellendi!</value>
+  </data>
+  <data name="Updatefailed" xml:space="preserve">
+    <value>Güncelleme başarısız oldu.</value>
+  </data>
+  <data name="confirmchangeapi" xml:space="preserve">
+    <value>Bu sipariş için API'yi değiştirmek istediğinizden emin misiniz?</value>
+  </data>
+  <data name="changesmsapi" xml:space="preserve">
+    <value>SMS API'sini değiştir</value>
+  </data>
+  <data name="changeapi" xml:space="preserve">
+    <value>API'yi Değiştir ve Yeniden Gönder</value>
+  </data>
+  <data name="apichangessmssent" xml:space="preserve">
+    <value>API değiştirildi ve SMS yeniden gönderildi.</value>
+  </data>
+  <data name="notenoughcredit" xml:space="preserve">
+    <value>Yeterli kredi yok.</value>
+  </data>
+  <data name="creditdeletedsuccess" xml:space="preserve">
+    <value>Kredi başarıyla silindi.</value>
+  </data>
+  <data name="unauthorizedlogin" xml:space="preserve">
+    <value>Yetkisiz Giriş Girişimi</value>
+  </data>
+  <data name="invalidloginattempt" xml:space="preserve">
+    <value>Kullanıcı adı ile geçersiz bir giriş denemesi yapıldı:</value>
+  </data>
+  <data name="allfieldsrequired" xml:space="preserve">
+    <value>Tüm alanların doldurulması zorunludur.</value>
+  </data>
+  <data name="apinotfound" xml:space="preserve">
+    <value>API bulunamadı.</value>
+  </data>
+  <data name="companyupdatedsuccess" xml:space="preserve">
+    <value>Firma başarıyla güncellendi.</value>
+  </data>
+  <data name="userdeletedsuccess" xml:space="preserve">
+    <value>Kullanıcı başarıyla silindi.</value>
+  </data>
+  <data name="erroroccureddeletinguser" xml:space="preserve">
+    <value>Kullanıcı silinirken bir hata oluştu.</value>
+  </data>
+  <data name="usernamepasswordrequired" xml:space="preserve">
+    <value>Kullanıcı adı ve şifre gereklidir.</value>
+  </data>
+  <data name="usernameexists" xml:space="preserve">
+    <value>Kullanıcı adı zaten mevcut.</value>
+  </data>
+  <data name="invalidorder" xml:space="preserve">
+    <value>Geçersiz sipariş veya API.</value>
+  </data>
+  <data name="changedapi" xml:space="preserve">
+    <value>Api değiştirildi</value>
+  </data>
+  <data name="smsapisuccess" xml:space="preserve">
+    <value>SMS API başarıyla değiştirildi.</value>
+  </data>
+  <data name="scheduledfor" xml:space="preserve">
+    <value>Şu tarih için planlandı:</value>
+  </data>
+  <data name="erroroccuredsendingsms" xml:space="preserve">
+    <value>SMS gönderilirken bir hata oluştu.</value>
+  </data>
+  <data name="selectapi" xml:space="preserve">
+    <value>API'yi seçin</value>
+  </data>
+  <data name="creditadded" xml:space="preserve">
+    <value>Kredi eklendi</value>
+  </data>
+  <data name="creditdeleted" xml:space="preserve">
+    <value>Kredi silindi</value>
+  </data>
+  <data name="creditaddedsuccess" xml:space="preserve">
+    <value>Kredi Başarıyla Eklendi</value>
+  </data>
+  <data name="erroraddingcredit" xml:space="preserve">
+    <value>Kredi Ekleme Hatası</value>
+  </data>
+  <data name="deactivatecompany" xml:space="preserve">
+    <value>Bu Firma devre dışı bırakmak istediğinizden emin misiniz?</value>
+  </data>
+  <data name="companydeactivatesuccess" xml:space="preserve">
+    <value>Firma başarıyla devre dışı bırakıldı.</value>
+  </data>
+  <data name="companydeleteconfirmation" xml:space="preserve">
+    <value>Bu Firma silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.</value>
+  </data>
+  <data name="companydeletesuccess" xml:space="preserve">
+    <value>Firma başarıyla silindi.</value>
+  </data>
+  <data name="deleteuserconfirmation" xml:space="preserve">
+    <value>Bu kullanıcıyı silmek istediğinizden emin misiniz?</value>
+  </data>
+  <data name="companyusersuccess" xml:space="preserve">
+    <value>Firma kullanıcısı başarıyla oluşturuldu!</value>
+  </data>
+  <data name="companyuserupdated" xml:space="preserve">
+    <value>Firma kullanıcısı başarıyla güncellendi!</value>
+  </data>
+  <data name="resendorder" xml:space="preserve">
+    <value>Bu siparişi tekrar göndermek istediğinizden emin misiniz?</value>
+  </data>
+  <data name="Credittopups" xml:space="preserve">
+    <value>Kredi Yüklemeleri</value>
+  </data>
+  <data name="Allsupport" xml:space="preserve">
+    <value>Tüm Destek Talepleri</value>
+  </data>
+  <data name="Sender" xml:space="preserve">
+    <value>Gönderen</value>
+  </data>
+  <data name="Created" xml:space="preserve">
+    <value>Oluşturuldu</value>
+  </data>
+  <data name="assignedto" xml:space="preserve">
+    <value>Atanan Kişi</value>
+  </data>
+  <data name="clearallfilters" xml:space="preserve">
+    <value>Tüm Filtreleri Temizle</value>
+  </data>
+  <data name="send" xml:space="preserve">
+    <value>Gönder</value>
+  </data>
+  <data name="messagebox" xml:space="preserve">
+    <value>Mesaj Kutusu</value>
+  </data>
+  <data name="createsupportrequest" xml:space="preserve">
+    <value>Destek Talebi Oluştur</value>
+  </data>
+  <data name="subject" xml:space="preserve">
+    <value>Konu</value>
+  </data>
+  <data name="yourmessage" xml:space="preserve">
+    <value>Mesajınız</value>
+  </data>
+  <data name="viewresponse" xml:space="preserve">
+    <value>Yanıtları Görüntüle</value>
+  </data>
+  <data name="responses" xml:space="preserve">
+    <value>Yanıtlar</value>
+  </data>
+  <data name="noresponseyet" xml:space="preserve">
+    <value>Henüz yanıt yok.</value>
+  </data>
+  <data name="newsupportticket" xml:space="preserve">
+    <value>Yeni Destek Talebi</value>
+  </data>
+  <data name="ticketcreated" xml:space="preserve">
+    <value>Talep oluşturuldu.</value>
+  </data>
+  <data name="backtosupport" xml:space="preserve">
+    <value>Destek Taleplerine Dön</value>
+  </data>
+  <data name="supportticketdetails" xml:space="preserve">
+    <value>Destek Talep Detayları</value>
+  </data>
+  <data name="verify" xml:space="preserve">
+    <value>Doğrula</value>
+  </data>
+  <data name="backtologin" xml:space="preserve">
+    <value>Ana Sayfaya Dön</value>
+  </data>
+  <data name="emailauth" xml:space="preserve">
+    <value>E-posta Yetkilendirmesi</value>
+  </data>
+  <data name="6digitcodeemail" xml:space="preserve">
+    <value>E-postanıza gönderilen 6 haneli kodu girin</value>
+  </data>
+  <data name="mysupporttickets" xml:space="preserve">
+    <value>Destek Talepleri</value>
+  </data>
+  <data name="Set_As_Default" xml:space="preserve">
+    <value>Varsayılan Olarak Ayarla</value>
+  </data>
+  <data name="Default" xml:space="preserve">
+    <value>Varsayılan</value>
+  </data>
+  <data name="Make_Default" xml:space="preserve">
+    <value>Varsayılan Yap</value>
+  </data>
+  <data name="Api_Url" xml:space="preserve">
+    <value>API URL</value>
+  </data>
+  <data name="companyinactive" xml:space="preserve">
+    <value>Firma şu anda pasif durumdadır. Lütfen yöneticinizle iletişime geçin.</value>
+  </data>
+  <data name="invalidcredentials" xml:space="preserve">
+    <value>Geçersiz kullanıcı adı veya şifre.</value>
+  </data>
+  <data name="quotanotavailable" xml:space="preserve">
+    <value>Kota bulunamadı veya aşıldı</value>
+  </data>
+  <data name="transactionhistory" xml:space="preserve">
+    <value>İşlem Geçmişi</value>
+  </data>
+  <data name="balanceenquiry" xml:space="preserve">
+    <value>Bakiye Sorgulama</value>
+  </data>
+  <data name="notransactionsavailable" xml:space="preserve">
+    <value>Hiçbir işlem mevcut değil</value>
+  </data>
+  <data name="usernametaken" xml:space="preserve">
+    <value>Kullanıcı adı '{0}' zaten alınmış.</value>
+  </data>
+  <data name="companynameexists" xml:space="preserve">
+    <value>'{0}' adında bir firma zaten mevcut.</value>
+  </data>
+  <data name="addnewdirectory" xml:space="preserve">
+    <value>Yeni Rehber Ekle</value>
+  </data>
+  <data name="Title" xml:space="preserve">
+    <value>Başlık</value>
+  </data>
+  <data name="count" xml:space="preserve">
+    <value>Saymak</value>
+  </data>
+  <data name="Edit Directory" xml:space="preserve">
+    <value>Rehber Düzenle</value>
+  </data>
+  <data name="downloaddirectory" xml:space="preserve">
+    <value>Dizini İndir</value>
+  </data>
+  <data name="remove" xml:space="preserve">
+    <value>Kaldırmak</value>
+  </data>
+  <data name="directorysuccess" xml:space="preserve">
+    <value>Rehber başarıyla oluşturuldu!</value>
+  </data>
+  <data name="deletedirectory" xml:space="preserve">
+    <value>Bu rehber silmek istediğinizden emin misiniz?</value>
+  </data>
+  <data name="directorydeltesuccess" xml:space="preserve">
+    <value>Rehber başarıyla silindi.</value>
+  </data>
+  <data name="Addphonenumber" xml:space="preserve">
+    <value>Telefon Numaraları Ekleyin (virgül, noktalı virgül veya yeni satırla ayrılmış)</value>
+  </data>
+  <data name="addnumbers" xml:space="preserve">
+    <value>Numara Ekle</value>
+  </data>
+  <data name="removenumbers" xml:space="preserve">
+    <value>Telefon Numaralarını Kaldır</value>
+  </data>
+  <data name="uploadphonenumber" xml:space="preserve">
+    <value>Telefon Numaraları Dosyasını Yükle</value>
+  </data>
+  <data name="upload" xml:space="preserve">
+    <value>Yükle</value>
+  </data>
+  <data name="phoneblacklisted" xml:space="preserve">
+    <value>Telefon numarası kara listeye alındı</value>
+  </data>
+  <data name="phonenotblacklisted" xml:space="preserve">
+    <value>Telefon numarası kara listede değil</value>
+  </data>
+  <data name="searchphone" xml:space="preserve">
+    <value>Telefon numarasını ara</value>
+  </data>
+  <data name="phoneadded" xml:space="preserve">
+    <value>Telefon numaraları eklendi.</value>
+  </data>
+  <data name="phoneremoved" xml:space="preserve">
+    <value>Telefon numaraları kaldırıldı.</value>
+  </data>
+  <data name="blacklistaddedsuccess" xml:space="preserve">
+    <value>{0} Telefon numarası kara listeye eklendi.</value>
+  </data>
+  <data name="userinactive" xml:space="preserve">
+    <value>Hesabınız aktif değil. Lütfen yöneticinizle iletişime geçin.</value>
+  </data>
+  <data name="assignedtickets" xml:space="preserve">
+    <value>Atanmış Biletler</value>
+  </data>
+  <data name="companyactivated" xml:space="preserve">
+    <value>Firma etkinleştirildi.</value>
+  </data>
+  <data name="companydeactivated" xml:space="preserve">
+    <value>Firma devre dışı bırakılması.</value>
+  </data>
+  <data name="ipaddress" xml:space="preserve">
+    <value>IP Adresi</value>
+  </data>
+  <data name="Location" xml:space="preserve">
+    <value>Konum</value>
+  </data>
+  <data name="Device" xml:space="preserve">
+    <value>Cihaz</value>
+  </data>
+  <data name="logintime" xml:space="preserve">
+    <value>Giriş Zamanı</value>
+  </data>
+  <data name="userinfo" xml:space="preserve">
+    <value>Kullanıcı Bilgileri</value>
+  </data>
+  <data name="loginhistory" xml:space="preserve">
+    <value>Giriş Geçmişi</value>
+  </data>
+  <data name="choosedirectory" xml:space="preserve">
+    <value>Rehber Seçin</value>
+  </data>
+  <data name="selectdirectory" xml:space="preserve">
+    <value>Rehber Seçin</value>
+  </data>
+  <data name="defaultupdated" xml:space="preserve">
+    <value>Varsayılan API Güncellendi</value>
+  </data>
+  <data name="makedefault" xml:space="preserve">
+    <value>Varsayılan Yap</value>
+  </data>
+  <data name="Support Tickets" xml:space="preserve">
+    <value>Destek Biletleri</value>
+  </data>
+  <data name="Namecolumn" xml:space="preserve">
+    <value>Ad Sütunu</value>
+  </data>
+  <data name="Numbercolumn" xml:space="preserve">
+    <value>Sayı Sütunu</value>
+  </data>
+  <data name="Filemode" xml:space="preserve">
+    <value>Dosya Modu</value>
+  </data>
+  <data name="standardformat" xml:space="preserve">
+    <value>Standart (CSV, TXT, Excel)</value>
+  </data>
+  <data name="customformat" xml:space="preserve">
+    <value>Özel (Yalnızca Excel)</value>
+  </data>
+  <data name="ColumnFormat" xml:space="preserve">
+    <value>Sütun {0}</value>
+  </data>
+  <data name="ColumnLabel" xml:space="preserve">
+    <value>Sütun</value>
+  </data>
+  <data name="personlisedmsg" xml:space="preserve">
+    <value>Kişiselleştirilmiş Mesaj</value>
+  </data>
+  <data name="scancode" xml:space="preserve">
+    <value>Aşağıdaki QR kodunu Google Authenticator uygulamasını kullanarak tarayın</value>
+  </data>
+  <data name="totalorders" xml:space="preserve">
+    <value>Toplam Siparişler</value>
+  </data>
+  <data name="todayorders" xml:space="preserve">
+    <value>Bugünkü Siparişler</value>
+  </data>
+  <data name="OrderApprovedTitle" xml:space="preserve">
+    <value>SMS Siparişi Onaylandı</value>
+  </data>
+  <data name="OrderApprovedDesc" xml:space="preserve">
+    <value>#{0} numaralı SMS siparişiniz onaylandı ve gönderilmeye başlıyor.</value>
+  </data>
+  <data name="NewOrderAwaitingApproval" xml:space="preserve">
+    <value>Yeni SMS Siparişiniz Onay Bekliyor</value>
+  </data>
+  <data name="OrderAwaitingAdminApprovalDesc" xml:space="preserve">
+    <value>#{0} numaralı SMS siparişiniz oluşturuldu ve yönetici onayı için bekleniyor.</value>
   </data>
 </root>

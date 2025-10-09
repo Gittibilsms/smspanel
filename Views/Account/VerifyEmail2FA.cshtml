@@ -1,0 +1,91 @@
+﻿@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["HideLayoutElements"] = true;
+    ViewData["PageClass"] = "loginPage";
+}
+
+<div class="section-authentication-cover">
+    <div class="">
+        <div class="row g-0">
+
+            <!-- Left image column (same as login) -->
+            <div class="col-12 col-xl-6 col-xxl-6 auth-cover-left align-items-center justify-content-center d-none d-xl-flex border-end bg-transparent">
+                <div class="card rounded-0 mb-0 border-0 shadow-none bg-transparent bg-none">
+                    <div class="card-body">
+                        <img src="~/assets/images/auth/login-new.png"
+                             class="img-fluid auth-img-cover-login"
+                             width="650"
+                             alt="" />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right form column -->
+            <div class="col-12 col-xl-6 col-xxl-6 auth-cover-right
+                        align-items-center justify-content-center
+                        border-top border-4 border-primary border-gradient-1">
+                <div class="card rounded-0 m-3 mb-0 border-0 shadow-none bg-none">
+                    <div class="card-body p-sm-5">
+
+                        <div class="d-flex align-items-center justify-content-center">
+                            <div class="logo-icon">
+                                <img src="~/assets/images/Gittibil_Logo.png"
+                                     class="mb-4" alt="" />
+                            </div>
+                        </div>
+
+                        <!-- Email‐2FA form -->
+                        <div class="form-body mt-4">
+                            <form id="verifyEmail2FAForm"
+                                  asp-action="VerifyEmail2FA"
+                                  method="post"
+                                  class="row g-3" autocomplete="off">
+                                @Html.AntiForgeryToken()
+                                <div class="col-12">
+                                    <label for="EmailCode" class="form-label">
+                                        @SharedResource._6digitcodeemail
+                                    </label>
+                                    <input type="text"
+                                           name="code"
+                                           id="EmailCode"
+                                           inputmode="numeric"
+                                           pattern="\d{6}"
+                                           maxlength="6"
+                                           class="form-control"
+                                           placeholder="XXXXXX"
+                                           required />
+                                </div>
+
+                                @* display any error passed via ModelState or ViewBag *@
+                                @if (ViewBag.TwoFactorError != null)
+                                {
+                                    <div class="col-12 text-danger">
+                                        @ViewBag.TwoFactorError
+                                    </div>
+                                }
+
+                                <div class="col-12">
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-grd-primary">
+                                            @SharedResource.verify
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="col-12 text-center mt-2">
+                                    <a asp-action="Login" asp-controller="Account">
+                                        @SharedResource.backtologin
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                        <!-- end Email‐2FA form -->
+
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!--end row-->
+    </div>
+</div>

@@ -1,0 +1,25 @@
+﻿@{
+    ViewBag.Title = "Report Files for Order " + ViewBag.OrderId;
+    var orderId = (int)ViewBag.OrderId;
+    var files = (List<string>)ViewBag.Files;
+}
+
+<h2>Report Files for Order @orderId</h2>
+
+@if (files.Count == 0)
+{
+    <p>No report files available.</p>
+}
+else
+{
+    <ul>
+        @foreach (var file in files)
+        {
+            <li>
+                <a href="@Url.Action("DownloadReportFile", "Orders", new { orderId = orderId, fileName = file, reportName = "Report" })">
+                    @file
+                </a>
+            </li>
+        }
+    </ul>
+}

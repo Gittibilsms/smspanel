@@ -1,0 +1,122 @@
+﻿@model List<GittBilSmsCore.Models.Api>
+@{
+    ViewData["Title"] = "API Management";
+}
+
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4 class="mb-0">@SharedResource.API_Management</h4>
+        <button class="btn btn-primary d-flex align-items-center justify-content-center" data-bs-toggle="modal" data-bs-target="#addApiModal">
+            <i class="material-icons-outlined">add</i> @SharedResource.Add_API
+        </button>
+    </div>
+
+    <!-- API List -->
+    <div id="apiListContainer">
+        @Html.Partial("_ApiCards", Model)
+    </div>
+</div>
+
+<!-- Add API Modal -->
+<div class="modal fade" id="addApiModal" tabindex="-1" aria-labelledby="addApiModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <form id="addApiForm" method="post" autocomplete="off">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addApiModalLabel">@SharedResource.Add_API</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div id="apiFormAlert" class="alert d-none" role="alert"></div>
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.Service_Name</label>
+                        <select class="form-select" name="ServiceType">
+                            <option value="SMS">SMS</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.Service_Name</label>
+                        <input type="text" class="form-control" name="ServiceName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.User_name</label>
+                        <input type="text" class="form-control" name="Username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.Password</label>
+                        <div class="input-group"  id="show_hide_password">
+                            <button type="button" class="btn btn-success password-generator" data-password-target="Password">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                            <input type="password" class="form-control" id="Password" name="Password" required autocomplete="new-password">
+                             <a href="javascript:;" class="input-group-text bg-transparent"><i class="bi bi-eye-slash-fill"></i></a>
+                        </div>
+                    
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.Api_Url</label>
+                        <input type="url" class="form-control" name="ApiUrl" required placeholder="https://example.com/api/send">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.Originator</label>
+                        <input type="text" class="form-control" name="Originator">
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@SharedResource.Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="apiCreateBtn">@SharedResource.Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit API Modal -->
+<div class="modal fade" id="editApiModal" tabindex="-1" aria-labelledby="editApiModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 rounded-4 shadow">
+            <form id="editApiForm" autocomplete="off">
+                <div class="modal-header text-white">
+                    <h5 class="modal-title">@SharedResource.Edit_API</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <input type="hidden" name="ApiId" id="editApiId">
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.Service_Name</label>
+                        <select class="form-select" name="ServiceType" id="editServiceType">
+                            <option value="SMS">SMS</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.Service_Name</label>
+                        <input type="text" class="form-control" name="ServiceName" id="editServiceName">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.User_name</label>
+                        <input type="text" class="form-control" name="Username" id="editUsername">
+                    </div>
+                    <div class="mb-3">
+                     <label class="form-label">@SharedResource.Password</label>
+                      <div class="input-group" id="show_hide_password">
+                       
+                        <button type="button" class="btn btn-success password-generator" data-password-target="editPassword">
+                            <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                            <input type="password" class="form-control" id="editPassword" name="Password" autocomplete="Password">
+                        <a href="javascript:;" class="input-group-text bg-transparent"><i class="bi bi-eye-slash-fill"></i></a>
+                    </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">@SharedResource.Originator</label>
+                        <input type="text" class="form-control" name="Originator" id="editOriginator">
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">@SharedResource.Cancel</button>
+                    <button type="submit" class="btn btn-primary">@SharedResource.Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
