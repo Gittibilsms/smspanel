@@ -40,5 +40,7 @@ namespace GittBilSmsCore.ViewModels
         public long? TelegramUserId { get; set; }
 
         public string? BindTelegramId { get; set; }
+
+        public bool showTelegram { get; set; }
     }
 }
