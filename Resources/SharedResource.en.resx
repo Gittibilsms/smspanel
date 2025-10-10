@@ -1383,4 +1383,10 @@
   <data name="Reportdownloadmessage" xml:space="preserve">
     <value>The report '{0}' for Order #{1} was downloaded by {2} on {3}.</value>
   </data>
+  <data name="Creditaddedmessage" xml:space="preserve">
+    <value>Credit added to your account amount: {0}. Now the credit in your account: {1}.</value>
+  </data>
+  <data name="Creditdeletedmessage" xml:space="preserve">
+    <value>Credit deleted from your account amount: {0}. Now the credit in your account: {1}.</value>
+  </data>
 </root>

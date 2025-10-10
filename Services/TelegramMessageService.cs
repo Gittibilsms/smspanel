@@ -1,13 +1,14 @@
 ﻿// Services/MessageService.cs
 using DocumentFormat.OpenXml.InkML;
 using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Spreadsheet;
 using GittBilSmsCore.Data;
 using GittBilSmsCore.Models;
 using GittBilSmsCore.Services;
 using Microsoft.EntityFrameworkCore;
 using Telegram.Bot;
 using Telegram.Bot.Types;
-using Telegram.Bot.Types.Enums; 
+using Telegram.Bot.Types.Enums;
 public class TelegramMessageService
 {
     private readonly ITelegramBotClient _bot;
@@ -230,8 +231,7 @@ public class TelegramMessageService
     string text,
     CancellationToken ct = default)
     {
-        // Who should get notified? Here we notify "main users" of the company.
-        // Adjust this filter if you have an IsAdmin flag instead.
+
         var admins = await _context.Users
             .Where(u => u.CompanyId == companyId && u.IsMainUser == true && u.TelegramUserId != null)
             .Select(u => new { u.Id, u.TelegramUserId, u.FullName })
@@ -300,30 +300,33 @@ Reply quickly:
             await Task.Delay(50, ct); // keep a tiny gap for rate limits
         }
     }
-    public async Task SendToUsersAsync(int companyId,int performedByUserId, string text, string txtToSaveBody)
+    public async Task SendToUsersAsync(int companyId, int performedByUserId, string text, string txtToSaveBody)
     {
-        var users = await _context.Users
+        var user = await _context.Users
               .Where(u => u.CompanyId == companyId && u.IsMainUser == true)   // <-- filter by company + main user
               .Select(u => new { u.Id, u.TelegramUserId })
-              .ToListAsync();
-
-        foreach (var u in users)
+              .FirstOrDefaultAsync();
+        if(user is null)
         {
-            if (u.TelegramUserId is null)
-            {
-                await _audit.LogAsync("User", u.Id.ToString(), "SkipNoTelegramId", performedByUserId, new { reason = "TelegramUserId null" });
-                continue;
-            }
-
+            await _audit.LogAsync("User", "0", "SkipNoMainUser", performedByUserId,
+                new { reason = "No main user for company" });
+            return;
+        }
+        if (user.TelegramUserId is null)
+        {
+            await _audit.LogAsync("User", user.Id.ToString(), "SkipNoTelegramId", performedByUserId,
+                new { reason = "TelegramUserId null" });
+        }
+        else
+        {
             try
             {
-                // Telegram.Bot v22 send method
-                var sent = await _bot.SendMessage(chatId: u.TelegramUserId.Value, text: text);
+                var sent = await _bot.SendMessage(chatId: user.TelegramUserId.Value, text: text);
 
                 var telegrammsg = new TelegramMessage
                 {
                     Direction = MessageDirection.Outbound,
-                    UserId = u.Id,                   
+                    UserId = user.Id,
                     TelegramMessageId = sent.MessageId,
                     ChatId = sent.Chat.Id,
                     Body = txtToSaveBody,
@@ -331,15 +334,14 @@ Reply quickly:
                 };
                 _context.TelegramMessages.Add(telegrammsg);
                 await _context.SaveChangesAsync();
+
                 await _audit.LogAsync("Message", telegrammsg.Id.ToString(), "Send", performedByUserId,
                     new { chatId = sent.Chat.Id, telegramMessageId = sent.MessageId });
             }
             catch (Exception ex)
             {
-                await _audit.LogAsync("User", u.Id.ToString(), "Error", performedByUserId, new { error = ex.Message });
+                await _audit.LogAsync("User", user.Id.ToString(), "Error", performedByUserId, new { error = ex.Message });
             }
-            await Task.Delay(50);  
         }
     }
 }
- 
