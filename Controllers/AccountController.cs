@@ -225,7 +225,10 @@ namespace GittBilSmsCore.Controllers
             var roleName = user.UserRoles?
     .Select(ur => ur.Role?.RoleName)
     .FirstOrDefault() ?? "User"; // Default fallback
-
+            if (roleName.Equals("Company User", StringComparison.OrdinalIgnoreCase))
+            {
+                roleName = "CompanyUser";
+            }
             HttpContext.Session.SetString("UserType", roleName);
             if (user.CompanyId.HasValue)
             {
