@@ -140,13 +140,23 @@
                                     <span asp-validation-for="PreferredTwoFactorMethod"
                                           class="text-danger"></span>
                                 </div>
-                                <!-- TELEGRAM (aligned like upload) -->
+
+                                <!-- Upload Photo -->
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">
+                                        @SharedResource.Upload_Profile_Photo
+                                    </label>
+                                    <input name="ProfilePhoto"
+                                           type="file"
+                                           class="form-control" />
+                                </div>
+                                <!-- TELEGRAM -->
                                 <div class="row mb-3">
                                     <div class="col-sm-9">
 
-                                        <input asp-for="TelegramUserId" class="form-control" placeholder="click to verify Telegram"  hidden />
+                                        <input asp-for="TelegramUserId" class="form-control" placeholder="click to verify Telegram" hidden />
                                         @if (Model.showTelegram == true)
-                                         {
+                                        {
                                             @if (Model.TelegramUserId != null && Model.TelegramUserId > 0)
                                             {
                                                 <a id="bindTelegram"
@@ -169,15 +179,6 @@
                                         }
 
                                     </div>
-                                </div>
-                                <!-- Upload Photo -->
-                                <div class="col-md-12 mb-3">
-                                    <label class="form-label">
-                                        @SharedResource.Upload_Profile_Photo
-                                    </label>
-                                    <input name="ProfilePhoto"
-                                           type="file"
-                                           class="form-control" />
                                 </div>
                             </div>
 

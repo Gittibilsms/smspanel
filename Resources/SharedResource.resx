@@ -1377,4 +1377,10 @@
   <data name="OrderAwaitingAdminApprovalDesc" xml:space="preserve">
     <value>#{0} numaralı SMS siparişiniz oluşturuldu ve yönetici onayı için bekleniyor.</value>
   </data>
+  <data name="Filedownloadmessage" xml:space="preserve">
+    <value>'{0}' dosyası, #{1} numaralı sipariş için {2} tarafından {3} tarihinde indirildi.</value>
+  </data>
+  <data name="Reportdownloadmessage" xml:space="preserve">
+    <value>'{0}' raporu, #{1} numaralı sipariş için {2} tarafından {3} tarihinde indirildi.</value>
+  </data>
 </root>

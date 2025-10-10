@@ -1,7 +1,9 @@
 ﻿using ClosedXML.Excel;
+using CsvHelper;
 using GittBilSmsCore.Data;
 using GittBilSmsCore.Helpers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Localization;
 using System.Text;
 
 
@@ -10,6 +12,7 @@ namespace GittBilSmsCore.Controllers
     [Route("Downloads")]
     public class DownloadsController : BaseController
     {
+        private readonly IStringLocalizer _sharedLocalizer;
         private readonly GittBilSmsDbContext _context;
         private readonly TelegramMessageService _svc;
         public IActionResult Index()
@@ -17,9 +20,10 @@ namespace GittBilSmsCore.Controllers
             return View();
         }
         private readonly IWebHostEnvironment _env;
-        public DownloadsController(GittBilSmsDbContext context, IWebHostEnvironment env, TelegramMessageService svc)
+        public DownloadsController(GittBilSmsDbContext context, IStringLocalizerFactory factory, IWebHostEnvironment env, TelegramMessageService svc)
           : base(context) // ✅ Pass context to BaseController
         {
+            _sharedLocalizer = factory.Create("SharedResource", "GittBilSmsCore");
             _context = context;
             _env = env;
             _svc = svc;
@@ -41,15 +45,21 @@ namespace GittBilSmsCore.Controllers
 
 
             int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            var filerewriteName = $"{type}.{format}";
 
             var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
 
-            int ? companyId = HttpContext.Session.GetInt32("CompanyId") ?? 0 ;
-            var textMsg = $"Downloaded the Order ID: {orderId}, File Name: {fileName}, User Name: {userName}, Time: {TimeHelper.NowInTurkey()}";
+            int? companyId = HttpContext.Session.GetInt32("CompanyId") ?? 0;           
+            var textMsg = string.Format(
+                                        _sharedLocalizer["Filedownloadmessage"],
+                                        filerewriteName,
+                                        orderId,
+                                        userName,
+                                        TimeHelper.NowInTurkey()
+                                    );
 
-             
             string dataJson = System.Text.Json.JsonSerializer.Serialize(new
-            { 
+            {
                 Message = "File downloaded from orders",
                 UserName = userName,
                 OrderId = orderId,
@@ -69,9 +79,7 @@ namespace GittBilSmsCore.Controllers
             {
                 _svc.SendToUsersAsync(companyId.Value, performedByUserId, textMsg, dataJson);
             }
-
-
-             if (format == "txt")
+            if (format == "txt")
             {
                 return File(Encoding.UTF8.GetBytes(string.Join(Environment.NewLine, numbers)), "text/plain", fileName);
             }

@@ -1474,6 +1474,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; dosyası, #{1} numaralı sipariş için {2} tarafından {3} tarihinde indirildi..
+        /// </summary>
+        public static string Filedownloadmessage {
+            get {
+                return ResourceManager.GetString("Filedownloadmessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Maksimum dosya boyutu 25 MB. (excel, csv, txt) .
         /// </summary>
         public static string Filemessage1 {
@@ -2820,6 +2829,15 @@ namespace GittBilSmsCore.Resources {
         public static string Report_will_be_available_after_48_hours_ {
             get {
                 return ResourceManager.GetString("Report will be available after 48 hours.", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; raporu, #{1} numaralı sipariş için {2} tarafından {3} tarihinde indirildi..
+        /// </summary>
+        public static string Reportdownloadmessage {
+            get {
+                return ResourceManager.GetString("Reportdownloadmessage", resourceCulture);
             }
         }
         

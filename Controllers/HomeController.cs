@@ -2689,11 +2689,19 @@ namespace GittBilSmsCore.Controllers
             // 5️⃣ Branch on requested extension
             var ext = Path.GetExtension(fileName).ToLowerInvariant();
             int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            var filerewriteName = $"{baseName}.{ext}";
 
             var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
 
             int? companyId = HttpContext.Session.GetInt32("CompanyId") ?? 0;
-            var textMsg = $"Downloaded the Order ID: {orderId}, File Name: {fileName}, User Name: {userName}, Time: {TimeHelper.NowInTurkey()}";
+            
+            var textMsg = string.Format(
+                                         _sharedLocalizer["Reportdownloadmessage"],
+                                         filerewriteName,
+                                         orderId,
+                                         userName,
+                                         TimeHelper.NowInTurkey()
+                                     );
             string dataJson = System.Text.Json.JsonSerializer.Serialize(new
             {
                 Message = "Report downloaded from orders",
@@ -2704,7 +2712,6 @@ namespace GittBilSmsCore.Controllers
                 IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
                 UserAgent = Request.Headers["User-Agent"].ToString()
             });
-
             var validFormats = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 ".txt", ".csv", ".xlsx"

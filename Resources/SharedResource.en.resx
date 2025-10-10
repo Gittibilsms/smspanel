@@ -1377,4 +1377,10 @@
   <data name="OrderAwaitingAdminApprovalDesc" xml:space="preserve">
     <value>Your SMS order #{0} has been created and is awaiting admin approval.</value>
   </data>
+  <data name="Filedownloadmessage" xml:space="preserve">
+    <value>The file '{0}' for Order #{1} was downloaded by {2} on {3}.</value>
+  </data>
+  <data name="Reportdownloadmessage" xml:space="preserve">
+    <value>The report '{0}' for Order #{1} was downloaded by {2} on {3}.</value>
+  </data>
 </root>

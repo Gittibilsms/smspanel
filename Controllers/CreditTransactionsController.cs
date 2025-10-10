@@ -77,7 +77,11 @@ namespace GittBilSmsCore.Controllers
                         select (decimal?)c.CreditLimit
                     ).FirstOrDefaultAsync();
 
-                var textMsg = $"Credit added to your account amount: {credit}. Now the credit in your account: {availableCredit}";
+                var textMsg = string.Format(
+                                      _sharedLocalizer["Creditaddedmessage"],
+                                      credit,
+                                      availableCredit
+                                  );
                 var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
                 string dataJson = System.Text.Json.JsonSerializer.Serialize(new
                 {
@@ -88,6 +92,7 @@ namespace GittBilSmsCore.Controllers
                     UserAgent = Request.Headers["User-Agent"].ToString()
                 });
                 await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson);
+
                 return Json(new
                 {
                     success = true,
@@ -133,14 +138,19 @@ namespace GittBilSmsCore.Controllers
             company.CreditLimit -= credit;
 
             await _context.SaveChangesAsync();
+
             decimal? availableCredit = await (
-                        from c in _context.Companies
-                        join u in _context.Users on c.CompanyId equals u.CompanyId
-                        where u.IsMainUser == true && c.CompanyId == companyId
-                        select (decimal?)c.CreditLimit
-                    ).FirstOrDefaultAsync();
+                         from c in _context.Companies
+                         join u in _context.Users on c.CompanyId equals u.CompanyId
+                         where u.IsMainUser == true && c.CompanyId == companyId
+                         select (decimal?)c.CreditLimit
+                     ).FirstOrDefaultAsync();
             int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
-            var textMsg = $"Credit deleted from your account amount: {credit}. Now the credit in your account: {availableCredit}";
+            var textMsg = string.Format(
+                                        _sharedLocalizer["Creditdeletedmessage"],
+                                        credit,
+                                        availableCredit
+                                    );
             var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
             string dataJson = System.Text.Json.JsonSerializer.Serialize(new
             {
@@ -152,8 +162,6 @@ namespace GittBilSmsCore.Controllers
             });
 
             await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson);
-
-            // ✅ Return updated values
             return Json(new
             {
                 success = true,

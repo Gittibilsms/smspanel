@@ -1,17 +1,14 @@
-﻿using DocumentFormat.OpenXml.ExtendedProperties;
-using GittBilSmsCore.Data;
-using GittBilSmsCore.Helpers;
+﻿using GittBilSmsCore.Data;
 using GittBilSmsCore.Models;
 using GittBilSmsCore.ViewModels;
 using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using GittBilSmsCore.Helpers;
 using Microsoft.Extensions.Localization;
-using System.ComponentModel.Design;
-using Telegram.Bot.Types;
-using User = GittBilSmsCore.Models.User;
+using Microsoft.AspNetCore.Identity;
+using DocumentFormat.OpenXml.ExtendedProperties;
 namespace GittBilSmsCore.Controllers
 {
 
@@ -22,7 +19,7 @@ namespace GittBilSmsCore.Controllers
         private readonly IStringLocalizer _sharedLocalizer;
         private readonly UserManager<User> _userManager;
         private readonly TelegramMessageService _svc;
-        public CompaniesController(GittBilSmsDbContext context, IStringLocalizerFactory factory, UserManager<User> userManager, TelegramMessageService svc  ) : base(context)
+        public CompaniesController(GittBilSmsDbContext context, IStringLocalizerFactory factory, UserManager<User> userManager, TelegramMessageService svc) : base(context)
         {
             _context = context;
             _sharedLocalizer = factory.Create("SharedResource", "GittBilSmsCore");
@@ -448,8 +445,7 @@ namespace GittBilSmsCore.Controllers
                 }
 
                 await _context.SaveChangesAsync();
-
-                int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;       
+                int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
                 decimal? availableCredit = await (
                         from c in _context.Companies
                         join u in _context.Users on c.CompanyId equals u.CompanyId
@@ -457,21 +453,25 @@ namespace GittBilSmsCore.Controllers
                         select (decimal?)c.CreditLimit
                     ).FirstOrDefaultAsync();
 
-                var textMsg = $"Credit added to your account amount: {credit}. Now the credit in your account: {availableCredit}";
+                var textMsg = string.Format(
+                                      _sharedLocalizer["Creditaddedmessage"],
+                                      credit,
+                                      availableCredit
+                                  );
 
-                 var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
+
+                var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
 
                 string dataJson = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    Message = "Credit Added by : "+ userName,
+                    Message = "Credit Added by : " + userName,
                     TelegramMessage = textMsg,
                     Time = TimeHelper.NowInTurkey(),
                     IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
                     UserAgent = Request.Headers["User-Agent"].ToString()
                 });
 
-                await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg,dataJson);
-
+                await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson);
                 return Json(new
                 {
                     success = true,
@@ -527,7 +527,11 @@ namespace GittBilSmsCore.Controllers
                         select (decimal?)c.CreditLimit
                     ).FirstOrDefaultAsync();
             int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
-            var textMsg = $"Credit deleted from your account amount: {credit}. Now the credit in your account: {availableCredit}";
+            var textMsg = string.Format(
+                                       _sharedLocalizer["Creditdeletedmessage"],
+                                       credit,
+                                       availableCredit
+                                   );
             var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
             string dataJson = System.Text.Json.JsonSerializer.Serialize(new
             {

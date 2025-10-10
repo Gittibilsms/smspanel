@@ -1,5 +1,4 @@
-﻿using DocumentFormat.OpenXml.InkML;
-using GittBilSmsCore.Data;
+﻿using GittBilSmsCore.Data;
 using GittBilSmsCore.Helpers;
 using GittBilSmsCore.Models;
 using GittBilSmsCore.ViewModels;
@@ -304,17 +303,10 @@ namespace GittBilSmsCore.Controllers
             if (user == null)
                 return NotFound();
 
-           
             bool setshowTelegram = await _context.Users.Join(_context.Companies,
-                                        u => u.CompanyId, c => c.CompanyId,
-                                             (u, c) => u)
+                                        u => u.CompanyId, c => c.CompanyId,                                         (u, c) => u)
                                         .AnyAsync(u => u.IsMainUser == true && u.Id == userId);
-
-
-
             var setTelegramId = "";
-            
-
             if (user.TelegramUserId != null && user.TelegramUserId > 0)
             {
                 setTelegramId = "Telegram Linked";
@@ -337,7 +329,6 @@ namespace GittBilSmsCore.Controllers
                 TelegramUserId = user.TelegramUserId,
                 BindTelegramId = setTelegramId,
                 showTelegram = setshowTelegram
-
             };
 
             return View(model);
