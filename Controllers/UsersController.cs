@@ -303,6 +303,19 @@ namespace GittBilSmsCore.Controllers
             if (user == null)
                 return NotFound();
 
+            bool setshowTelegram = await _context.Users.Join(_context.Companies,
+                                        u => u.CompanyId, c => c.CompanyId,                                         (u, c) => u)
+                                        .AnyAsync(u => u.IsMainUser == true && u.Id == userId);
+            var setTelegramId = "";
+            if (user.TelegramUserId != null && user.TelegramUserId > 0)
+            {
+                setTelegramId = "Telegram Linked";
+            }
+            else
+            {
+                setTelegramId = "https://t.me/gittibiladmin_bot?start=" + Uri.EscapeDataString(userId.ToString());
+            }
+
             var model = new ProfileViewModel
             {
                 FullName = user.FullName,
@@ -312,7 +325,10 @@ namespace GittBilSmsCore.Controllers
                 IsTwoFactorEnabled = user.IsTwoFactorEnabled,
                 ExistingProfilePhotoUrl = user.ProfilePhotoUrl, // <-- this must be correctly mapped
                 Roles = user.UserRoles.Select(ur => ur.Name).ToList(),
-                PreferredTwoFactorMethod = user.PreferredTwoFactorMethod
+                PreferredTwoFactorMethod = user.PreferredTwoFactorMethod,
+                TelegramUserId = user.TelegramUserId,
+                BindTelegramId = setTelegramId,
+                showTelegram = setshowTelegram
             };
 
             return View(model);

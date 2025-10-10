@@ -150,6 +150,36 @@
                                            type="file"
                                            class="form-control" />
                                 </div>
+                                <!-- TELEGRAM -->
+                                <div class="row mb-3">
+                                    <div class="col-sm-9">
+
+                                        <input asp-for="TelegramUserId" class="form-control" placeholder="click to verify Telegram" hidden />
+                                        @if (Model.showTelegram == true)
+                                        {
+                                            @if (Model.TelegramUserId != null && Model.TelegramUserId > 0)
+                                            {
+                                                <a id="bindTelegram"
+                                                   class="btn btn-secondary disabled"
+                                                   tabindex="-1"
+                                                   aria-disabled="true">
+                                                    Telegram Linked
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <a id="bindTelegram"
+                                                   class="btn btn-outline-primary"
+                                                   href="@Model.BindTelegramId"
+                                                   target="_blank"
+                                                   rel="noopener noreferrer">
+                                                    Join me on Telegram
+                                                </a>
+                                            }
+                                        }
+
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="text-end">
