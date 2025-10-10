@@ -952,6 +952,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Hesabınıza {0} kredi eklendi. Şu anda hesabınızdaki toplam kredi: {1}..
+        /// </summary>
+        public static string Creditaddedmessage {
+            get {
+                return ResourceManager.GetString("Creditaddedmessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Kredi Başarıyla Eklendi.
         /// </summary>
         public static string creditaddedsuccess {
@@ -966,6 +975,15 @@ namespace GittBilSmsCore.Resources {
         public static string creditdeleted {
             get {
                 return ResourceManager.GetString("creditdeleted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hesabınızdan {0} kredi silindi. Şu anda hesabınızdaki toplam kredi: {1}..
+        /// </summary>
+        public static string Creditdeletedmessage {
+            get {
+                return ResourceManager.GetString("Creditdeletedmessage", resourceCulture);
             }
         }
         
@@ -1470,6 +1488,15 @@ namespace GittBilSmsCore.Resources {
         public static string File {
             get {
                 return ResourceManager.GetString("File", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; dosyası, #{1} numaralı sipariş için {2} tarafından {3} tarihinde indirildi..
+        /// </summary>
+        public static string Filedownloadmessage {
+            get {
+                return ResourceManager.GetString("Filedownloadmessage", resourceCulture);
             }
         }
         
@@ -2820,6 +2847,15 @@ namespace GittBilSmsCore.Resources {
         public static string Report_will_be_available_after_48_hours_ {
             get {
                 return ResourceManager.GetString("Report will be available after 48 hours.", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to &apos;{0}&apos; raporu, #{1} numaralı sipariş için {2} tarafından {3} tarihinde indirildi..
+        /// </summary>
+        public static string Reportdownloadmessage {
+            get {
+                return ResourceManager.GetString("Reportdownloadmessage", resourceCulture);
             }
         }
         

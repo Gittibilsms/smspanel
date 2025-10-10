@@ -37,6 +37,8 @@ namespace GittBilSmsCore.Data
         public DbSet<LoginHistory> LoginHistories { get; set; }
 
         public DbSet<OrderRecipient> OrderRecipients { get; set; }
+        public DbSet<TelegramMessage> TelegramMessages => Set<TelegramMessage>();
+        public DbSet<TelegramAuditTrail> TelegramAuditTrails => Set<TelegramAuditTrail>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -65,11 +67,7 @@ namespace GittBilSmsCore.Data
             modelBuilder.Entity<RolePermission>()
                 .HasOne(rp => rp.Role)
                 .WithMany(r => r.RolePermissions)
-                .HasForeignKey(rp => rp.RoleId);
-
-            //modelBuilder.Entity<RolePermission>()
-            //    .HasOne(rp => rp.Permission)
-            //    .WithMany(p => p.RolePermissions);
+                .HasForeignKey(rp => rp.RoleId);           
 
             modelBuilder.Entity<Ticket>()
                  .HasOne(t => t.CreatedByUser)
@@ -141,6 +139,30 @@ namespace GittBilSmsCore.Data
              .WithMany(o => o.Recipients)
              .HasForeignKey(r => r.OrderId)
              .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<TelegramMessage>(e =>
+            {
+                e.ToTable("TelegramMessage");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.Direction).HasConversion<byte>();
+                e.Property(x => x.Body).IsRequired();
+                e.Property(x => x.Status).HasMaxLength(50).IsRequired();
+                e.Property(x => x.CreatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
+                e.HasIndex(x => new { x.ChatId, x.TelegramMessageId });
+                e.HasIndex(x => x.UserId);
+                e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.NoAction);
+            });
+
+            // AuditTrail
+            modelBuilder.Entity<TelegramAuditTrail>(e =>
+            {
+                e.ToTable("TelegramAuditTrail");
+                e.HasKey(x => x.Id);
+                e.Property(x => x.EntityType).HasMaxLength(100).IsRequired();
+                e.Property(x => x.EntityId).HasMaxLength(100).IsRequired();
+                e.Property(x => x.Action).HasMaxLength(100).IsRequired();
+                e.Property(x => x.CreatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
+                e.HasIndex(x => new { x.EntityType, x.EntityId, x.Action });
+            });
         }
     }
    

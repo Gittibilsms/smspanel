@@ -1,13 +1,15 @@
-using System.Globalization;
 using GittBilSmsCore.Data;
-using GittBilSmsCore.Services;
-using Microsoft.AspNetCore.Localization;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Serilog;
 using GittBilSmsCore.Models;
+using GittBilSmsCore.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.AspNetCore.Localization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Serilog;
+using System.Globalization;
+using Telegram.Bot;
 
 var builder = WebApplication.CreateBuilder(args);
 var logPath = Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? AppContext.BaseDirectory, "LogFiles", "GittBilSms", "sms-report-.txt");
@@ -52,6 +54,15 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
+builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection("Telegram"));
+builder.Services.AddSingleton<ITelegramBotClient>(sp =>
+{
+    var opts = sp.GetRequiredService<IOptions<TelegramOptions>>().Value;
+    return new TelegramBotClient(opts.BotToken);
+});
+builder.Services.AddScoped<TelegramAuditService>();
+builder.Services.AddScoped<TelegramMessageService>();
+builder.Services.AddHostedService<BotPollingService>();
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
     {
