@@ -952,6 +952,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Hesabınıza {0} kredi eklendi. Şu anda hesabınızdaki toplam kredi: {1}..
+        /// </summary>
+        public static string Creditaddedmessage {
+            get {
+                return ResourceManager.GetString("Creditaddedmessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Kredi Başarıyla Eklendi.
         /// </summary>
         public static string creditaddedsuccess {
@@ -966,6 +975,15 @@ namespace GittBilSmsCore.Resources {
         public static string creditdeleted {
             get {
                 return ResourceManager.GetString("creditdeleted", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hesabınızdan {0} kredi silindi. Şu anda hesabınızdaki toplam kredi: {1}..
+        /// </summary>
+        public static string Creditdeletedmessage {
+            get {
+                return ResourceManager.GetString("Creditdeletedmessage", resourceCulture);
             }
         }
         
