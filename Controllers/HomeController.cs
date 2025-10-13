@@ -157,40 +157,40 @@ namespace GittBilSmsCore.Controllers
         [HttpGet]
         public IActionResult DownloadReportSummary(int orderId)
         {
-            return DownloadReportFile(orderId, "report-summary.csv", "Summary");
+            return DownloadReportFile(orderId, "report-summary.csv", "Summary").GetAwaiter().GetResult(); ;
         }
 
         // Download Undelivered
         [HttpGet]
         public IActionResult DownloadUndelivered(int orderId)
         {
-            return DownloadReportFile(orderId, "undelivered.csv", "Undelivered");
+            return DownloadReportFile(orderId, "undelivered.csv", "Undelivered").GetAwaiter().GetResult(); ;
         }
 
         // Download Forwarded
         [HttpGet]
         public IActionResult DownloadWaiting(int orderId)
         {
-            return DownloadReportFile(orderId, "waiting.csv", "Waiting");
+            return DownloadReportFile(orderId, "waiting.csv", "Waiting").GetAwaiter().GetResult(); ;
         }
 
         [HttpGet]
         public IActionResult DownloadAllReport(int orderId)
         {
-            return DownloadReportFile(orderId, "all.csv", "All");
+            return DownloadReportFile(orderId, "all.csv", "All").GetAwaiter().GetResult(); ;
         }
         // Download Waiting
         [HttpGet]
         public IActionResult DownloadForwarded(int orderId)
         {
-            return DownloadReportFile(orderId, "delivered.csv", "Forwarded");
+            return DownloadReportFile(orderId, "delivered.csv", "Forwarded").GetAwaiter().GetResult(); ;
         }
 
         // Download Expired
         [HttpGet]
         public IActionResult DownloadExpired(int orderId)
         {
-            return DownloadReportFile(orderId, "expired.csv", "Expired");
+            return DownloadReportFile(orderId, "expired.csv", "Expired").GetAwaiter().GetResult(); ;
         }
 
         [HttpGet]
@@ -2661,7 +2661,8 @@ namespace GittBilSmsCore.Controllers
             return View();
         }
         [HttpGet]
-        public IActionResult DownloadReportFile(int orderId, string fileName, string reportName)
+        // public IActionResult DownloadReportFile(int orderId, string fileName, string reportName)
+        public async Task<IActionResult> DownloadReportFile(int orderId, string fileName, string reportName)
         {
             // 1️⃣ Find the Kudu/App_Data path
             var home = Environment.GetEnvironmentVariable("HOME")
@@ -2720,7 +2721,8 @@ namespace GittBilSmsCore.Controllers
 
             if (validFormats.Contains(ext))
             {
-                _svc.SendToUsersAsync(companyId.Value, performedByUserId, textMsg, dataJson);
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                await _svc.SendToUsersAsync(companyId.Value, performedByUserId, textMsg, dataJson,cts.Token);
             }
             switch (ext)
             {
