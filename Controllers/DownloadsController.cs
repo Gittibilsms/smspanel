@@ -30,9 +30,14 @@ namespace GittBilSmsCore.Controllers
         }
 
         [HttpGet("Export")]
-        public IActionResult Export(int orderId, string type, string format)
+        // public IActionResult Export(int orderId, string type, string format)
+        public async Task<IActionResult> Export(int orderId, string type, string format)
         {
-            var folderPath = Path.Combine("D:\\home\\data", "orders", orderId.ToString());
+            //var folderPath = Path.Combine("D:\\home\\data", "orders", orderId.ToString());
+            var home = Environment.GetEnvironmentVariable("HOME")
+                             ?? _env.ContentRootPath;
+            var ordersRoot = Path.Combine(home, "data", "orders");
+            var folderPath = Path.Combine(ordersRoot, orderId.ToString());
             var txtFile = type == "recipients"
                 ? Path.Combine(folderPath, "Recipients.txt")
                 : Path.Combine(folderPath, $"{type.ToLower()}.txt");
@@ -77,7 +82,8 @@ namespace GittBilSmsCore.Controllers
 
             if (validFormats.Contains(format))
             {
-                _svc.SendToUsersAsync(companyId.Value, performedByUserId, textMsg, dataJson);
+                 var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                await _svc.SendToUsersAsync(companyId.Value, performedByUserId, textMsg, dataJson,cts.Token);
             }
             if (format == "txt")
             {

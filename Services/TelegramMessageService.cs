@@ -262,7 +262,7 @@ public class TelegramMessageService
             await Task.Delay(50, ct); // keep a tiny gap for rate limits
         }
     }
-    public async Task SendToUsersAsync(int companyId, int performedByUserId, string text, string txtToSaveBody)
+    public async Task SendToUsersAsync(int companyId, int performedByUserId, string text, string txtToSaveBody, CancellationToken ct = default)
     {
         try
         {
@@ -297,10 +297,10 @@ public class TelegramMessageService
                         Status = "Sent"
                     };
                     _context.TelegramMessages.Add(telegrammsg);
-                    await _context.SaveChangesAsync();
+                    await _context.SaveChangesAsync(ct);
 
-                    await _audit.LogAsync("Message", telegrammsg.Id.ToString(), "Send", performedByUserId,
-                        new { chatId = sent.Chat.Id, telegramMessageId = sent.MessageId });
+                    //await _audit.LogAsync("Message", telegrammsg.Id.ToString(), "Send", performedByUserId,
+                    //    new { chatId = sent.Chat.Id, telegramMessageId = sent.MessageId });
                 }
                 catch (Exception ex)
                 {
