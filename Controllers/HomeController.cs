@@ -339,39 +339,132 @@ namespace GittBilSmsCore.Controllers
                     CreatedAt = TimeHelper.NowInTurkey()
                 };
                 order.LoadedCount = recipients.Count;
+                //FIND THE LIST HAS ANY VALID NUMBER THEN CHANGE THE CURRENT STATUS OF THE ORDER
+                bool chkValidNumber = false;
+                var setOrderStatus = "Cancelled";
+                var setAction = "Cancelled";
+                if (!chkValidNumber)
+                {
+                    var chkblacklist = _context.BlacklistNumbers.Select(x => x.Number).ToHashSet();
+                    var chkbanned = _context.BannedNumbers.Select(x => x.Number).ToHashSet();
+
+                    var chkvalidNumbers = new List<string>();
+                    var chkinvalidNumbers = new List<string>();
+                    var chkblacklistedNumbers = new List<string>();
+                    var chkrepeatedNumbers = new List<string>();
+                    var chkbannedNumbers = new List<string>();
+                    var chkseenNumbers = new HashSet<string>();
+
+                    bool chkIsValidPhone(string num)
+                    {
+                        num = Regex.Replace(num, @"\D", ""); // keep only digits
+
+                        if (num.StartsWith("90") && num.Length == 12) return true;   // 905xxxxxxxxx
+                        if (num.StartsWith("0") && num.Length == 11) return true;    // 05xxxxxxxxx
+                        if (num.StartsWith("5") && num.Length == 10) return true;    // 5xxxxxxxxx
+
+                        return false;
+                    }
+
+                    string chkNormalizePhone(string num)
+                    {
+                        num = Regex.Replace(num, @"\D", ""); // digits only
+
+                        if (num.StartsWith("90") && num.Length == 12) return num;
+                        if (num.StartsWith("0") && num.Length == 11) return "90" + num.Substring(1); // convert 05 → 905
+                        if (num.StartsWith("5") && num.Length == 10) return "90" + num;              // convert 5 → 905
+                        return num; // fallback (shouldn't hit if validated)
+                    }
+
+                    foreach (var number in numbersList)
+                    {
+                        var chkdigitsOnly = Regex.Replace(number, @"\D", "");
+
+                        if (!chkIsValidPhone(chkdigitsOnly))
+                        {
+                            chkinvalidNumbers.Add(number); // keep original for invalid.txt
+                            continue;
+                        }
+
+                        var chknormalized = chkNormalizePhone(chkdigitsOnly); // always unify to 905xxxxxxxxx
+
+                        if (chkblacklist.Contains(chknormalized))
+                        {
+                            chkblacklistedNumbers.Add(chknormalized);
+                            continue;
+                        }
+
+                        if (chkbanned.Contains(chknormalized))
+                        {
+                            chkbannedNumbers.Add(chknormalized);
+                            continue;
+                        }
+
+                        if (chkseenNumbers.Contains(chknormalized))
+                        {
+                            chkrepeatedNumbers.Add(chknormalized);
+                            continue;
+                        }
+
+                        chkvalidNumbers.Add(chknormalized);
+                        chkseenNumbers.Add(chknormalized);
+                    }
+                   
+                      chkValidNumber = recipients
+                                 .Any(r => chkvalidNumbers.Contains(chkNormalizePhone(r.Number)));
+                     
+                }
+                //
 
                 if (!company.IsTrustedSender)
                 {
-                    order.CurrentStatus = "AwaitingApproval";
+                    if(chkValidNumber == true)
+                    {
+                        setOrderStatus = "AwaitingApproval";
+                        setAction = "Awaiting approval";
+                    }
+                     
+                    order.CurrentStatus = setOrderStatus;
                     order.SubmissionType = "Manual";
 
                     order.Actions.Add(new OrderAction
                     {
-                        ActionName = "Awaiting approval",
+                        ActionName = setAction,
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
            
                 }
                 else if (model.ScheduledSendDate.HasValue && model.ScheduledSendDate.Value > TimeHelper.NowInTurkey())
                 {
-                    order.CurrentStatus = "Scheduled";
+                    if (chkValidNumber == true)
+                    {
+                        setOrderStatus = "Scheduled";
+                        setAction = "Scheduled";
+                    }
+                     
+                    order.CurrentStatus = setOrderStatus;
                     order.SubmissionType = "Scheduled";
 
                     order.Actions.Add(new OrderAction
                     {
-                        ActionName = "Scheduled",
+                        ActionName = setAction,
                         Message = _sharedLocalizer["scheduledfor", model.ScheduledSendDate.Value.ToString("yyyy-MM-dd HH:mm")],
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
                 }
                 else
                 {
-                    order.CurrentStatus = "WaitingToBeSent";
+                    if (chkValidNumber == true)
+                    {
+                        setOrderStatus = "WaitingToBeSent";
+                        setAction = "Queued for sending";
+                    }
+                    order.CurrentStatus = setOrderStatus;
                     order.SubmissionType = "Manual";
 
                     order.Actions.Add(new OrderAction
                     {
-                        ActionName = "Queued for sending",
+                        ActionName = setAction,
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
                 }
