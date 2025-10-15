@@ -1389,4 +1389,7 @@
   <data name="Creditdeletedmessage" xml:space="preserve">
     <value>Hesabınızdan {0} kredi silindi. Şu anda hesabınızdaki toplam kredi: {1}.</value>
   </data>
+  <data name="isTelegram" xml:space="preserve">
+    <value>Telgraf</value>
+  </data>
 </root>

@@ -1771,6 +1771,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Telgraf.
+        /// </summary>
+        public static string isTelegram {
+            get {
+                return ResourceManager.GetString("isTelegram", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Son.
         /// </summary>
         public static string Last {

@@ -1389,4 +1389,7 @@
   <data name="Creditdeletedmessage" xml:space="preserve">
     <value>Credit deleted from your account amount: {0}. Now the credit in your account: {1}.</value>
   </data>
+  <data name="isTelegram" xml:space="preserve">
+    <value>Telegram</value>
+  </data>
 </root>

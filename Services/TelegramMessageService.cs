@@ -83,23 +83,23 @@ public class TelegramMessageService
                 });
                 await _context.SaveChangesAsync(ct);
 
-                await _audit.LogAsync("Message",
-                    entityId: targetUser.Id.ToString(),
-                    action: "AdminReply",
-                    performedById: admin.Id,
-                    new { toUserId = targetUser.Id, toChatId = targetUser.TelegramUserId, sourceAdminChatId = msg.Chat.Id },
-                    ct);
+                //await _audit.LogAsync("Message",
+                //    entityId: targetUser.Id.ToString(),
+                //    action: "AdminReply",
+                //    performedById: admin.Id,
+                //    new { toUserId = targetUser.Id, toChatId = targetUser.TelegramUserId, sourceAdminChatId = msg.Chat.Id },
+                //    ct);
 
                 await _bot.SendMessage(msg.Chat.Id, $"✅ Kullanıcıya gönderildi #{targetUser.Id}.", cancellationToken: ct);
             }
             catch (Exception ex)
             {
-                await _audit.LogAsync("Message",
-                    entityId: "0",
-                    action: "AdminReplyError",
-                    performedById: admin.Id,
-                    new { error = ex.Message, toUserId = targetUser.Id, toChatId = targetUser.TelegramUserId },
-                    ct);
+                //await _audit.LogAsync("Message",
+                //    entityId: "0",
+                //    action: "AdminReplyError",
+                //    performedById: admin.Id,
+                //    new { error = ex.Message, toUserId = targetUser.Id, toChatId = targetUser.TelegramUserId },
+                //    ct);
 
                 await _bot.SendMessage(msg.Chat.Id, "❌ Mesaj gönderilemedi.", cancellationToken: ct);
             }
@@ -108,7 +108,10 @@ public class TelegramMessageService
         }
 
         // =========================
-        // LINKING FLOW: /start <payload>
+        // LINKING FLOW: /start <payload>  (LATEST CLICK WINS)
+        // =========================
+        // =========================
+        // LINKING FLOW: /start <payload>  (LATEST CLICK WINS + HISTORY LOGS)
         // =========================
         if (text.StartsWith("/start", StringComparison.OrdinalIgnoreCase))
         {
@@ -117,36 +120,71 @@ public class TelegramMessageService
 
             if (!string.IsNullOrWhiteSpace(payload) && int.TryParse(payload, out var userId))
             {
+                var chatId = msg.Chat.Id;
+
+                // 1) Target user?
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId, ct);
                 if (user is null)
                 {
-                    await _bot.SendMessage(msg.Chat.Id, "❌ Bu bağlantı için kullanıcı bulunamadı.", cancellationToken: ct);
+                    await _bot.SendMessage(chatId, "❌ Bu bağlantı için kullanıcı bulunamadı.", cancellationToken: ct);
                     return;
                 }
 
-                user.TelegramUserId = msg.Chat.Id;
-
+                await using var tx = await _context.Database.BeginTransactionAsync(ct);
                 try
                 {
+                    // 2) Unlink anyone else already holding this chatId (ignore Admin)
+                    var holders = await _context.Users
+                        .Where(u => u.TelegramUserId == chatId && u.Id != userId && u.UserType != "Admin")
+                        .ToListAsync(ct);
+
+                    if (holders.Count > 0)
+                    {
+                        foreach (var h in holders)
+                        {
+                            // keep old value for description (same as chatId, but explicit)
+                            var oldTelegramId = h.TelegramUserId;
+
+                            // unlink
+                            h.TelegramUserId = null;
+
+                            // history log (unlink)
+                            _context.HistoryLogs.Add(new HistoryLog
+                            {
+                                UserId = h.Id,
+                                Action = "UnlinkTelegram",
+                                Description = $"Telegram chatId {oldTelegramId} It was removed because it will be assigned to another user. The new user: {userId}",
+                                CreatedAt = DateTime.UtcNow
+                            });
+                        }
+
+                        // Save the unlink first to avoid unique index conflicts
+                        await _context.SaveChangesAsync(ct);
+                    }
+
+                    // 3) Link the current user (overwrite if any)
+                    var prev = user.TelegramUserId; // might be same/different/null
+                    user.TelegramUserId = chatId;
+
+                    // history log (link)
+                    AddHistoryLog(user.Id, "LinkTelegram",
+                                    prev == chatId
+                                        ? $"Telegram chatId {chatId} was already registered to this user (renewed)."
+                                        : $"Telegram chatId {chatId} connected to this user. Previous value: {(prev.HasValue ? prev.ToString() : "NULL")}"
+                                );
+
                     await _context.SaveChangesAsync(ct);
+                    await tx.CommitAsync(ct);
 
-                    await _audit.LogAsync("User", user.Id.ToString(), "LinkTelegram", null,
-                        new { chatId = msg.Chat.Id, fromId = msg.From?.Id, payload }, ct);
+                    // await _audit.LogAsync("User", user.Id.ToString(), "LinkTelegram", null,
+                    //     new { chatId = msg.Chat.Id, fromId = msg.From?.Id, payload }, ct);
 
-                    await _bot.SendMessage(msg.Chat.Id, "✅ Hesabınız artık bağlandı.", cancellationToken: ct);
+                    await _bot.SendMessage(chatId, "✅ Hesabınız artık bağlandı.", cancellationToken: ct);
                 }
-                catch (DbUpdateException ex)
+                catch (Exception)
                 {
-                    var inner = ex.InnerException?.Message ?? ex.Message;
-                    if (inner.Contains("unique", StringComparison.OrdinalIgnoreCase) ||
-                        inner.Contains("duplicate key", StringComparison.OrdinalIgnoreCase))
-                    {
-                        await _bot.SendMessage(msg.Chat.Id, "⚠️ Bu Telegram hesabı başka bir kullanıcıya bağlı.", cancellationToken: ct);
-                    }
-                    else
-                    {
-                        await _bot.SendMessage(msg.Chat.Id, "❌ Hesabınız bağlanırken hata oluştu. Lütfen daha sonra tekrar deneyin.", cancellationToken: ct);
-                    }
+                    await tx.RollbackAsync(ct);
+                    await _bot.SendMessage(chatId, "❌ Hesabınız bağlanırken hata oluştu. Lütfen daha sonra tekrar deneyin.", cancellationToken: ct);
                 }
                 return;
             }
@@ -154,6 +192,8 @@ public class TelegramMessageService
             await _bot.SendMessage(msg.Chat.Id, "Hoş geldin! 🎉", cancellationToken: ct);
             return;
         }
+
+
 
         // =========================
         // NORMAL INBOUND MESSAGES
@@ -186,8 +226,8 @@ public class TelegramMessageService
             _context.TelegramMessages.Add(inbound);
             await _context.SaveChangesAsync(ct);
 
-            await _audit.LogAsync("Message", inbound.Id.ToString(), "Receive",
-                linkedUser.Id, new { chatId = msg.Chat.Id, telegramMessageId = msg.MessageId, replyTo = msg.ReplyToMessage?.MessageId }, ct);
+            //await _audit.LogAsync("Message", inbound.Id.ToString(), "Receive",
+            //    linkedUser.Id, new { chatId = msg.Chat.Id, telegramMessageId = msg.MessageId, replyTo = msg.ReplyToMessage?.MessageId }, ct);
 
             // Notify admins of this company (if present)
             var linkedCompanyId = linkedUser.CompanyId ?? 0;
@@ -206,7 +246,7 @@ public class TelegramMessageService
         }
         catch (Exception ex)
         {
-            await _audit.LogAsync("Message", "0", "ReceiveError", linkedUser.Id, new { error = ex.Message }, ct);            
+            //await _audit.LogAsync("Message", "0", "ReceiveError", linkedUser.Id, new { error = ex.Message }, ct);            
         }
     }
     private async Task NotifyAdminsAsync(int companyId,int fromUserId,long fromChatId,int telegramMessageId,string text,CancellationToken ct = default)
@@ -219,9 +259,9 @@ public class TelegramMessageService
 
         if (admins.Count == 0)
         {
-            await _audit.LogAsync("Notify", companyId.ToString(), "NoAdminsToNotify", fromUserId,
-                new { reason = "No main users with TelegramUserId" }, ct);
-            return;
+            //await _audit.LogAsync("Notify", companyId.ToString(), "NoAdminsToNotify", fromUserId,
+            //    new { reason = "No main users with TelegramUserId" }, ct);
+            //return;
         }
         
         var header = $"📨 New reply from User #{fromUserId}";
@@ -232,9 +272,9 @@ public class TelegramMessageService
         {
             try
             {
-               
-                var sent = await _bot.SendMessage(chatId: admin.TelegramUserId!.Value,text: body,cancellationToken: ct);
-                
+
+                var sent = await _bot.SendMessage(chatId: admin.TelegramUserId!.Value, text: body, cancellationToken: ct);
+
                 _context.TelegramMessages.Add(new TelegramMessage
                 {
                     Direction = MessageDirection.Outbound,
@@ -246,71 +286,88 @@ public class TelegramMessageService
                     CreatedAtUtc = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync(ct);
-                await _audit.LogAsync("Notify",entityId: admin.Id.ToString(),action: "AdminAlert",performedById: fromUserId,
-                    new { toAdminChatId = admin.TelegramUserId, sourceUserId = fromUserId, sourceChatId = fromChatId, telegramMessageId },ct);
+                //await _audit.LogAsync("Notify",entityId: admin.Id.ToString(),action: "AdminAlert",performedById: fromUserId,
+                //    new { toAdminChatId = admin.TelegramUserId, sourceUserId = fromUserId, sourceChatId = fromChatId, telegramMessageId },ct);
             }
             catch (Exception ex)
             {
-                await _audit.LogAsync("Notify",
-                    entityId: admin.Id.ToString(),
-                    action: "AdminAlertError",
-                    performedById: fromUserId,
-                    new { error = ex.Message, toAdminChatId = admin.TelegramUserId, sourceUserId = fromUserId },
-                    ct);
-            }
+                //    await _audit.LogAsync("Notify",
+                //        entityId: admin.Id.ToString(),
+                //        action: "AdminAlertError",
+                //        performedById: fromUserId,
+                //        new { error = ex.Message, toAdminChatId = admin.TelegramUserId, sourceUserId = fromUserId },
+                //        ct);
+                //}
 
-            await Task.Delay(50, ct); // keep a tiny gap for rate limits
+                //await Task.Delay(50, ct); // keep a tiny gap for rate limits
+                //}
+            }
         }
     }
+     
     public async Task SendToUsersAsync(int companyId, int performedByUserId, string text, string txtToSaveBody, CancellationToken ct = default)
     {
         try
         {
-            var user = await _context.Users
-                  .Where(u => u.CompanyId == companyId && u.IsMainUser == true)   // <-- filter by company + main user
-                  .Select(u => new { u.Id, u.TelegramUserId })
-                  .FirstOrDefaultAsync();
-            if (user is null)
-            {
-                await _audit.LogAsync("User", "0", "SkipNoMainUser", performedByUserId,
-                    new { reason = "No main user for company" });
-                return;
-            }
-            if (user.TelegramUserId is null)
-            {
-                await _audit.LogAsync("User", user.Id.ToString(), "SkipNoTelegramId", performedByUserId,
-                    new { reason = "TelegramUserId null" });
-            }
-            else
+            var mainUser = await _context.Users.AsNoTracking()
+                   .Where(u => u.CompanyId == companyId && u.IsMainUser == true)
+                   .Select(u => new { u.Id, u.TelegramUserId })
+                   .FirstOrDefaultAsync(ct);
+
+                var admins = await _context.Users.AsNoTracking()
+                .Where(u => u.UserType == "Admin" && u.TelegramUserId != null)
+                .Select(u => new { u.Id, u.TelegramUserId })
+                .ToListAsync(ct);
+
+            // Collection of recipients = main user (if any) + admins
+            var recipients = new List<(int Id, long ChatId)>();
+
+            if (mainUser != null && mainUser.TelegramUserId != null)
+                recipients.Add((mainUser.Id, mainUser.TelegramUserId.Value));
+
+            foreach (var admin in admins)
+                recipients.Add((admin.Id, admin.TelegramUserId!.Value));
+
+            foreach (var r in recipients)
             {
                 try
                 {
-                    var sent = await _bot.SendMessage(chatId: user.TelegramUserId.Value, text: text);
-
+                    var sent = await _bot.SendMessage(chatId: r.ChatId, text: text);
                     var telegrammsg = new TelegramMessage
                     {
                         Direction = MessageDirection.Outbound,
-                        UserId = user.Id,
+                        UserId = r.Id,
                         TelegramMessageId = sent.MessageId,
                         ChatId = sent.Chat.Id,
                         Body = txtToSaveBody,
                         Status = "Sent"
                     };
+
                     _context.TelegramMessages.Add(telegrammsg);
                     await _context.SaveChangesAsync(ct);
-
-                    //await _audit.LogAsync("Message", telegrammsg.Id.ToString(), "Send", performedByUserId,
-                    //    new { chatId = sent.Chat.Id, telegramMessageId = sent.MessageId });
                 }
                 catch (Exception ex)
                 {
-                    await _audit.LogAsync("User", user.Id.ToString(), "Error", performedByUserId, new { error = ex.Message });
+                    AddHistoryLog(performedByUserId, "SendToUsersAsync", $"Failed to send Telegram messages. Error: {ex.Message}");
+                    await _context.SaveChangesAsync(ct);
                 }
             }
-        }
+         }
         catch (Exception ex)
         {
-            await _audit.LogAsync("ERRON IN SEND TOUSERASYNC","0", "Error", performedByUserId, new { error = " ERRON IN SEND TOUSERASYNC" + ex.Message.ToString() });
+            AddHistoryLog(performedByUserId, "SendToUsersAsync", $"Failed to fetch main and admin or while merge. Error: {ex.Message}");
+            await _context.SaveChangesAsync(ct);
         }
     }
+    private void AddHistoryLog(int userId, string action, string description)
+    {
+        _context.HistoryLogs.Add(new HistoryLog
+        {
+            UserId = userId,
+            Action = action,
+            Description = description,
+            CreatedAt = DateTime.UtcNow
+        });
+    }
+
 }
