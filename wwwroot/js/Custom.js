@@ -3406,12 +3406,12 @@ $('#allcompanyUsersList').DataTable({
                 const star = row.isMainUser
                     ? '<i class="lni lni-user" title="Main User"></i>'
                     : '';
-                return `<a href="/CompanyUsers/Edit/${row.id}" class="text-primary fw-bold">${data}</a> ${star}`;
+                return <a href="/CompanyUsers/Edit/${row.id}" class="text-primary fw-bold">${data}</a> ${ star };
             }
         },
         { data: 'isActive' },
         { data: 'fullName' },
-        { data: 'createdBy'},
+        { data: 'createdBy' },
         {
             data: 'companyName',
             render: function (cname, type, row) {
@@ -3449,7 +3449,6 @@ $('#allcompanyUsersList').DataTable({
     dom: 'Bfrtip',
     buttons: ['copy', 'excel', 'pdf', 'print']
 });
-
 
 function confirmDelete(userId) {
     if (confirm(window.localizedTextDT.deleteuserconfirmation || "Are you sure you want to delete this user?")) {
