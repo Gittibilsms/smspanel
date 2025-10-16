@@ -176,6 +176,7 @@ namespace GittBilSmsCore.Controllers
                                    Quota = user.Quota ?? 0,
                                    user.Email,
                                    user.PhoneNumber,
+                                   telegramUserId = user.TelegramUserId.HasValue ? "✅" : "❌",
                                    TwoFA = (user.IsTwoFactorEnabled == true)
     ? (string.IsNullOrWhiteSpace(user.VerificationType) ? "Enabled" : user.VerificationType)
     : "N/A",

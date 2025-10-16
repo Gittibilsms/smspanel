@@ -1771,6 +1771,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Telgraf.
+        /// </summary>
+        public static string isTelegram {
+            get {
+                return ResourceManager.GetString("isTelegram", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Son.
         /// </summary>
         public static string Last {
@@ -3684,6 +3693,15 @@ namespace GittBilSmsCore.Resources {
         public static string userinfo {
             get {
                 return ResourceManager.GetString("userinfo", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} sisteme giriş yaptı. IP adresi: {1}. Konum: {2}. Kullanıcı Aracısı: {3}..
+        /// </summary>
+        public static string userloggedMessage {
+            get {
+                return ResourceManager.GetString("userloggedMessage", resourceCulture);
             }
         }
         
