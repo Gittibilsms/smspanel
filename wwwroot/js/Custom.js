@@ -3412,7 +3412,19 @@ $('#allcompanyUsersList').DataTable({
         { data: 'isActive' },
         { data: 'fullName' },
         { data: 'createdBy'},
-        { data: 'companyName' },
+        {
+            data: 'companyName',
+            render: function (cname, type, row) {
+                const id = row.companyId ?? 0;
+                const isedit = $('#permission-flags-users').data('can-edit-company');
+
+                if (isedit) {
+                    return <a href="/Companies/Details/${id}">${cname ?? '-'}</a>;
+                } else {
+                    return cname ?? '-';
+                }
+            }
+        },
         { data: 'quotaType' },
         { data: 'quota' },
         { data: 'email' },
