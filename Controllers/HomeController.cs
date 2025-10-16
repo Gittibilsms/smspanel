@@ -9,7 +9,7 @@ using System.Text;
 using Newtonsoft.Json;
 using GittBilSmsCore.Helpers;
 using System.IO;
-using ClosedXML.Excel;    
+using ClosedXML.Excel;
 using CompanyModel = GittBilSmsCore.Models.Company;
 using DocumentFormat.OpenXml.Spreadsheet;
 using ClosedXML;
@@ -40,8 +40,7 @@ namespace GittBilSmsCore.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly IHubContext<ChatHub> _hubContext;
         private readonly UserManager<User> _userManager;
-        private readonly TelegramMessageService _svc;
-        public HomeController(GittBilSmsDbContext context, IStringLocalizerFactory factory, INotificationService notificationService, IHubContext<ChatHub> hubContext, UserManager<User> userManager, IWebHostEnvironment env, TelegramMessageService svc) : base(context)
+        public HomeController(GittBilSmsDbContext context, IStringLocalizerFactory factory, INotificationService notificationService, IHubContext<ChatHub> hubContext, UserManager<User> userManager, IWebHostEnvironment env) : base(context)
         {
             _context = context;
             _hubContext = hubContext;
@@ -49,7 +48,6 @@ namespace GittBilSmsCore.Controllers
             _notificationService = notificationService;
             _userManager = userManager;
             _env = env;
-            _svc = svc;
         }
 
         public async Task<IActionResult> Index()
@@ -87,7 +85,7 @@ namespace GittBilSmsCore.Controllers
                 .Where(u => u.Id == userId)
                 .Select(u => new { u.FullName, u.ProfilePhotoUrl })
                 .FirstOrDefaultAsync();
-      
+
             ViewBag.UserName = user?.FullName ?? "Unknown User";
             ViewBag.ProfilePhotoUrl = string.IsNullOrEmpty(user?.ProfilePhotoUrl)
                 ? "/assets/images/avatars/01.png"
@@ -157,40 +155,40 @@ namespace GittBilSmsCore.Controllers
         [HttpGet]
         public IActionResult DownloadReportSummary(int orderId)
         {
-            return DownloadReportFile(orderId, "report-summary.csv", "Summary").GetAwaiter().GetResult(); ;
+            return DownloadReportFile(orderId, "report-summary.csv", "Summary");
         }
 
         // Download Undelivered
         [HttpGet]
         public IActionResult DownloadUndelivered(int orderId)
         {
-            return DownloadReportFile(orderId, "undelivered.csv", "Undelivered").GetAwaiter().GetResult(); ;
+            return DownloadReportFile(orderId, "undelivered.csv", "Undelivered");
         }
 
         // Download Forwarded
         [HttpGet]
         public IActionResult DownloadWaiting(int orderId)
         {
-            return DownloadReportFile(orderId, "waiting.csv", "Waiting").GetAwaiter().GetResult(); ;
+            return DownloadReportFile(orderId, "waiting.csv", "Waiting");
         }
 
         [HttpGet]
         public IActionResult DownloadAllReport(int orderId)
         {
-            return DownloadReportFile(orderId, "all.csv", "All").GetAwaiter().GetResult(); ;
+            return DownloadReportFile(orderId, "all.csv", "All");
         }
         // Download Waiting
         [HttpGet]
         public IActionResult DownloadForwarded(int orderId)
         {
-            return DownloadReportFile(orderId, "delivered.csv", "Forwarded").GetAwaiter().GetResult(); ;
+            return DownloadReportFile(orderId, "delivered.csv", "Forwarded");
         }
 
         // Download Expired
         [HttpGet]
         public IActionResult DownloadExpired(int orderId)
         {
-            return DownloadReportFile(orderId, "expired.csv", "Expired").GetAwaiter().GetResult(); ;
+            return DownloadReportFile(orderId, "expired.csv", "Expired");
         }
 
         [HttpGet]
@@ -226,7 +224,7 @@ namespace GittBilSmsCore.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok(new {success = true, message = _sharedLocalizer["smsapisuccess"] });
+            return Ok(new { success = true, message = _sharedLocalizer["smsapisuccess"] });
         }
         public class RecipientDto
         {
@@ -317,7 +315,7 @@ namespace GittBilSmsCore.Controllers
                 //    .ToList();
                 var numbersList = recipients.Select(r => r.Number).ToList();
                 int segmentsPerMessage = model.TotalSmsCount ?? 0;
-              
+
 
                 // Create order
                 var order = new Order
@@ -350,7 +348,7 @@ namespace GittBilSmsCore.Controllers
                         ActionName = "Awaiting approval",
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
-           
+
                 }
                 else if (model.ScheduledSendDate.HasValue && model.ScheduledSendDate.Value > TimeHelper.NowInTurkey())
                 {
@@ -461,7 +459,7 @@ namespace GittBilSmsCore.Controllers
                     await _hubContext.Clients
                          .Group("PanelUsers")
                          .SendAsync("ReceiveNotification", signalRpayload);
-                            }
+                }
 
                 // Blacklist + banned check
                 var blacklist = _context.BlacklistNumbers.Select(x => x.Number).ToHashSet();
@@ -662,9 +660,9 @@ namespace GittBilSmsCore.Controllers
 
                     return Ok(new
                     {
-                       
-                    message = _sharedLocalizer["smssuccess", order.ScheduledSendDate.GetValueOrDefault().ToString("yyyy-MM-dd HH:mm")],
-                    orderId = order.OrderId
+
+                        message = _sharedLocalizer["smssuccess", order.ScheduledSendDate.GetValueOrDefault().ToString("yyyy-MM-dd HH:mm")],
+                        orderId = order.OrderId
                     });
                 }
                 if (validNumbers.Count == 0)
@@ -684,7 +682,7 @@ namespace GittBilSmsCore.Controllers
                     return BadRequest("Geçerli alıcı bulunamadı. SMS gönderilemiyor.");
                 }
 
-           
+
                 // If not trusted → do not send now
                 if (!company.IsTrustedSender)
                 {
@@ -694,7 +692,7 @@ namespace GittBilSmsCore.Controllers
                         orderId = order.OrderId
                     });
                 }
-              
+
                 // Deduct balance
                 company.CreditLimit -= totalSmsCredits;
 
@@ -711,7 +709,7 @@ namespace GittBilSmsCore.Controllers
                     CreatedAt = TimeHelper.NowInTurkey(),
                     CreatedByUserId = userId
                 });
-    
+
                 _context.Companies.Update(company);
                 await _context.SaveChangesAsync();
                 bool hasPlaceholder =
@@ -734,103 +732,103 @@ namespace GittBilSmsCore.Controllers
                 var originalPhones = model.PhoneNumbers;
                 using var httpClient = new HttpClient();
 
-              
-                    //// 1) build the personalized message
-                    //var template = model.Message;
-                    //var placeholder = $"{{{model.SelectedCustomColumn}}}";
-                    //var personalized = originalText.Replace(placeholder, rec.Name);
-                    //var text = template.Replace(placeholder, rec.Name);
-                    //model.Message = personalized;
-                    //model.PhoneNumbers = rec.Number;
-                    // 2) build the request body
-                    var body = BuildRequestBody(model, api);
-                    // 3) time the call
-                    var stopwatch = Stopwatch.StartNew();
 
-                    var response = await httpClient.SendAsync(
-                        new HttpRequestMessage(HttpMethod.Post, api.ApiUrl)
-                        {
-                            Content = new StringContent(body, Encoding.UTF8, api.ContentType)
-                        }
-                    );
-                    stopwatch.Stop();
+                //// 1) build the personalized message
+                //var template = model.Message;
+                //var placeholder = $"{{{model.SelectedCustomColumn}}}";
+                //var personalized = originalText.Replace(placeholder, rec.Name);
+                //var text = template.Replace(placeholder, rec.Name);
+                //model.Message = personalized;
+                //model.PhoneNumbers = rec.Number;
+                // 2) build the request body
+                var body = BuildRequestBody(model, api);
+                // 3) time the call
+                var stopwatch = Stopwatch.StartNew();
 
-                    var result = await response.Content.ReadAsStringAsync();
-
-                    // 4) sanitize & log the raw request/response
-                    var sanitizedBody = Regex.Replace(body, @"\d{10,15}", "[NUMBER]");
-
-                    _context.ApiCallLogs.Add(new ApiCallLog
+                var response = await httpClient.SendAsync(
+                    new HttpRequestMessage(HttpMethod.Post, api.ApiUrl)
                     {
-                        CompanyId = model.CompanyId,
-                        UserId = userId,
-                        ApiUrl = api.ApiUrl,
-                        OrderId = order.OrderId,
-                        RequestBody = sanitizedBody,
-                        ResponseContent = result,
-                        ResponseTimeMs = stopwatch.ElapsedMilliseconds,
+                        Content = new StringContent(body, Encoding.UTF8, api.ContentType)
+                    }
+                );
+                stopwatch.Stop();
+
+                var result = await response.Content.ReadAsStringAsync();
+
+                // 4) sanitize & log the raw request/response
+                var sanitizedBody = Regex.Replace(body, @"\d{10,15}", "[NUMBER]");
+
+                _context.ApiCallLogs.Add(new ApiCallLog
+                {
+                    CompanyId = model.CompanyId,
+                    UserId = userId,
+                    ApiUrl = api.ApiUrl,
+                    OrderId = order.OrderId,
+                    RequestBody = sanitizedBody,
+                    ResponseContent = result,
+                    ResponseTimeMs = stopwatch.ElapsedMilliseconds,
+                    CreatedAt = TimeHelper.NowInTurkey()
+                });
+                await _context.SaveChangesAsync();
+
+                // 5) if this single‐number call failed, mark the order failed & refund
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorMessage = $"HTTP {(int)response.StatusCode} - {result}";
+                    order.ApiErrorResponse = errorMessage;
+                    order.CurrentStatus = "Failed";
+                    order.Actions.Add(new OrderAction
+                    {
+                        ActionName = "Sending failed",
+                        Message = errorMessage,
+                        CreatedAt = TimeHelper.NowInTurkey()
+                    });
+
+                    // refund
+                    if (order.TotalPrice > 0 && !order.Returned)
+                    {
+                        company.CreditLimit += order.TotalPrice.Value;
+                        order.Refundable = true;
+                        order.Returned = true;
+                        order.ReturnDate = TimeHelper.NowInTurkey();
+
+                        _context.BalanceHistory.Add(new BalanceHistory
+                        {
+                            CompanyId = company.CompanyId,
+                            Amount = order.TotalPrice.Value,
+                            Action = "Refund on Failed",
+                            CreatedAt = TimeHelper.NowInTurkey(),
+                            CreatedByUserId = userId
+                        });
+                    }
+
+                    await _context.SaveChangesAsync();
+                    return StatusCode((int)response.StatusCode, "SMS API call failed.");
+                }
+
+                // 6) if OK, pull out MessageId (if your API returns one per call)
+                var json = JsonConvert.DeserializeObject<dynamic>(result);
+                if (json.Status == "OK")
+                {
+                    // you might collect multiple MessageId values, but at minimum store the last one:
+                    order.SmsOrderId = json.MessageId;
+                }
+                else
+                {
+                    // treat non‑OK as failure
+                    var errorMessage = $"Status: {json.Status}, Full Response: {result}";
+                    order.ApiErrorResponse = errorMessage;
+                    order.CurrentStatus = "Failed";
+                    order.Actions.Add(new OrderAction
+                    {
+                        ActionName = "Sending failed",
+                        Message = errorMessage,
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
                     await _context.SaveChangesAsync();
+                    return BadRequest($"SMS API bir hata döndürdü: {json.Status}");
+                }
 
-                    // 5) if this single‐number call failed, mark the order failed & refund
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        var errorMessage = $"HTTP {(int)response.StatusCode} - {result}";
-                        order.ApiErrorResponse = errorMessage;
-                        order.CurrentStatus = "Failed";
-                        order.Actions.Add(new OrderAction
-                        {
-                            ActionName = "Sending failed",
-                            Message = errorMessage,
-                            CreatedAt = TimeHelper.NowInTurkey()
-                        });
-
-                        // refund
-                        if (order.TotalPrice > 0 && !order.Returned)
-                        {
-                            company.CreditLimit += order.TotalPrice.Value;
-                            order.Refundable = true;
-                            order.Returned = true;
-                            order.ReturnDate = TimeHelper.NowInTurkey();
-
-                            _context.BalanceHistory.Add(new BalanceHistory
-                            {
-                                CompanyId = company.CompanyId,
-                                Amount = order.TotalPrice.Value,
-                                Action = "Refund on Failed",
-                                CreatedAt = TimeHelper.NowInTurkey(),
-                                CreatedByUserId = userId
-                            });
-                        }
-
-                        await _context.SaveChangesAsync();
-                        return StatusCode((int)response.StatusCode, "SMS API call failed.");
-                    }
-
-                    // 6) if OK, pull out MessageId (if your API returns one per call)
-                    var json = JsonConvert.DeserializeObject<dynamic>(result);
-                    if (json.Status == "OK")
-                    {
-                        // you might collect multiple MessageId values, but at minimum store the last one:
-                        order.SmsOrderId = json.MessageId;
-                    }
-                    else
-                    {
-                        // treat non‑OK as failure
-                        var errorMessage = $"Status: {json.Status}, Full Response: {result}";
-                        order.ApiErrorResponse = errorMessage;
-                        order.CurrentStatus = "Failed";
-                        order.Actions.Add(new OrderAction
-                        {
-                            ActionName = "Sending failed",
-                            Message = errorMessage,
-                            CreatedAt = TimeHelper.NowInTurkey()
-                        });
-                        await _context.SaveChangesAsync();
-                        return BadRequest($"SMS API bir hata döndürdü: {json.Status}");
-                    }
-               
 
                 // ─── all calls succeeded ───
 
@@ -1639,8 +1637,8 @@ namespace GittBilSmsCore.Controllers
                     Content = new StringContent(requestBody, Encoding.UTF8, api.ContentType)
                 };
 
-            
-               
+
+
 
                 var stopwatch = Stopwatch.StartNew();
                 var response = await client.SendAsync(request);
@@ -1783,7 +1781,7 @@ namespace GittBilSmsCore.Controllers
                     await _hubContext.Clients
                         .Group($"user_{order.CreatedByUserId}")
                         .SendAsync("ReceiveNotification", payload);
-              
+
                     return Json(new { success = true, message = _sharedLocalizer["orderapproved"] });
                 }
                 else
@@ -1967,8 +1965,8 @@ namespace GittBilSmsCore.Controllers
                     Content = new StringContent(requestBody, Encoding.UTF8, contentType)
                 };
 
-            
-              
+
+
 
                 var stopwatch = Stopwatch.StartNew();
                 var response = await client.SendAsync(request);
@@ -2076,8 +2074,8 @@ namespace GittBilSmsCore.Controllers
 
             return File(fileBytes, "text/plain", downloadName);
         }
-   
-            
+
+
         private string BuildRequestBody(string text, SendSmsViewModel model, Api api)
         {
             var rawNumbers = model.PhoneNumbers ?? "";
@@ -2095,7 +2093,7 @@ namespace GittBilSmsCore.Controllers
                     {
                         Username = api.Username,
                         Password = api.Password,
-                       // From = api.Originator,
+                        // From = api.Originator,
                         Text = model.Message,
                         To = numbersList
                     });
@@ -2528,7 +2526,7 @@ namespace GittBilSmsCore.Controllers
         public async Task<IActionResult> GlobalSearch(string term)
         {
             var lowerTerm = term?.ToLower() ?? "";
-        
+
             var currentUser = await _userManager.GetUserAsync(User);
             var user = await _context.Users
             .Include(u => u.Company)
@@ -2538,7 +2536,7 @@ namespace GittBilSmsCore.Controllers
             .FirstOrDefaultAsync(u => u.Id == currentUser.Id);
             if (user != null)
             {
-                SessionHelper.SetUserSession(HttpContext.Session, user); 
+                SessionHelper.SetUserSession(HttpContext.Session, user);
             }
 
             var permissions = HttpContext.Session.GetPermissions(); // or query from DB
@@ -2661,8 +2659,7 @@ namespace GittBilSmsCore.Controllers
             return View();
         }
         [HttpGet]
-        // public IActionResult DownloadReportFile(int orderId, string fileName, string reportName)
-        public async Task<IActionResult> DownloadReportFile(int orderId, string fileName, string reportName)
+        public IActionResult DownloadReportFile(int orderId, string fileName, string reportName)
         {
             // 1️⃣ Find the Kudu/App_Data path
             var home = Environment.GetEnvironmentVariable("HOME")
@@ -2689,41 +2686,6 @@ namespace GittBilSmsCore.Controllers
 
             // 5️⃣ Branch on requested extension
             var ext = Path.GetExtension(fileName).ToLowerInvariant();
-            int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
-            var filerewriteName = $"{baseName}.{ext}";
-
-            var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
-
-            int? companyId = HttpContext.Session.GetInt32("CompanyId") ?? 0;
-            
-            var textMsg = string.Format(
-                                         _sharedLocalizer["Reportdownloadmessage"],
-                                         filerewriteName,
-                                         orderId,
-                                         userName,
-                                         TimeHelper.NowInTurkey()
-                                     );
-            string dataJson = System.Text.Json.JsonSerializer.Serialize(new
-            {
-                Message = "Report downloaded from orders",
-                UserName = userName,
-                OrderId = orderId,
-                FileName = fileName,
-                Time = TimeHelper.NowInTurkey(),
-                IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                UserAgent = Request.Headers["User-Agent"].ToString()
-            });
-            var validFormats = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                ".txt", ".csv", ".xlsx"
-            };
-
-
-            if (validFormats.Contains(ext))
-            {
-                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                await _svc.SendToUsersAsync(companyId.Value, performedByUserId, textMsg, dataJson,cts.Token);
-            }
             switch (ext)
             {
                 case ".csv":

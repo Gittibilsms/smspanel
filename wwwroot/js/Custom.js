@@ -1,6 +1,6 @@
 ﻿
 function updateLogoByTheme() {
-    const theme = document.documentElement.getAttribute('data-bs-theme'); 
+    const theme = document.documentElement.getAttribute('data-bs-theme');
     const lightLogo = document.querySelector('.logo-light');
     const darkLogo = document.querySelector('.logo-dark');
 
@@ -24,11 +24,11 @@ function updateLogoByTheme() {
 }
 let reloadScheduled = false;
 function checkForNewSession() {
-    if (reloadScheduled) return;    
+    if (reloadScheduled) return;
     const current = sessionStorage.getItem('sessionVersion') || '';
     $.post('/Account/RefreshSession', res => {
         if (res.success && res.version !== current && !reloadScheduled) {
-            reloadScheduled = true;       
+            reloadScheduled = true;
             sessionStorage.setItem('sessionVersion', res.version);
             location.reload(true);
         }
@@ -56,7 +56,7 @@ const canEditFirm = $('#permission-flags-firm').data('can-edit-firm') === true |
 const isCompanyUser = $('#permission-flags').data('is-company-user') === true || $('#permission-flags').data('is-company-user') === "true";
 $("#loginForm").submit(function (e) {
     e.preventDefault(); // ✅ important
-    $('#globalSpinnerOverlay').show(); 
+    $('#globalSpinnerOverlay').show();
     $.post("/Account/Login", $(this).serialize())
         .done(function (res) {
             $('#globalSpinnerOverlay').hide();
@@ -125,7 +125,7 @@ function showSmsFormModal() {
             const $dependentInputs = $('.dependent-fields').find('input, select, textarea, button');
             $dependentInputs.prop('disabled', true).addClass('disabled');
 
-           
+
             $('#smsModal')
                 .off('hidden.bs.modal.smsModal')
                 .on('hidden.bs.modal.smsModal', () => {
@@ -152,54 +152,54 @@ function showSmsFormModal() {
                     dropdownParent: $('#smsModal') // Important for modals
                 });
 
-              
 
-            // Rebind change event
+
+                // Rebind change event
                 $('#selectFirm').on('change.smsModal', function () {
                     if (!$('#smsModal').is(':visible')) {
                         return; // modal is closed → skip all AJAX
                     }
-                const selectedOption = this.options[this.selectedIndex];
-                const credit = selectedOption ? selectedOption.getAttribute('data-credit') || 0 : 0;
+                    const selectedOption = this.options[this.selectedIndex];
+                    const credit = selectedOption ? selectedOption.getAttribute('data-credit') || 0 : 0;
 
-                document.getElementById('AvailableCredit').value = credit;
-                document.getElementById('availableCredit').innerText = parseFloat(credit).toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                });
+                    document.getElementById('AvailableCredit').value = credit;
+                    document.getElementById('availableCredit').innerText = parseFloat(credit).toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
 
-                const selected = parseInt($(this).val());
-                const isValid = !isNaN(selected) && selected > 0;
+                    const selected = parseInt($(this).val());
+                    const isValid = !isNaN(selected) && selected > 0;
 
-                $dependentInputs.prop('disabled', !isValid).toggleClass('disabled', !isValid);
-                $('#numberUpload').closest('.fancy-file-upload').toggleClass('disabled', !isValid);
-                const companyId = $(this).val();
-                $('#PhoneNumbers').val('');
-                $.get(`/Home/GetCompanyPrices?companyId=${companyId}`, function (data) {
-                    $('#companyLowPrice').val(data.low);
-                    $('#companyMediumPrice').val(data.medium);
-                    $('#companyHighPrice').val(data.high);
-                    updateSmsPricePerUnit();
-                    const apiId = data.selectedApiId ?? '';
-                    $('.formChooseApi').val(String(apiId)).trigger('change');
+                    $dependentInputs.prop('disabled', !isValid).toggleClass('disabled', !isValid);
+                    $('#numberUpload').closest('.fancy-file-upload').toggleClass('disabled', !isValid);
+                    const companyId = $(this).val();
+                    $('#PhoneNumbers').val('');
+                    $.get(`/Home/GetCompanyPrices?companyId=${companyId}`, function (data) {
+                        $('#companyLowPrice').val(data.low);
+                        $('#companyMediumPrice').val(data.medium);
+                        $('#companyHighPrice').val(data.high);
+                        updateSmsPricePerUnit();
+                        const apiId = data.selectedApiId ?? '';
+                        $('.formChooseApi').val(String(apiId)).trigger('change');
+                    });
+                    $.get(`/Home/GetByCompany?companyId=${companyId}`, function (res) {
+                        if (res.success && Array.isArray(res.data.$values)) {
+                            const options = res.data.$values.map(d =>
+                                `<option value="${d.directoryId}">${d.directoryName}</option>`
+                            );
+                            $('#selectDirectory').html(`<option value="">${window.localizedTextDT.selectdirectory}</option>` + options.join(''));
+                        } else {
+                            toastr.error('Failed to load directories.');
+                        }
+                    });
                 });
-                $.get(`/Home/GetByCompany?companyId=${companyId}`, function (res) {
-                    if (res.success && Array.isArray(res.data.$values)) {
-                        const options = res.data.$values.map(d =>
-                            `<option value="${d.directoryId}">${d.directoryName}</option>`
-                        );
-                        $('#selectDirectory').html(`<option value="">${window.localizedTextDT.selectdirectory}</option>` + options.join(''));
-                    } else {
-                        toastr.error('Failed to load directories.');
-                    }
-                });
-            });
-            if ($('#selectFirm').is(':disabled')) {
-                $('#selectFirm').trigger('change');
+                if ($('#selectFirm').is(':disabled')) {
+                    $('#selectFirm').trigger('change');
                 }
-            }, 200); 
+            }, 200);
             // --- Message input handler ---
-         
+
 
             $('#selectDirectory').on('change', function () {
                 const directoryId = $(this).val();
@@ -220,7 +220,7 @@ function showSmsFormModal() {
                 });
             });
             // 1️⃣ Constants
-          
+
             // 2️⃣ beforeinput: block any insertion that would go past MAX_UNITS
             const msgEl = document.getElementById('message');
             msgEl.addEventListener('beforeinput', function (e) {
@@ -271,7 +271,7 @@ function showSmsFormModal() {
             }, 300));
 
             // 4️⃣ your length calculator
-           
+
 
             function updateOrderCost() {
                 const smsCount = parseInt($('#smsCount').text().replace(/\D/g, '')) || 0;
@@ -288,7 +288,7 @@ function showSmsFormModal() {
                 // Update UI
                 $('#orderCost').text(orderCost.toFixed(2));
 
-        
+
 
                 // Correct logic
                 const statusElement = document.getElementById('creditStatus');
@@ -317,7 +317,7 @@ function showSmsFormModal() {
             $('#PhoneNumbers').on('input', function () {
                 updateSmsPriceAndCost();
             });
-         
+
             function calculateSmsParts(message) {
                 const length = message.length;
 
@@ -329,7 +329,7 @@ function showSmsFormModal() {
                     return Math.ceil((length - 160) / 153) + 1;
                 }
             }
-          
+
 
             // Handle file deletion - Fixed event handler
             $(document).on('click', '.ff_fileupload_remove_file', function (e) {
@@ -375,7 +375,7 @@ function showSmsFormModal() {
 
                 if (!message || !numbers) {
                     toastr.error(window.localizedTextDT.Pleasefillapi || "Please fill all the required fields.");
-                 
+
                     return;
                 }
 
@@ -390,7 +390,7 @@ function showSmsFormModal() {
 
                 $('#previewMessage').text(message);
                 $('#previewRecipients').val(visibleNumbers + moreCount);
-               // $('#previewApi').text(apiText);
+                // $('#previewApi').text(apiText);
 
                 const previewModal = new bootstrap.Modal(document.getElementById('smsPreviewModal'));
                 previewModal.show();
@@ -518,7 +518,7 @@ function normalizePhoneNumber(rawNumber) {
 
     const cleanedNumber = match[0];
 
- 
+
 
     return '90' + cleanedNumber;
 }
@@ -752,7 +752,7 @@ function initFancyUploader() {
                 const columns = Array.isArray(cols)
                     ? cols
                     : (Array.isArray(cols.$values) ? cols.$values : (cols.d || []));
-              //  const columnPrefix = $('#fileMode').data('column-prefix') || ''; 
+                //  const columnPrefix = $('#fileMode').data('column-prefix') || ''; 
                 $('#nameSelectors, #numberSelectors').show();
                 // Populate Name buttons
                 const $nb = $('#nameButtons').empty();
@@ -806,7 +806,7 @@ function initFancyUploader() {
                     if (nameCol && numberCol) {
                         doUpload(data, file, `${file.name}_${Date.now()}`, nameCol, numberCol);
                         // Optionally, hide the selectors or disable buttons
-                      //  $('#nameSelectors,#numberSelectors').hide();
+                        //  $('#nameSelectors,#numberSelectors').hide();
                     }
                 }
                 // Show the selectors
@@ -1123,17 +1123,17 @@ $(document).ready(function () {
             processData: false, // Prevent jQuery from processing the data
             contentType: false, // Prevent jQuery from setting content type
             success: function (response) {
-    if (response.success) {
-        toastr.success(window.localizedTextDT.profileupdatedsuccess || 'Profile updated successfully!');
-        
-        // 🔄 Refresh the page after a short delay (e.g., 1.5s)
-        setTimeout(function () {
-            location.reload();
-        }, 1500);
-    } else {
-        toastr.error(response.message.value || 'Güncelleme başarısız oldu.');
-    }
-},
+                if (response.success) {
+                    toastr.success(window.localizedTextDT.profileupdatedsuccess || 'Profile updated successfully!');
+
+                    // 🔄 Refresh the page after a short delay (e.g., 1.5s)
+                    setTimeout(function () {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    toastr.error(response.message.value || 'Güncelleme başarısız oldu.');
+                }
+            },
             error: function (xhr) {
                 // Show backend model errors if any
                 let errMsg = xhr.responseJSON?.message || 'Güncelleme başarısız oldu.';
@@ -1244,9 +1244,9 @@ function initFlatpickr() {
     });
 }
 $(document).ready(function () {
-  
+
     // --- Enable on firm select ---
-  
+
     //   $("#loginForm").submit(function (e) {
     //    e.preventDefault(); // 🚀 Stop normal POST (no refresh)
 
@@ -1290,14 +1290,14 @@ $(document).ready(function () {
     });
 
     loadTodaySmsStats();
-  
+
     setInterval(loadTodaySmsStats, 60000);
 
- 
+
     loadDashboardStats();
 
-  
-   
+
+
 
 
 
@@ -1409,7 +1409,7 @@ $(document).ready(function () {
         e.stopPropagation();
     });
     $('#openAddCreditModal').click(function () {
-        updateUnitPriceOptionsFromInputs(); 
+        updateUnitPriceOptionsFromInputs();
         var modal = new bootstrap.Modal(document.getElementById('addCreditModal'));
         modal.show();
     });
@@ -1515,7 +1515,7 @@ $(document).ready(function () {
 
             if (price >= 1_000_000) tier = 0.19;
             else if (price >= 500_000) tier = 0.20;
-            else tier = 0.21; 
+            else tier = 0.21;
 
             if (tier === null) return;
 
@@ -1559,7 +1559,7 @@ $(document).ready(function () {
 
             $("#unitPrice")
                 .val(selected)
-                .prop("readonly", true); 
+                .prop("readonly", true);
             $("#unitPriceHidden").val(parseFloat(selected).toFixed(4));
 
             recalculateLoan();
@@ -1691,13 +1691,15 @@ $(document).ready(function () {
                 return row.status === 'Scheduled'
                     ? `<span class="badge bg-warning text-dark">${formatted}</span>`
                     : formatted;
-            } },
+            }
+        },
         {
             data: 'createdAt', render: data => {
                 if (!data) return '';
                 const date = new Date(data);
                 return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-            } },
+            }
+        },
         { data: 'apiName' },
         { data: 'submissionType' },
         { data: 'loadedCount' },
@@ -1739,7 +1741,7 @@ $(document).ready(function () {
                 const date = new Date(data);
                 return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
             }
-            },
+        },
         { data: 'deliveredCount' },
         { data: 'createdBy' }
     ];
@@ -1866,23 +1868,23 @@ $(document).ready(function () {
         // Store table reference globally
         window.ordersTable = table;
         window.ordersDataTable = table;
-       $(document).on('click', '.change-sms-service', function (e) {
+        $(document).on('click', '.change-sms-service', function (e) {
             e.preventDefault();
             const orderId = $(this).data('id');
             $('#changeOrderId').val(orderId);
 
             // Fetch available APIs
-           $.get(window.getApisUrl, function (response) {
-               const apis = response.$values || []; // ✅ Extract array
-               const $select = $('#newApiId');
-               $select.empty();
+            $.get(window.getApisUrl, function (response) {
+                const apis = response.$values || []; // ✅ Extract array
+                const $select = $('#newApiId');
+                $select.empty();
 
-               apis.forEach(api => {
-                   $select.append(`<option value="${api.apiId}">${api.serviceName}</option>`);
-               });
+                apis.forEach(api => {
+                    $select.append(`<option value="${api.apiId}">${api.serviceName}</option>`);
+                });
 
-               $('#changeApiModal').modal('show');
-           });
+                $('#changeApiModal').modal('show');
+            });
         });
 
         // Cancel order
@@ -1909,14 +1911,14 @@ $(document).ready(function () {
         $('#ordersList .filter-row select[data-column="2"]').off('change').on('change', function () {
             const selectedStatus = $(this).val();
 
-           
+
 
             // 🔥 Instead of .search(''), do this:
             // table.clear().draw();
 
             // Then reload fresh:
             table.ajax.reload(function (json) {
-           
+
 
                 // Optional: verify after reload:
                 $('#ordersList').DataTable().rows().every(function () {
@@ -2153,7 +2155,7 @@ $(document).ready(function () {
 
         const formData = $(this).serialize();
         const submitButton = $('#apiCreateBtn');
-        submitButton.prop('disabled', true); 
+        submitButton.prop('disabled', true);
         $.ajax({
             url: '/Api/Create',
             method: 'POST',
@@ -2177,7 +2179,7 @@ $(document).ready(function () {
                 toastr.error(response.message || window.localizedTextDT?.SomethingWentWrong || 'Something went wrong.');
             },
             complete: function () {
-                submitButton.prop('disabled', false); 
+                submitButton.prop('disabled', false);
             }
         });
     });
@@ -2285,7 +2287,7 @@ $(document).ready(function () {
             $('#apiListContainer').html(html);
         });
     }
-  //  updateRoles();
+    //  updateRoles();
 
 });
 $(document).on('mouseenter', '.dropdown-submenu', function () {
@@ -2392,7 +2394,7 @@ $(document).ready(function () {
                     const formattedCredit = Number(res.newBalance).toLocaleString();
                     $('#creditValue').val(formattedCredit);
 
-                
+
 
                     // Reload DataTable
                     $('#transactionList').DataTable().ajax.reload(null, false);
@@ -2446,7 +2448,7 @@ $(document).ready(function () {
                     toastr.success(res.message.value);
                     $('#deleteCreditModal').modal('hide');
                     $('#deleteCreditForm')[0].reset();
-             
+
                     if (res.newCredit !== undefined) {
                         const formattedCredit = Number(res.newCredit).toLocaleString();
                         $('#creditValue').val(formattedCredit);
@@ -2659,7 +2661,7 @@ function toggleUserActiveNoReload(buttonEl) {
     })
         .then(res => res.json())
         .then(result => {
-            renderToggleUserButton(buttonEl, result.isActive); 
+            renderToggleUserButton(buttonEl, result.isActive);
             toastr.success(result.isActive ? window.localizedTextDT?.activate : window.localizedTextDT?.deactivate);
             $('#companyUsersList').DataTable().ajax.reload(null, false);
         })
@@ -2741,7 +2743,7 @@ document.addEventListener("DOMContentLoaded", function () {
             updateBtn.disabled = !changed;
         };
         form.addEventListener("input", checkForChanges);
-        form.addEventListener("change", checkForChanges); 
+        form.addEventListener("change", checkForChanges);
         $(form).find('select').on('change.select2', checkForChanges);
     }
     let chart2;
@@ -2806,43 +2808,43 @@ document.addEventListener("DOMContentLoaded", function () {
     var chart7;
 
 
-        const el = document.querySelector('#chart7');
-        if (el) {
-            chart7 = new ApexCharts(el, {
-                series: [{ name: "SMS Sent", data: [] }],
-                chart: { type: 'bar', height: 300 },
-                plotOptions: {
-                    bar: { borderRadius: 8, columnWidth: '50%', endingShape: 'rounded' }
-                },
-                colors: ['#00E396'],
-                dataLabels: { enabled: false },
-                xaxis: { categories: [], labels: { style: { colors: '#fff' } } },
-                yaxis: { labels: { style: { colors: '#fff' } } },
-                grid: { borderColor: '#37474F' },
-                tooltip: { theme: 'dark' }
-            });
-            chart7.render();
-        }
+    const el = document.querySelector('#chart7');
+    if (el) {
+        chart7 = new ApexCharts(el, {
+            series: [{ name: "SMS Sent", data: [] }],
+            chart: { type: 'bar', height: 300 },
+            plotOptions: {
+                bar: { borderRadius: 8, columnWidth: '50%', endingShape: 'rounded' }
+            },
+            colors: ['#00E396'],
+            dataLabels: { enabled: false },
+            xaxis: { categories: [], labels: { style: { colors: '#fff' } } },
+            yaxis: { labels: { style: { colors: '#fff' } } },
+            grid: { borderColor: '#37474F' },
+            tooltip: { theme: 'dark' }
+        });
+        chart7.render();
+    }
 
-        function loadMonthlySmsVolume() {
-            if (!chart7) return;  // no chart7 container on this page
+    function loadMonthlySmsVolume() {
+        if (!chart7) return;  // no chart7 container on this page
 
-            $.get('/Home/GetMonthlySmsVolume', function (data) {
-                const items = data.$values || [];
-                const categories = items.map(i =>
-                    new Date(i.year, i.month - 1)
-                        .toLocaleString('default', { month: 'short' })
-                );
-                const seriesData = items.map(i => i.smsCount);
+        $.get('/Home/GetMonthlySmsVolume', function (data) {
+            const items = data.$values || [];
+            const categories = items.map(i =>
+                new Date(i.year, i.month - 1)
+                    .toLocaleString('default', { month: 'short' })
+            );
+            const seriesData = items.map(i => i.smsCount);
 
-                // Update chart7 only if it's initialized
-                chart7.updateOptions({ xaxis: { categories: categories } });
-                chart7.updateSeries([{
-                    name: "SMS Sent",
-                    data: seriesData
-                }]);
-            });
-        }
+            // Update chart7 only if it's initialized
+            chart7.updateOptions({ xaxis: { categories: categories } });
+            chart7.updateSeries([{
+                name: "SMS Sent",
+                data: seriesData
+            }]);
+        });
+    }
     initChart6_ALL();
     initChart7();
     loadMonthlySmsVolume();
@@ -3390,7 +3392,7 @@ $('#createCompanyUserForm').on('submit', function (e) {
 var isCompanyUserVal = $('#isCompanyUser').val() === 'true';
 $('#allcompanyUsersList').DataTable({
     ordering: true,
-    order: [], 
+    order: [],
     ajax: {
         url: '/CompanyUsers/GetAllCompanyUsers',
         dataSrc: function (json) {
@@ -3406,10 +3408,10 @@ $('#allcompanyUsersList').DataTable({
                     : '';
                 return `<a href="/CompanyUsers/Edit/${row.id}" class="text-primary fw-bold">${data}</a> ${star}`;
             }
-        } ,
+        },
         { data: 'isActive' },
         { data: 'fullName' },
-        { data: 'createdBy'},
+        { data: 'createdBy' },
         { data: 'companyName' },
         { data: 'quotaType' },
         { data: 'quota' },
@@ -3496,7 +3498,7 @@ $(document).on('submit', '#addCompanyForm', function (e) {
 
     if (!data.CompanyName || !data.FullName || !data.Email || !data.UserName || !data.Password) {
         alert(window.localizedTextDT.fillAllRequiredFields || "Please fill all required fields.");
-        submitButton.prop('disabled', false); 
+        submitButton.prop('disabled', false);
         return;
     }
 
@@ -3548,7 +3550,7 @@ $(document).on('click', '.edit-user-btn', function () {
     const userId = $(this).data('id');
 
     $.get(`/CompanyUsers/GetUserById/${userId}`, function (user) {
-        $('#editUserId').val(user.id);    
+        $('#editUserId').val(user.id);
         $('#editFullName').val(user.fullName);
         $('#editUserName').val(user.userName);
         $('#editEmail').val(user.email);

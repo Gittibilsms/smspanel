@@ -18,13 +18,11 @@ namespace GittBilSmsCore.Controllers
         private readonly GittBilSmsDbContext _context;
         private readonly IStringLocalizer _sharedLocalizer;
         private readonly UserManager<User> _userManager;
-        private readonly TelegramMessageService _svc;
-        public CompaniesController(GittBilSmsDbContext context, IStringLocalizerFactory factory, UserManager<User> userManager, TelegramMessageService svc) : base(context)
+        public CompaniesController(GittBilSmsDbContext context, IStringLocalizerFactory factory, UserManager<User> userManager) : base(context)
         {
             _context = context;
             _sharedLocalizer = factory.Create("SharedResource", "GittBilSmsCore");
             _userManager = userManager;
-            _svc = svc;
         }
         [HttpGet("")]
         public async Task<IActionResult> Index()
@@ -74,7 +72,7 @@ namespace GittBilSmsCore.Controllers
                 LowPrice = latestPricing?.Low ?? 0.23m,
                 MediumPrice = latestPricing?.Middle ?? 0.23m,
                 HighPrice = latestPricing?.High ?? 0.23m,
-                ApiSelectList = apiSelectList 
+                ApiSelectList = apiSelectList
             };
 
             return PartialView("_AddCompanyModal", viewModel);
@@ -198,7 +196,7 @@ namespace GittBilSmsCore.Controllers
             if (user == null)
                 return NotFound();
 
-           
+
             IQueryable<GittBilSmsCore.Models.Company> query = _context.Companies.Include(c => c.Api);
             if (user.UserType == "CompanyUser")
             {
@@ -280,7 +278,7 @@ namespace GittBilSmsCore.Controllers
                 .OrderByDescending(p => p.CreatedAt)
                 .FirstOrDefaultAsync();
 
-            var latestUnitPrice = latestPricing != null 
+            var latestUnitPrice = latestPricing != null
                 ? latestPricing.Low.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)
                 : "0";
 
@@ -328,7 +326,7 @@ namespace GittBilSmsCore.Controllers
                 CompanyUsers = companyUsers,
                 ApiList = apiSelectList,
                 LatestUnitPrice = latestUnitPrice,
-                DistinctPricingOptions = distinctPrices 
+                DistinctPricingOptions = distinctPrices
             };
 
             return View(viewModel);
@@ -445,33 +443,7 @@ namespace GittBilSmsCore.Controllers
                 }
 
                 await _context.SaveChangesAsync();
-                int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
-                decimal? availableCredit = await (
-                        from c in _context.Companies
-                        join u in _context.Users on c.CompanyId equals u.CompanyId
-                        where u.IsMainUser == true && c.CompanyId == companyId
-                        select (decimal?)c.CreditLimit
-                    ).FirstOrDefaultAsync();
 
-                var textMsg = string.Format(
-                                      _sharedLocalizer["Creditaddedmessage"],
-                                      credit,
-                                      availableCredit
-                                  );
-
-
-                var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
-
-                string dataJson = System.Text.Json.JsonSerializer.Serialize(new
-                {
-                    Message = "Credit Added by : " + userName,
-                    TelegramMessage = textMsg,
-                    Time = TimeHelper.NowInTurkey(),
-                    IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                    UserAgent = Request.Headers["User-Agent"].ToString()
-                });
-
-                await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson);
                 return Json(new
                 {
                     success = true,
@@ -520,28 +492,7 @@ namespace GittBilSmsCore.Controllers
 
                 await _context.SaveChangesAsync();
             }
-            decimal? availableCredit = await (
-                        from c in _context.Companies
-                        join u in _context.Users on c.CompanyId equals u.CompanyId
-                        where u.IsMainUser == true && c.CompanyId == companyId
-                        select (decimal?)c.CreditLimit
-                    ).FirstOrDefaultAsync();
-            int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
-            var textMsg = string.Format(
-                                       _sharedLocalizer["Creditdeletedmessage"],
-                                       credit,
-                                       availableCredit
-                                   );
-            var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
-            string dataJson = System.Text.Json.JsonSerializer.Serialize(new
-            {
-                Message = "Credit Deleted by : " + userName,
-                TelegramMessage = textMsg,
-                Time = TimeHelper.NowInTurkey(),
-                IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                UserAgent = Request.Headers["User-Agent"].ToString()
-            });
-            await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson);
+
             return RedirectToAction("Index", new { companyId });
         }
         [HttpPost("Deactivate/{id}")]
@@ -578,6 +529,6 @@ namespace GittBilSmsCore.Controllers
 
             return Ok();
         }
-       
+
     }
 }
