@@ -1395,4 +1395,10 @@
   <data name="userloggedMessage" xml:space="preserve">
     <value>{0} logged into the system. IP address: {1}. Location: {2}. User Agent: {3}.</value>
   </data>
+  <data name="CreditaddedmessagetoAdmin" xml:space="preserve">
+    <value>Credit has been added to {0} account. Amount: {1}. Current balance: {2}.</value>
+  </data>
+  <data name="CreditdeletedmessagetoAdmin" xml:space="preserve">
+    <value>Credit has been deleted from {0} account. Amount: {1}. Current balance: {2}.</value>
+  </data>
 </root>

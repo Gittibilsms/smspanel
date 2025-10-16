@@ -1395,4 +1395,10 @@
   <data name="userloggedMessage" xml:space="preserve">
     <value>{0} sisteme giriş yaptı. IP adresi: {1}. Konum: {2}. Kullanıcı Aracısı: {3}.</value>
   </data>
+  <data name="CreditaddedmessagetoAdmin" xml:space="preserve">
+    <value>{0} hesabına kredi eklendi. Tutar: {1}. Mevcut bakiye: {2}.</value>
+  </data>
+  <data name="CreditdeletedmessagetoAdmin" xml:space="preserve">
+    <value>{0} hesabından kredi silindi. Tutar: {1}. Mevcut bakiye: {2}.</value>
+  </data>
 </root>

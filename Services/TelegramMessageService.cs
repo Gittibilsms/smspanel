@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml.InkML;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
 using GittBilSmsCore.Data;
 using GittBilSmsCore.Models;
 using GittBilSmsCore.Services;
@@ -304,8 +305,7 @@ public class TelegramMessageService
             }
         }
     }
-     
-    public async Task SendToUsersAsync(int companyId, int performedByUserId, string text, string txtToSaveBody, CancellationToken ct = default)
+    public async Task SendToUsersAsync(int companyId, int performedByUserId, string text, string txtToSaveBody, string admintext, int iReport, CancellationToken ct = default)
     {
         try
         {
@@ -314,19 +314,22 @@ public class TelegramMessageService
                    .Select(u => new { u.Id, u.TelegramUserId })
                    .FirstOrDefaultAsync(ct);
 
-                var admins = await _context.Users.AsNoTracking()
-                .Where(u => u.UserType == "Admin" && u.TelegramUserId != null)
-                .Select(u => new { u.Id, u.TelegramUserId })
-                .ToListAsync(ct);
+            var admins = await _context.Users.AsNoTracking()
+            .Where(u => u.UserType == "Admin" && u.TelegramUserId != null)
+            .Select(u => new { u.Id, u.TelegramUserId })
+            .FirstOrDefaultAsync(ct);
 
             // Collection of recipients = main user (if any) + admins
             var recipients = new List<(int Id, long ChatId)>();
 
             if (mainUser != null && mainUser.TelegramUserId != null)
                 recipients.Add((mainUser.Id, mainUser.TelegramUserId.Value));
+            if (iReport == 1) // if the message from report, send to admin also
+            {
+                if (admins != null && admins.TelegramUserId != null)
+                    recipients.Add((admins.Id, admins.TelegramUserId.Value));
+            }
 
-            foreach (var admin in admins)
-                recipients.Add((admin.Id, admin.TelegramUserId!.Value));
 
             foreach (var r in recipients)
             {
@@ -352,7 +355,30 @@ public class TelegramMessageService
                     await _context.SaveChangesAsync(ct);
                 }
             }
-         }
+            if (admins != null && iReport != 1)
+            {
+                try
+                {
+                    var sent = await _bot.SendMessage(chatId: admins.TelegramUserId!.Value, text: admintext);
+                    var telegrammsg = new TelegramMessage
+                    {
+                        Direction = MessageDirection.Outbound,
+                        UserId = admins.Id,
+                        TelegramMessageId = sent.MessageId,
+                        ChatId = sent.Chat.Id,
+                        Body = txtToSaveBody,
+                        Status = "Sent"
+                    };
+                    _context.TelegramMessages.Add(telegrammsg);
+                    await _context.SaveChangesAsync(ct);
+                }
+                catch (Exception ex)
+                {
+                    AddHistoryLog(performedByUserId, "SendToUsersAsync", $"Failed to send Telegram messages to admin. Error: {ex.Message}");
+                    await _context.SaveChangesAsync(ct);
+                }
+            }
+        }
         catch (Exception ex)
         {
             AddHistoryLog(performedByUserId, "SendToUsersAsync", $"Failed to fetch main and admin or while merge. Error: {ex.Message}");

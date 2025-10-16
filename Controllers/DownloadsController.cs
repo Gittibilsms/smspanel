@@ -83,7 +83,7 @@ namespace GittBilSmsCore.Controllers
             if (validFormats.Contains(format))
             {
                  var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                await _svc.SendToUsersAsync(companyId.Value, performedByUserId, textMsg, dataJson);
+                await _svc.SendToUsersAsync(companyId.Value, performedByUserId, textMsg, dataJson,"",1);
             }
             if (format == "txt")
             {

@@ -2722,7 +2722,7 @@ namespace GittBilSmsCore.Controllers
             if (validFormats.Contains(ext))
             {
                 var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
-                await _svc.SendToUsersAsync(companyId.Value, performedByUserId, textMsg, dataJson, cts.Token);
+                await _svc.SendToUsersAsync(companyId.Value, performedByUserId, textMsg, dataJson,"",1, cts.Token);
             }
             switch (ext)
             {
