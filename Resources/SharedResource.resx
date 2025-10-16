@@ -1392,4 +1392,7 @@
   <data name="isTelegram" xml:space="preserve">
     <value>Telgraf</value>
   </data>
+  <data name="userloggedMessage" xml:space="preserve">
+    <value>{0} sisteme giriş yaptı. IP adresi: {1}. Konum: {2}. Kullanıcı Aracısı: {3}.</value>
+  </data>
 </root>

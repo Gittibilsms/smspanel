@@ -3697,6 +3697,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {0} sisteme giriş yaptı. IP adresi: {1}. Konum: {2}. Kullanıcı Aracısı: {3}..
+        /// </summary>
+        public static string userloggedMessage {
+            get {
+                return ResourceManager.GetString("userloggedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Kullanıcı adı zaten mevcut..
         /// </summary>
         public static string usernameexists {

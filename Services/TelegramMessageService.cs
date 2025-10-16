@@ -359,6 +359,48 @@ public class TelegramMessageService
             await _context.SaveChangesAsync(ct);
         }
     }
+
+    public async Task UserLogAlertToAdmin(int companyId, int performedByUserId, string text, string txtToSaveBody, CancellationToken ct = default)
+    {
+        try
+        {
+            var admins = await _context.Users.AsNoTracking()
+            .Where(u => u.UserType == "Admin" && u.TelegramUserId != null)
+            .Select(u => new { u.Id, u.TelegramUserId })
+            .ToListAsync(ct);             
+            var recipients = new List<(int Id, long ChatId)>();
+            foreach (var admin in admins)
+                recipients.Add((admin.Id, admin.TelegramUserId!.Value));
+            foreach (var r in recipients)
+            {
+                try
+                {
+                    var sent = await _bot.SendMessage(chatId: r.ChatId, text: text);
+                    var telegrammsg = new TelegramMessage
+                    {
+                        Direction = MessageDirection.Outbound,
+                        UserId = r.Id,
+                        TelegramMessageId = sent.MessageId,
+                        ChatId = sent.Chat.Id,
+                        Body = txtToSaveBody,
+                        Status = "User Logged Alert"
+                    };
+                    _context.TelegramMessages.Add(telegrammsg);
+                    await _context.SaveChangesAsync(ct);
+                }
+                catch (Exception ex)
+                {
+                    AddHistoryLog(performedByUserId, "UserLogAlertToAdmin", $"Failed to send Telegram messages. Error: {ex.Message}");
+                    await _context.SaveChangesAsync(ct);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            AddHistoryLog(performedByUserId, "UserLogAlertToAdmin", $"Failed to fetch main and admin or while merge. Error: {ex.Message}");
+            await _context.SaveChangesAsync(ct);
+        }
+    }
     private void AddHistoryLog(int userId, string action, string description)
     {
         _context.HistoryLogs.Add(new HistoryLog

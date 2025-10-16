@@ -28,13 +28,14 @@ namespace GittBilSmsCore.Controllers
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
         private readonly IEmailSender _emailSender;
+        private readonly TelegramMessageService _svc;
         public AccountController(
         GittBilSmsDbContext context,
         IStringLocalizerFactory factory,
         INotificationService notificationService,
         UserManager<User> userManager,
         SignInManager<User> signInManager,
-          IEmailSender emailSender
+          IEmailSender emailSender, TelegramMessageService svc
     ) : base(context)
         {
             _context = context;
@@ -43,6 +44,7 @@ namespace GittBilSmsCore.Controllers
             _userManager = userManager;
             _signInManager = signInManager;
             _emailSender = emailSender;
+            _svc = svc;
         }
         public IActionResult Index()
         {
@@ -155,8 +157,26 @@ namespace GittBilSmsCore.Controllers
                 LoggedInAt = TimeHelper.NowInTurkey()
             });
             await _context.SaveChangesAsync();
-
+            var textMsg = string.Format(
+                                      _sharedLocalizer["userloggedMessage"] ,user.UserName, ipAddress, location, ParseDevice(userAgent)
+                                  );
+            string dataJson = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                Message = "User logged into the system : " + user.UserName,
+                TelegramMessage = textMsg,
+                Time = TimeHelper.NowInTurkey(),
+                IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = Request.Headers["User-Agent"].ToString()
+            });
             SetUserSession(user);
+            var userType = HttpContext.Session.GetString("UserType") ?? string.Empty;
+
+            if (!userType.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                await _svc.UserLogAlertToAdmin(user.CompanyId ?? 0, user.Id, textMsg, dataJson);
+            }
+
+
             Console.WriteLine($"✅ User '{user.UserName}' logged in successfully.");
             return Ok();
         }
