@@ -35,11 +35,15 @@
     var canEditUsers = HasAccess("Company_User", "Edit");
     var userType = Context.Session.GetString("UserType") ?? "Unknown";
     var isCompanyUser = userType.Equals("CompanyUser", StringComparison.OrdinalIgnoreCase);
+    var canEditFirm = HasAccess("Firm", "Edit");
+    
 
 }
 <div id="permission-flags-users"
 data-can-edit-users="@canEditUsers.ToString().ToLower()"
-data-is-company-user="@isCompanyUser.ToString().ToLower()">
+data-is-company-user="@isCompanyUser.ToString().ToLower()"
+     data-can-edit-company="@canEditFirm.ToString().ToLower()">
+
 </div>
 
 
@@ -69,6 +73,7 @@ data-is-company-user="@isCompanyUser.ToString().ToLower()">
                         <th>@SharedResource.Quota</th>
                         <th>@SharedResource.Email</th>
                         <th>@SharedResource.Telephone</th>
+                        <th>@SharedResource.isTelegram</th>
                         <th>@SharedResource._2FA_Type</th>
                         <th>@SharedResource.Creation_Date</th>
                         <th>@SharedResource.Updated_Date</th>

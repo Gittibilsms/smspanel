@@ -38,7 +38,7 @@ namespace GittBilSmsCore.Data
 
         public DbSet<OrderRecipient> OrderRecipients { get; set; }
         public DbSet<TelegramMessage> TelegramMessages => Set<TelegramMessage>();
-        public DbSet<TelegramAuditTrail> TelegramAuditTrails => Set<TelegramAuditTrail>();
+        public DbSet<HistoryLog> HistoryLogs => Set<HistoryLog>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -156,18 +156,7 @@ namespace GittBilSmsCore.Data
                 e.HasIndex(x => x.UserId);
                 e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.NoAction);
             });
-
-            // AuditTrail
-            modelBuilder.Entity<TelegramAuditTrail>(e =>
-            {
-                e.ToTable("TelegramAuditTrail");
-                e.HasKey(x => x.Id);
-                e.Property(x => x.EntityType).HasMaxLength(100).IsRequired();
-                e.Property(x => x.EntityId).HasMaxLength(100).IsRequired();
-                e.Property(x => x.Action).HasMaxLength(100).IsRequired();
-                e.Property(x => x.CreatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.HasIndex(x => new { x.EntityType, x.EntityId, x.Action });
-            });
+             
         }
     }
    

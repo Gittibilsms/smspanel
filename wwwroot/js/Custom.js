@@ -3411,12 +3411,13 @@ $('#allcompanyUsersList').DataTable({
         },
         { data: 'isActive' },
         { data: 'fullName' },
-        { data: 'createdBy' },
+        { data: 'createdBy'},
         { data: 'companyName' },
         { data: 'quotaType' },
         { data: 'quota' },
         { data: 'email' },
         { data: 'phoneNumber' },
+        { data: 'telegramUserId' },
         {
             data: "TwoFA",
             render: (data, type, row) => row.TwoFAEnabled ? data : "N/A"
