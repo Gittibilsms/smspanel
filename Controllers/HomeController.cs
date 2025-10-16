@@ -40,7 +40,8 @@ namespace GittBilSmsCore.Controllers
         private readonly IWebHostEnvironment _env;
         private readonly IHubContext<ChatHub> _hubContext;
         private readonly UserManager<User> _userManager;
-        public HomeController(GittBilSmsDbContext context, IStringLocalizerFactory factory, INotificationService notificationService, IHubContext<ChatHub> hubContext, UserManager<User> userManager, IWebHostEnvironment env) : base(context)
+        private readonly TelegramMessageService _svc;
+        public HomeController(GittBilSmsDbContext context, IStringLocalizerFactory factory, INotificationService notificationService, IHubContext<ChatHub> hubContext, UserManager<User> userManager, IWebHostEnvironment env, TelegramMessageService svc) : base(context)
         {
             _context = context;
             _hubContext = hubContext;
@@ -48,6 +49,7 @@ namespace GittBilSmsCore.Controllers
             _notificationService = notificationService;
             _userManager = userManager;
             _env = env;
+            _svc = svc;
         }
 
         public async Task<IActionResult> Index()
@@ -155,40 +157,40 @@ namespace GittBilSmsCore.Controllers
         [HttpGet]
         public IActionResult DownloadReportSummary(int orderId)
         {
-            return DownloadReportFile(orderId, "report-summary.csv", "Summary");
+            return DownloadReportFile(orderId, "report-summary.csv", "Summary").GetAwaiter().GetResult();
         }
 
         // Download Undelivered
         [HttpGet]
         public IActionResult DownloadUndelivered(int orderId)
         {
-            return DownloadReportFile(orderId, "undelivered.csv", "Undelivered");
+            return DownloadReportFile(orderId, "undelivered.csv", "Undelivered").GetAwaiter().GetResult();
         }
 
         // Download Forwarded
         [HttpGet]
         public IActionResult DownloadWaiting(int orderId)
         {
-            return DownloadReportFile(orderId, "waiting.csv", "Waiting");
+            return DownloadReportFile(orderId, "waiting.csv", "Waiting").GetAwaiter().GetResult();
         }
 
         [HttpGet]
         public IActionResult DownloadAllReport(int orderId)
         {
-            return DownloadReportFile(orderId, "all.csv", "All");
+            return DownloadReportFile(orderId, "all.csv", "All").GetAwaiter().GetResult();
         }
         // Download Waiting
         [HttpGet]
         public IActionResult DownloadForwarded(int orderId)
         {
-            return DownloadReportFile(orderId, "delivered.csv", "Forwarded");
+            return DownloadReportFile(orderId, "delivered.csv", "Forwarded").GetAwaiter().GetResult();
         }
 
         // Download Expired
         [HttpGet]
         public IActionResult DownloadExpired(int orderId)
         {
-            return DownloadReportFile(orderId, "expired.csv", "Expired");
+            return DownloadReportFile(orderId, "expired.csv", "Expired").GetAwaiter().GetResult();
         }
 
         [HttpGet]
@@ -2659,7 +2661,8 @@ namespace GittBilSmsCore.Controllers
             return View();
         }
         [HttpGet]
-        public IActionResult DownloadReportFile(int orderId, string fileName, string reportName)
+        // public IActionResult DownloadReportFile(int orderId, string fileName, string reportName)
+        public async Task<IActionResult> DownloadReportFile(int orderId, string fileName, string reportName)
         {
             // 1️⃣ Find the Kudu/App_Data path
             var home = Environment.GetEnvironmentVariable("HOME")
@@ -2686,6 +2689,41 @@ namespace GittBilSmsCore.Controllers
 
             // 5️⃣ Branch on requested extension
             var ext = Path.GetExtension(fileName).ToLowerInvariant();
+            int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            var filerewriteName = $"{baseName}.{ext}";
+
+            var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
+
+            int? companyId = HttpContext.Session.GetInt32("CompanyId") ?? 0;
+
+            var textMsg = string.Format(
+                                         _sharedLocalizer["Reportdownloadmessage"],
+                                         filerewriteName,
+                                         orderId,
+                                         userName,
+                                         TimeHelper.NowInTurkey()
+                                     );
+            string dataJson = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                Message = "Report downloaded from orders",
+                UserName = userName,
+                OrderId = orderId,
+                FileName = fileName,
+                Time = TimeHelper.NowInTurkey(),
+                IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = Request.Headers["User-Agent"].ToString()
+            });
+            var validFormats = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                ".txt", ".csv", ".xlsx"
+            };
+
+
+            if (validFormats.Contains(ext))
+            {
+                var cts = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+                await _svc.SendToUsersAsync(companyId.Value, performedByUserId, textMsg, dataJson, cts.Token);
+            }
             switch (ext)
             {
                 case ".csv":
