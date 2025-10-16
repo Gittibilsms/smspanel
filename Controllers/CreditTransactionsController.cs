@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using DocumentFormat.OpenXml.ExtendedProperties;
 using GittBilSmsCore.Data;
-using GittBilSmsCore.Models;
 using GittBilSmsCore.Helpers;
+using GittBilSmsCore.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 namespace GittBilSmsCore.Controllers
 {
@@ -82,16 +83,28 @@ namespace GittBilSmsCore.Controllers
                                       credit,
                                       availableCredit
                                   );
+                string ? companyName = await (
+                        from c in _context.Companies
+                        join u in _context.Users on c.CompanyId equals u.CompanyId
+                        where u.IsMainUser == true && c.CompanyId == companyId
+                        select (string?)c.CompanyName
+                    ).FirstOrDefaultAsync();
+                var textMsgtoAdmin = string.Format(
+                                           _sharedLocalizer["CreditaddedmessagetoAdmin"],
+                                           companyName,
+                                           credit,
+                                           availableCredit
+                                       );
                 var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
                 string dataJson = System.Text.Json.JsonSerializer.Serialize(new
                 {
-                    Message = "Credit Deleted by : " + userName,
+                    Message = "Credit Added by : " + userName,
                     TelegramMessage = textMsg,
                     Time = TimeHelper.NowInTurkey(),
                     IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
                     UserAgent = Request.Headers["User-Agent"].ToString()
                 });
-                await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson);
+                await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson, textMsgtoAdmin, 0);
 
                 return Json(new
                 {
@@ -151,6 +164,18 @@ namespace GittBilSmsCore.Controllers
                                         credit,
                                         availableCredit
                                     );
+            string? companyName = await (
+                        from c in _context.Companies
+                        join u in _context.Users on c.CompanyId equals u.CompanyId
+                        where u.IsMainUser == true && c.CompanyId == companyId
+                        select (string?)c.CompanyName
+                    ).FirstOrDefaultAsync();
+            var textMsgtoAdmin = string.Format(
+                                       _sharedLocalizer["CreditdeletedmessagetoAdmin"],
+                                       companyName,
+                                       credit,
+                                       availableCredit
+                                   );
             var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
             string dataJson = System.Text.Json.JsonSerializer.Serialize(new
             {
@@ -161,7 +186,7 @@ namespace GittBilSmsCore.Controllers
                 UserAgent = Request.Headers["User-Agent"].ToString()
             });
 
-            await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson);
+            await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson, textMsgtoAdmin, 0);
             return Json(new
             {
                 success = true,

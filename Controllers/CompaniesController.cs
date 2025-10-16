@@ -458,7 +458,13 @@ namespace GittBilSmsCore.Controllers
                                       credit,
                                       availableCredit
                                   );
-
+                var companyName = company?.CompanyName ?? "UnknownCompany";
+                var textMsgtoAdmin = string.Format(
+                                      _sharedLocalizer["CreditaddedmessagetoAdmin"],
+                                      companyName,
+                                      credit,
+                                      availableCredit
+                                  );
 
                 var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
 
@@ -471,7 +477,7 @@ namespace GittBilSmsCore.Controllers
                     UserAgent = Request.Headers["User-Agent"].ToString()
                 });
 
-                await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson);
+                await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson,textMsgtoAdmin,0);
                 return Json(new
                 {
                     success = true,
@@ -532,6 +538,12 @@ namespace GittBilSmsCore.Controllers
                                        credit,
                                        availableCredit
                                    );
+            var companyName = company?.CompanyName ?? "UnknownCompany";
+            var textMsgtoAdmin = string.Format(
+                                       _sharedLocalizer["CreditdeletedmessagetoAdmin"],
+                                       credit,
+                                       availableCredit
+                                   );
             var userName = _context.Users.Find(performedByUserId)?.UserName ?? "UnknownUser";
             string dataJson = System.Text.Json.JsonSerializer.Serialize(new
             {
@@ -541,7 +553,7 @@ namespace GittBilSmsCore.Controllers
                 IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
                 UserAgent = Request.Headers["User-Agent"].ToString()
             });
-            await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson);
+            await _svc.SendToUsersAsync(companyId, performedByUserId, textMsg, dataJson, textMsgtoAdmin, 0);
             return RedirectToAction("Index", new { companyId });
         }
         [HttpPost("Deactivate/{id}")]
