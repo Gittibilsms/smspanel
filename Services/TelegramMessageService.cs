@@ -12,10 +12,10 @@ public class TelegramMessageService
 {
     private readonly ITelegramBotClient _bot;
     private readonly GittBilSmsDbContext _context;
-    private readonly TelegramAuditService _audit;
-    public TelegramMessageService(ITelegramBotClient bot, GittBilSmsDbContext db, TelegramAuditService audit)
+     
+    public TelegramMessageService(ITelegramBotClient bot, GittBilSmsDbContext db)
     {
-        _bot = bot; _context = db; _audit = audit;
+        _bot = bot; _context = db;
     }
     public async Task HandleUpdateAsync(Update update, CancellationToken ct = default)
     {

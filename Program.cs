@@ -54,15 +54,15 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
 });
-//builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection("Telegram"));
-//builder.Services.AddSingleton<ITelegramBotClient>(sp =>
-//{
-//    var opts = sp.GetRequiredService<IOptions<TelegramOptions>>().Value;
-//    return new TelegramBotClient(opts.BotToken);
-//});
-//builder.Services.AddScoped<TelegramAuditService>();
-//builder.Services.AddScoped<TelegramMessageService>();
-//builder.Services.AddHostedService<BotPollingService>();
+builder.Services.Configure<TelegramOptions>(builder.Configuration.GetSection("Telegram"));
+builder.Services.AddSingleton<ITelegramBotClient>(sp =>
+{
+    var opts = sp.GetRequiredService<IOptions<TelegramOptions>>().Value;
+    return new TelegramBotClient(opts.BotToken);
+});
+ 
+builder.Services.AddScoped<TelegramMessageService>();
+builder.Services.AddHostedService<BotPollingService>();
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(options =>
     {

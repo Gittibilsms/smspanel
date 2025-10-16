@@ -6,8 +6,8 @@ namespace GittBilSmsCore.Services
 {
     public class TelegramAuditService
     {
-        private readonly GittBilSmsDbContext _context;
-        public TelegramAuditService(GittBilSmsDbContext db) => _context = db;
+        //private readonly GittBilSmsDbContext _context;
+        //public TelegramAuditService(GittBilSmsDbContext db) => _context = db;
 
         //public async Task<long> LogAsync(string entityType, string entityId, string action, int? performedById, object? data = null, CancellationToken ct = default)
         //{
