@@ -1,9 +1,13 @@
 ﻿using GittBilSmsCore.Models;
+using Newtonsoft.Json;
+using System.Net.Http;
 using System.Text.Json;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 namespace GittBilSmsCore.Helpers
 {
     public class SessionHelper
     {
+        private static readonly HttpClient _httpClient = new HttpClient();
         public static void SetUserSession(ISession session, User user)
         {
             session.SetInt32("UserId", user.Id);
@@ -49,6 +53,22 @@ namespace GittBilSmsCore.Helpers
                 var permissionJson = JsonSerializer.Serialize(permissions);
                 session.SetString("UserPermissions", permissionJson);
             }
+        }
+
+        public static async Task<string> GetLocationFromIP(string ip)
+        {
+            var response = await _httpClient.GetStringAsync($"http://ip-api.com/json/{ip}");
+            dynamic data = JsonConvert.DeserializeObject(response);
+
+            return $"{data.city}, {data.country}";
+        }
+        public static string ParseDevice(string userAgent)
+        {
+            if (userAgent.Contains("Windows")) return "Windows";
+            if (userAgent.Contains("Android")) return "Android";
+            if (userAgent.Contains("iPhone") || userAgent.Contains("iPad")) return "iOS";
+            if (userAgent.Contains("Macintosh")) return "Mac";
+            return "Unknown";
         }
     }
         

@@ -1401,4 +1401,7 @@
   <data name="CreditdeletedmessagetoAdmin" xml:space="preserve">
     <value>{0} hesabından kredi silindi. Tutar: {1}. Mevcut bakiye: {2}.</value>
   </data>
+  <data name="userPwdChanged" xml:space="preserve">
+    <value>{0}, {1} için şifreyi değiştirdi. IP: {2}. Konum: {3}. Kullanıcı Aracısı: {4}.</value>
+  </data>
 </root>

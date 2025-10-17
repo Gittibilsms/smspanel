@@ -1,14 +1,16 @@
-﻿using GittBilSmsCore.Models;
+﻿using DocumentFormat.OpenXml.Spreadsheet;
+using GittBilSmsCore.Data;
+using GittBilSmsCore.Helpers;
+using GittBilSmsCore.Models;
+using GittBilSmsCore.Models;
+using GittBilSmsCore.ViewModels;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using GittBilSmsCore.Data;
-using GittBilSmsCore.Models;
 using Microsoft.EntityFrameworkCore;
-using GittBilSmsCore.Helpers;
 using Microsoft.Extensions.Localization;
-using Microsoft.AspNetCore.Identity;
-using GittBilSmsCore.ViewModels;
-using DocumentFormat.OpenXml.Spreadsheet;
+using Telegram.Bot.Types;
+using User = GittBilSmsCore.Models.User;
 namespace GittBilSmsCore.Controllers
 {
 
@@ -17,11 +19,13 @@ namespace GittBilSmsCore.Controllers
         private readonly GittBilSmsDbContext _context;
         private readonly IStringLocalizer _sharedLocalizer;
         private readonly UserManager<User> _userManager;
-        public CompanyUsersController(GittBilSmsDbContext context, IStringLocalizerFactory factory, UserManager<User> userManager) : base(context)
+        private readonly TelegramMessageService _svc;
+        public CompanyUsersController(GittBilSmsDbContext context, IStringLocalizerFactory factory, UserManager<User> userManager, TelegramMessageService svc) : base(context)
         {
             _context = context;
             _sharedLocalizer = factory.Create("SharedResource", "GittBilSmsCore");
             _userManager = userManager;
+            _svc = svc;
         }
 
         // GET: /CompanyUsers
@@ -314,10 +318,11 @@ namespace GittBilSmsCore.Controllers
                 user.QuotaType = "Noquota";
                 user.Quota = null;
             }
-
+            bool passwordChanged = false;
             if (!string.IsNullOrWhiteSpace(model.Password))
             {
                 user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, model.Password);
+                passwordChanged = true;
             }
 
             user.UpdatedAt = TimeHelper.NowInTurkey();
@@ -339,6 +344,29 @@ namespace GittBilSmsCore.Controllers
             }
 
             await _context.SaveChangesAsync();
+            if(passwordChanged)
+            {
+                int loggerUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+                var loggedinUser = await _context.Users            
+                .FirstOrDefaultAsync(u => u.Id == loggerUserId);
+                string loggedInUserName = loggedinUser?.UserName ?? "unknownUser";
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                var userAgent = Request.Headers["User-Agent"].ToString();
+                var location = await SessionHelper.GetLocationFromIP(ipAddress);
+                var textMsg = string.Format(
+                                     _sharedLocalizer["userPwdChanged"], loggedInUserName,user.UserName, ipAddress, location, SessionHelper.ParseDevice(userAgent)
+                                 );
+                string dataJson = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    Message = "User password updated into the system : " + user.UserName,
+                    TelegramMessage = textMsg,
+                    Time = TimeHelper.NowInTurkey(),
+                    IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    UserAgent = Request.Headers["User-Agent"].ToString()
+                });
+                
+                await _svc.UserLogAlertToAdmin(user.CompanyId ?? 0, user.Id, textMsg, dataJson);
+            }
             return Json(new { success = true });
         }
 
@@ -449,10 +477,11 @@ namespace GittBilSmsCore.Controllers
             user.Quota = model.Quota;
             user.QuotaType = model.QuotaType;
             user.UpdatedAt = TimeHelper.NowInTurkey();
-
+            bool passwordChanged = false;
             if (!string.IsNullOrWhiteSpace(model.Password))
             {
                 user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, model.Password);
+                passwordChanged = true;
             }
             var existingRoleIds = user.UserRoles.Select(ur => ur.RoleId).ToList();
             var selectedRoleIds = model.SelectedRoleIds ?? new List<int>();
@@ -503,6 +532,26 @@ namespace GittBilSmsCore.Controllers
 
 
             await _context.SaveChangesAsync();
+            if (passwordChanged)
+            {
+                int loggerUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+                var loggedinUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == loggerUserId);
+                string loggedInUserName = loggedinUser?.UserName ?? "unknownUser";
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                var userAgent = Request.Headers["User-Agent"].ToString();
+                var location = await SessionHelper.GetLocationFromIP(ipAddress);
+                var textMsg = string.Format(
+                                     _sharedLocalizer["userPwdChanged"], loggedInUserName, user.UserName, ipAddress, location, SessionHelper.ParseDevice(userAgent)
+                                 );
+                string dataJson = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    Message = "User password updated into the system : " + user.UserName,
+                    TelegramMessage = textMsg
+                });
+
+                await _svc.UserLogAlertToAdmin(user.CompanyId ?? 0, user.Id, textMsg, dataJson);
+            }
             HttpContext.Session.SetString("SessionVersion", Guid.NewGuid().ToString());
             return Json(new { success = true });
         }

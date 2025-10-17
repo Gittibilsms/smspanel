@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Localization;
 using OtpNet;
 using QRCoder;
 using static QRCoder.QRCodeGenerator;
@@ -16,10 +17,14 @@ namespace GittBilSmsCore.Controllers
     {
         private readonly GittBilSmsDbContext _context;
         private readonly UserManager<User> _userManager;
-        public UsersController(GittBilSmsDbContext context, UserManager<User> userManager) : base(context)
+        private readonly IStringLocalizer _sharedLocalizer;
+        private readonly TelegramMessageService _svc;
+        public UsersController(GittBilSmsDbContext context, UserManager<User> userManager, IStringLocalizerFactory factory, TelegramMessageService svc) : base(context)
         {
             _context = context;
             _userManager = userManager;
+            _sharedLocalizer = factory.Create("SharedResource", "GittBilSmsCore");
+            _svc = svc;
         }
 
         public IActionResult Index()
@@ -265,12 +270,12 @@ namespace GittBilSmsCore.Controllers
             // Disable 2FA when “None”
             user.IsTwoFactorEnabled = (method != TwoFactorMethod.None);
 
+            bool passwordChanged = false;
             // Password change (if provided)
             if (!string.IsNullOrEmpty(model.NewPassword))
-            {
-                // It's better to use UserManager to hash & set the password,
-                // but if you're rolling your own:
+            {              
                 user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, model.NewPassword);
+                passwordChanged = true;
             }
 
             // Profile photo upload
@@ -291,6 +296,29 @@ namespace GittBilSmsCore.Controllers
             // If no new file, we leave user.ProfilePhotoUrl as-is
 
             await _context.SaveChangesAsync();
+            if (passwordChanged)
+            {
+                int loggerUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+                var loggedinUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == loggerUserId);
+                string loggedInUserName = loggedinUser?.UserName ?? "unknownUser";
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                var userAgent = Request.Headers["User-Agent"].ToString();
+                var location = await SessionHelper.GetLocationFromIP(ipAddress);
+                var textMsg = string.Format(
+                                     _sharedLocalizer["userPwdChanged"], loggedInUserName, user.UserName, ipAddress, location, SessionHelper.ParseDevice(userAgent)
+                                 );
+                string dataJson = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    Message = "User password updated into the system : " + user.UserName,
+                    TelegramMessage = textMsg,
+                    Time = TimeHelper.NowInTurkey(),
+                    IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    UserAgent = Request.Headers["User-Agent"].ToString()
+                });
+
+                await _svc.UserLogAlertToAdmin(user.CompanyId ?? 0, user.Id, textMsg, dataJson);
+            }
             return Json(new { success = true, message = "Profile updated successfully!" });
         }
         public async Task<IActionResult> Profile()
