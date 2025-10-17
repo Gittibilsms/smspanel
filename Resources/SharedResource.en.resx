@@ -1401,4 +1401,7 @@
   <data name="CreditdeletedmessagetoAdmin" xml:space="preserve">
     <value>Credit has been deleted from {0} account. Amount: {1}. Current balance: {2}.</value>
   </data>
+  <data name="userPwdChanged" xml:space="preserve">
+    <value>{0}  changed password for {1}   IP: {2}. Location: {3}. User Agent: {4}.</value>
+  </data>
 </root>

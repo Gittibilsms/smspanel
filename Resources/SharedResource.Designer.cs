@@ -3751,6 +3751,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {0}, {1} için şifreyi değiştirdi. IP: {2}. Konum: {3}. Kullanıcı Aracısı: {4}..
+        /// </summary>
+        public static string userPwdChanged {
+            get {
+                return ResourceManager.GetString("userPwdChanged", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Kullanıcılar.
         /// </summary>
         public static string Users {
