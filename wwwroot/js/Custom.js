@@ -86,16 +86,15 @@ function debounce(func, delay = 300) {
 const SEGMENT_UNITS = 155;
 const MAX_UNITS = 755;
 function calculateMessageLength(text) {
+    const singleCharPattern = /^[A-Za-z0-9 \n]$/; // includes newline
+    const turkishChars = '₺ŞşİıÇçÖöÜüĞğ';
+
     let count = 0;
     for (let ch of text) {
-        if (ch === '\n') {
-            count += 2; // newline counts as 2
-        }
-        else if (/^[A-Za-z0-9 ]$/.test(ch) || ch === '₺') {
-            count += 1; // treat ₺ as single character
-        }
-        else {
-            count += 2;
+        if (singleCharPattern.test(ch) || turkishChars.includes(ch)) {
+            count += 1; // normal, Turkish, ₺, and newline count as 1
+        } else {
+            count += 2; // others (emoji, symbols, etc.) count as 2
         }
     }
     return count;
