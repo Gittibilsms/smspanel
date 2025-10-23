@@ -3688,6 +3688,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {0} kullanıcı {1} IP&apos;sini oluşturdu: {2}. Konum: {3}. Kullanıcı Aracısı: {4}..
+        /// </summary>
+        public static string userCreated {
+            get {
+                return ResourceManager.GetString("userCreated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Kullanıcı başarıyla silindi..
         /// </summary>
         public static string userdeletedsuccess {

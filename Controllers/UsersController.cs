@@ -68,11 +68,17 @@ namespace GittBilSmsCore.Controllers
 
             return View(vm);
         }
+
+        [HttpGet]
         public IActionResult Create()
         {
-            var roles = _context.Roles.ToList();
-            ViewBag.Roles = roles;
-            return View(); // Form page
+            var vm = new UserIndexViewModel
+            {
+                NewUser = new User(),
+                Roles = _context.Roles.ToList()
+            };
+
+            return View(vm);
         }
 
         [HttpGet]
@@ -149,12 +155,25 @@ namespace GittBilSmsCore.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(User model, int[] selectedRoles)
         {
+            if (selectedRoles == null || selectedRoles.Length == 0)
+                ModelState.AddModelError("selectedRoles", "At least one role must be selected.");
+
             if (!ModelState.IsValid)
             {
-                ViewBag.Roles = _context.Roles.ToList();
-                return View(model);
+                var vmErr = new UserIndexViewModel
+                {
+                    NewUser = model,
+                    Roles = _context.Roles.ToList()
+                };
+                ViewBag.ToastrType = "error";
+                ViewBag.ToastrTitle = "Validation failed";
+                ViewBag.ToastrMessage = string.Join("<br/>",
+                    ModelState.Where(x => x.Value?.Errors.Count > 0)
+                              .SelectMany(x => x.Value.Errors.Select(e => e.ErrorMessage)));
+                return View(vmErr); 
             }
 
             model.CreatedAt = TimeHelper.NowInTurkey();
@@ -164,36 +183,69 @@ namespace GittBilSmsCore.Controllers
             model.CreatedByUserId = HttpContext.Session.GetInt32("UserId");
 
             var result = await _userManager.CreateAsync(model, model.Password);
-
             if (!result.Succeeded)
             {
-                ViewBag.Roles = _context.Roles.ToList();
-                foreach (var error in result.Errors)
-                    ModelState.AddModelError("", error.Description);
-
-                return View(model);
+                var vmErr = new UserIndexViewModel
+                {
+                    NewUser = model,
+                    Roles = _context.Roles.ToList()
+                };
+                ViewBag.ToastrType = "error";
+                ViewBag.ToastrTitle = "Error";
+                ViewBag.ToastrMessage = string.Join("<br/>", result.Errors.Select(e => e.Description));
+                return View(vmErr);  
             }
-
             
             foreach (var roleId in selectedRoles)
             {
                 var role = await _context.Roles.FindAsync(roleId);
-
                 if (role != null)
                 {
                     _context.UserRoles.Add(new UserRole
                     {
                         UserId = model.Id,
                         RoleId = roleId,
-                        Name = role.RoleName 
+                        Name = role.RoleName
                     });
                 }
             }
-
             await _context.SaveChangesAsync();
-            return RedirectToAction("Index");
-        }
 
+            // send alert to admin about new user creation
+            int loggerUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            var loggedinUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == loggerUserId);
+            string loggedInUserName = loggedinUser?.UserName ?? "unknownUser";
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userAgent = Request.Headers["User-Agent"].ToString();
+            var location = await SessionHelper.GetLocationFromIP(ipAddress);
+            var textMsg = string.Format(
+                                 _sharedLocalizer["userCreated"], loggedInUserName, model.UserName, ipAddress, location, SessionHelper.ParseDevice(userAgent)
+                             );
+            string dataJson = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                Message = "New User Created:" + model.UserName,
+                TelegramMessage = textMsg,
+                Time = TimeHelper.NowInTurkey(),
+                IPAddress = ipAddress,
+                UserAgent = userAgent
+            });
+
+            await _svc.UserLogAlertToAdmin(0, 0, textMsg, dataJson);
+
+            var vmOk = new UserIndexViewModel
+            {
+                NewUser = new User(),               // optional: clear the form
+                Roles = _context.Roles.ToList()
+            };
+            ViewBag.ToastrType = "success";
+            ViewBag.ToastrTitle = "Success";
+            ViewBag.ToastrMessage = "User created successfully.";
+            ViewBag.RedirectUrl = Url.Action("Index"); // used by JS for redirect
+            ViewBag.RedirectDelay = 3000;                // ms
+
+            return View("Create", vmOk);
+        }
+        [HttpGet]
         public IActionResult Details(int id)
         {
             var user = _context.Users
@@ -202,7 +254,12 @@ namespace GittBilSmsCore.Controllers
                 .FirstOrDefault(u => u.Id == id);
 
             if (user == null)
-                return NotFound();
+            {
+                TempData["ToastrType"] = "error";
+                TempData["ToastrTitle"] = "Error";
+                TempData["ToastrMessage"] = "User not found.";
+                return RedirectToAction("Index");
+            }
 
             // ✅ Only include roles that are global and not "Company User"
             var roles = _context.Roles
@@ -222,7 +279,11 @@ namespace GittBilSmsCore.Controllers
                 Roles = user.UserRoles.Select(ur => ur.Role).ToList(),
                 RolePermissions = rolePermissions
             };
-
+            ViewBag.ToastrType = TempData["ToastrType"];
+            ViewBag.ToastrTitle = TempData["ToastrTitle"];
+            ViewBag.ToastrMessage = TempData["ToastrMessage"];
+            ViewBag.RedirectUrl = TempData["RedirectUrl"];
+            ViewBag.RedirectDelay = TempData["RedirectDelay"];
             return View(model);
         }
 
@@ -352,34 +413,84 @@ namespace GittBilSmsCore.Controllers
         }
 
         [HttpPost]
-        public IActionResult Details(User model, int[] selectedRoles)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Details(User model, int[] selectedRoles)
         {
-            var user = _context.Users
-                .Include(u => u.UserRoles)
-                .FirstOrDefault(u => u.Id == model.Id);
+            ModelState.Remove(nameof(model.Password));     
+            ModelState.Remove("model.Password");
+
+            if (selectedRoles == null || selectedRoles.Length == 0)
+                ModelState.AddModelError("selectedRoles", "At least one role must be selected.");
+            if (!ModelState.IsValid)
+            {
+                // Rebuild the same data as GET for redisplay
+                var userFromDb = _context.Users
+                    .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+                    .FirstOrDefault(u => u.Id == model.Id);
+
+                if (userFromDb == null)
+                {
+                    TempData["ToastrType"] = "error";
+                    TempData["ToastrTitle"] = "Error";
+                    TempData["ToastrMessage"] = "User not found.";
+                    return RedirectToAction("Index");
+                }
+
+                var roles = _context.Roles
+                    .Where(r => r.IsGlobal && r.RoleName != "Company User")
+                    .ToList();
+                ViewBag.AllRoles = roles;
+
+                var rolePermissions = _context.RolePermissions
+                    .Where(rp => roles.Select(r => r.RoleId).Contains(rp.RoleId))
+                    .GroupBy(rp => rp.RoleId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+               
+                var vm = new UserDetailsViewModel
+                {
+                    User = userFromDb, 
+                    Roles = userFromDb.UserRoles.Select(ur => ur.Role).ToList(),
+                    RolePermissions = rolePermissions
+                };
+               
+                vm.User.FullName = model.FullName;
+                vm.User.UserName = model.UserName;
+                vm.User.Email = model.Email;
+                vm.User.PhoneNumber = model.PhoneNumber;   
+                ViewBag.ToastrType = "error";
+                ViewBag.ToastrTitle = "Validation failed";
+                ViewBag.ToastrMessage = string.Join("<br/>",
+                    ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+
+                return View(vm); 
+            }
+
+            var user = _context.Users.Include(u => u.UserRoles).FirstOrDefault(u => u.Id == model.Id);
 
             if (user == null)
             {
-                TempData["ErrorMessage"] = "User not found.";
+                TempData["ToastrType"] = "error";
+                TempData["ToastrTitle"] = "Error";
+                TempData["ToastrMessage"] = "User not found.";
                 return RedirectToAction("Index");
             }
 
             try
             {
-                // Update user fields
+                 
                 user.FullName = model.FullName;
                 user.UserName = model.UserName;
                 user.Email = model.Email;
                 user.PhoneNumber = model.PhoneNumber;
                 user.VerificationType = "";
-                user.UserType = "";
-               // user.Password = model.Password; 
+                user.UserType = "";              
                 user.UpdatedAt = DateTime.UtcNow;
+                bool ispwdChanged = false;
                 if (!string.IsNullOrWhiteSpace(model.Password))
                 {
                     user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, model.Password);
-                }
-                // Update roles
+                    ispwdChanged = true;
+                }               
                 _context.UserRoles.RemoveRange(user.UserRoles);
                 var roles = _context.Roles
                 .Where(r => selectedRoles.Contains(r.RoleId))
@@ -395,13 +506,41 @@ namespace GittBilSmsCore.Controllers
                 }
 
                 _context.SaveChanges();
+                if (ispwdChanged) 
+                {
+                    int loggerUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+                    var loggedinUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == loggerUserId);
+                    string loggedInUserName = loggedinUser?.UserName ?? "unknownUser";
+                    var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                    var userAgent = Request.Headers["User-Agent"].ToString();
+                    var location = await SessionHelper.GetLocationFromIP(ipAddress);
+                    var textMsg = string.Format(
+                                         _sharedLocalizer["userPwdChanged"], loggedInUserName, model.UserName, ipAddress, location, SessionHelper.ParseDevice(userAgent)
+                                     );
+                    string dataJson = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        Message = "Password changed :" + model.UserName,                        
+                        TelegramMessage = textMsg,
+                        Time = TimeHelper.NowInTurkey(),
+                        IPAddress = ipAddress,
+                        UserAgent = userAgent
+                    });
 
-                TempData["SuccessMessage"] = "User updated successfully.";
+                    await _svc.UserLogAlertToAdmin(0, 0, textMsg, dataJson);
+
+                }
+
+                TempData["ToastrType"] = "success";
+                TempData["ToastrTitle"] = "Success";
+                TempData["ToastrMessage"] = "User updated successfully.";
+                TempData["RedirectUrl"] = Url.Action("Index", "Users");
+                TempData["RedirectDelay"] = 3000; // ms                 
             }
             catch (Exception ex)
             {
-                TempData["ErrorMessage"] = "An error occurred while updating the user.";
-                // Log the exception (optional): _logger.LogError(ex, "User update failed.");
+                TempData["ToastrType"] = "error";
+                TempData["ToastrTitle"] = "Error";
+                TempData["ToastrMessage"] = "An error occurred while updating the user.";
             }
 
             return RedirectToAction("Details", new { id = user.Id });

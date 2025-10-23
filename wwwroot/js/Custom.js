@@ -3347,6 +3347,7 @@ $('#createCompanyUserForm').on('submit', function (e) {
 
                 // Reset the form
                 form[0].reset();
+                setTimeout(function () { window.location.href = '/CompanyUsers/Index'; }, 3000);
 
                 // Close the modal (if used)
                 $('#addUserModal').modal('hide');
