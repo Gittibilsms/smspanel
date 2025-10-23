@@ -5,9 +5,9 @@
     var assignedRoleIds = Model.Roles.Select(r => r.RoleId).ToList();
 }
 
-<form asp-action="Details" method="post" autocomplete="off">
+<form id="userEditform" method="post" autocomplete="off">
+    @Html.AntiForgeryToken()
     <input type="hidden" name="Id" value="@Model.User.Id" />
-
     <div class="d-flex justify-content-end align-items-center mb-4">
         <a asp-action="Index" class="btn btn-link">
             <i class="bi bi-arrow-left"></i> @SharedResource.All_Users
@@ -26,40 +26,37 @@
             <!-- Editable user fields -->
             <div class="mb-3">
                 <label class="form-label">@SharedResource.Name</label>
-                <input type="text" class="form-control" name="FullName" value="@Model.User.FullName" />
+                <input asp-for="User.FullName" name="FullName" class="form-control" value="@Model.User.FullName" required placeholder="Name" />
             </div>
             <div class="mb-3">
                 <label class="form-label">@SharedResource.User_name</label>
-                <input type="text" class="form-control" name="UserName" value="@Model.User.UserName" />
+                <input asp-for="User.UserName" name="UserName" class="form-control" value="@Model.User.UserName" required placeholder="User name" />                
             </div>
             <div class="mb-3">
                 <label class="form-label">@SharedResource.Email</label>
-                <input type="text" class="form-control" name="Email" value="@Model.User.Email" />
+                <input asp-for="User.Email" name="Email" type="email" value="@Model.User.Email" class="form-control" required placeholder="Email" />                
             </div>
             <div class="mb-3">
                 <label class="form-label">@SharedResource.Telephone</label>
-                <input type="text" class="form-control" name="Phone" value="@Model.User.PhoneNumber" />
+                <input asp-for="User.PhoneNumber" name="PhoneNumber" value="@Model.User.PhoneNumber" class="form-control phoneNumberinput" placeholder="(5__) ___ __ __" />                 
             </div>
-            <div class="mb-3">
+            @* <div class="mb-3">
                 <label class="form-label">@SharedResource.Verification_type</label>
                 <input type="text" class="form-control" name="VerificationType" value="@Model.User.VerificationType" />
             </div>
-           @*  <div class="mb-3">
+            <div class="mb-3">
                 <label class="form-label">User type</label>
                 <input type="text" class="form-control" name="UserType" value="@Model.User.UserType" />
             </div> *@
             <div class="mb-3">
-                <label class="form-label">@SharedResource.Password</label>
-                <div class="input-group"  id="show_hide_password">
-            
-                    <button type="button" class="btn btn-success password-generator" id="generatePasswordBtn" data-password-target="Password">
+                <label for="Password" class="form-label">@SharedResource.Password</label>
+                <div class="input-group" id="show_hide_password">
+                    <button type="button" class="btn btn-success password-generator" data-password-target="Password">
                         <i class="bi bi-arrow-clockwise"></i>
                     </button>
-                    <input type="password" class="form-control" id="Password" name="Password" value="@Model.User.Password" placeholder="Password" />
-                                   <a href="javascript:;" class="input-group-text bg-transparent"><i class="bi bi-eye-slash-fill"></i></a>
+                    <input type="password" class="form-control" id="Password" name="Password" value="@Model.User.Password" />
+                    <a href="javascript:;" class="input-group-text bg-transparent"><i class="bi bi-eye-slash-fill"></i></a>
                 </div>
-                <small class="form-text text-muted">
-                @SharedResource.Password_Information                </small>
             </div>
         </div>
 
@@ -130,17 +127,35 @@
         </div>
     </div>
 </form>
-@* @section Scripts {
+@using System.Text.Json
+
+@section Scripts {
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-        @if (TempData["SuccessMessage"] != null)
-        {
-            <text>toastr.success("@TempData["SuccessMessage"]");</text>
-        }
-        @if (TempData["ErrorMessage"] != null)
-        {
-            <text>toastr.error("@TempData["ErrorMessage"]");</text>
-        }
+        $(function () {
+            var type = "@(ViewBag.ToastrType ?? "")";
+            var title = @Html.Raw(JsonSerializer.Serialize(ViewBag.ToastrTitle ?? ""));
+            var msg = @Html.Raw(JsonSerializer.Serialize(ViewBag.ToastrMessage ?? ""));
+            var redirectUrl = @Html.Raw(JsonSerializer.Serialize(ViewBag.RedirectUrl ?? ""));
+            var redirectDelay = @Html.Raw(JsonSerializer.Serialize(ViewBag.RedirectDelay ?? 0));
+
+            // Show toastr
+            if (type && msg) {
+                toastr.options = {
+                    closeButton: true,
+                    progressBar: true,
+                    timeOut: (type === "success" ? 3000 : 5000),
+                    positionClass: "toast-bottom-right"
+                };
+
+                if (toastr[type]) toastr[type](msg, title);
+                else toastr.info(msg, title);
+
+                // Redirect if necessary
+                if (type === "success" && redirectUrl) {
+                    setTimeout(function () { window.location.href = redirectUrl; }, redirectDelay || 3000);
+                }
+            }
         });
     </script>
-} *@
+}
+

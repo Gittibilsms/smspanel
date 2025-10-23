@@ -124,7 +124,7 @@ namespace GittBilSmsCore.Controllers
                 IsMainUser = false,
                 CreatedByUserId = userId
             };
-
+            bool isnewuser = false;
             var result = await _userManager.CreateAsync(newUser, model.Password);
             if (!result.Succeeded)
             {
@@ -147,6 +147,31 @@ namespace GittBilSmsCore.Controllers
             };
             _context.UserRoles.Add(userRole);
             await _context.SaveChangesAsync();
+            isnewuser = true;
+            // send alert to admin about new user creation
+            if(isnewuser)
+            {
+                int loggerUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+                var loggedinUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == loggerUserId);
+                string loggedInUserName = loggedinUser?.UserName ?? "unknownUser";
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                var userAgent = Request.Headers["User-Agent"].ToString();
+                var location = await SessionHelper.GetLocationFromIP(ipAddress);
+                var textMsg = string.Format(
+                                     _sharedLocalizer["userCreated"], loggedInUserName, model.UserName, ipAddress, location, SessionHelper.ParseDevice(userAgent)
+                                 );
+                string dataJson = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    Message = "User created into the system : " + model.UserName,
+                    TelegramMessage = textMsg,
+                    Time = TimeHelper.NowInTurkey(),
+                    IPAddress = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    UserAgent = Request.Headers["User-Agent"].ToString()
+                });
+
+                await _svc.UserLogAlertToAdmin(model.CompanyId ?? 0, loggerUserId, textMsg, dataJson);
+            }
 
             return Json(new { success = true });
         }

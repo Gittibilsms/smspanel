@@ -1404,4 +1404,7 @@
   <data name="userPwdChanged" xml:space="preserve">
     <value>{0}, {1} için şifreyi değiştirdi. IP: {2}. Konum: {3}. Kullanıcı Aracısı: {4}.</value>
   </data>
+  <data name="userCreated" xml:space="preserve">
+    <value>{0} kullanıcı {1} IP'sini oluşturdu: {2}. Konum: {3}. Kullanıcı Aracısı: {4}.</value>
+  </data>
 </root>
