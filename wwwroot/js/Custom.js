@@ -86,15 +86,13 @@ function debounce(func, delay = 300) {
 const SEGMENT_UNITS = 155;
 const MAX_UNITS = 755;
 function calculateMessageLength(text) {
-    const singleCharPattern = /^[A-Za-z0-9 \n]$/; // includes newline
-    const turkishChars = '₺ŞşİıÇçÖöÜüĞğ';
-
     let count = 0;
     for (let ch of text) {
-        if (singleCharPattern.test(ch) || turkishChars.includes(ch)) {
-            count += 1; // normal, Turkish, ₺, and newline count as 1
+        // Check if the character is an emoji
+        if (/[\u{1F300}-\u{1FAFF}\u{1F000}-\u{1F6FF}\u{1F900}-\u{1F9FF}]/u.test(ch)) {
+            count += 2; // emojis count as 2
         } else {
-            count += 2; // others (emoji, symbols, etc.) count as 2
+            count += 1; // everything else (letters, Turkish, ₺, special chars, newline, etc.) = 1
         }
     }
     return count;
