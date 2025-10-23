@@ -89,11 +89,10 @@ function calculateMessageLength(text) {
     let count = 0;
     for (let ch of text) {
         if (ch === '\n') {
-            // newline = 2 units
-            count += 2;
+            count += 2; // newline counts as 2
         }
-        else if (/^[A-Za-z0-9 ]$/.test(ch)) {
-            count += 1;
+        else if (/^[A-Za-z0-9 ]$/.test(ch) || ch === '₺') {
+            count += 1; // treat ₺ as single character
         }
         else {
             count += 2;
@@ -1672,7 +1671,16 @@ $(document).ready(function () {
             }
         },
         { data: 'status', render: (data) => formatStatus(data) },
-        { data: 'companyName' },
+        {
+            data: 'companyName',
+            render: function (data, type, row) {
+                if (!data) return ''; // no company name
+                if (row.companyId) {
+                    return `<a href="/Companies/Details/${row.companyId}">${data}</a>`;
+                }
+                return data;
+            }
+        },
         {
             data: 'dateOfSending', render: function (data, type, row) {
                 let dateString = row.dateOfSending;

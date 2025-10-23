@@ -84,23 +84,24 @@ namespace GittBilSmsCore.Controllers
 
             var orders = await ordersQuery
                 .OrderByDescending(o => o.OrderId)
-                .Select(o => new
-                {
-                    o.OrderId,
-                    Status = o.CurrentStatus,
-                    CompanyName = o.Company != null ? o.Company.CompanyName : null,
-                    ApiName = o.Api != null ? o.Api.ServiceName : null,
-                    o.SubmissionType,
-                    o.LoadedCount,
-                    o.DeliveredCount,
-                    o.UnsuccessfulCount,
-                    CreatedBy = o.CreatedByUser != null ? o.CreatedByUser.FullName : null,
-                    DateOfSending = o.ScheduledSendDate,
-                    o.Refundable,
-                    o.Returned,
-                    o.ReturnDate,
-                    o.CreatedAt
-                })
+               .Select(o => new
+               {
+                   o.OrderId,
+                   o.CompanyId, // ✅ Add this line
+                   Status = o.CurrentStatus,
+                   CompanyName = o.Company != null ? o.Company.CompanyName : null,
+                   ApiName = o.Api != null ? o.Api.ServiceName : null,
+                   o.SubmissionType,
+                   o.LoadedCount,
+                   o.DeliveredCount,
+                   o.UnsuccessfulCount,
+                   CreatedBy = o.CreatedByUser != null ? o.CreatedByUser.FullName : null,
+                   DateOfSending = o.ScheduledSendDate,
+                   o.Refundable,
+                   o.Returned,
+                   o.ReturnDate,
+                   o.CreatedAt
+               })
                 .ToListAsync();
 
             return Json(orders);
