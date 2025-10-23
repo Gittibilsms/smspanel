@@ -1799,7 +1799,23 @@ $(document).ready(function () {
 
         // wire up your two handlers (you already have these)
         orderHub.on('ReceiveNewOrder', order => {
-            table.row.add(order).draw(false);
+            const normalized = {
+                orderId: order.orderId || order.OrderId || 0,
+                status: order.status || order.Status || '',
+                companyName: order.companyName || order.CompanyName || '',
+                apiName: order.apiName || order.ApiName || '',
+                submissionType: order.submissionType || order.SubmissionType || '',
+                loadedCount: order.loadedCount ?? order.LoadedCount ?? 0,
+                deliveredCount: order.deliveredCount ?? order.DeliveredCount ?? 0,
+                unsuccessfulCount: order.unsuccessfulCount ?? order.UnsuccessfulCount ?? 0,
+                createdBy: order.createdBy || order.CreatedBy || '',
+                dateOfSending: order.dateOfSending || order.DateOfSending || '',
+                refundable: order.refundable ?? order.Refundable ?? false,
+                returned: order.returned ?? order.Returned ?? false,
+                returnDate: order.returnDate || order.ReturnDate || '',
+                createdAt: order.createdAt || order.CreatedAt || ''
+            };
+            table.row.add(normalized).draw(false);
         });
         orderHub.on('OrderStatusChanged', data => {
             // find the row
