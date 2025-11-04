@@ -83,7 +83,7 @@
                             <span class="header-text">@SharedResource.Company_Name</span>
                             <i class="fas fa-filter header-filter-icon" data-column="3"></i>
                         </div>
-                    </th>
+                    </th>                   
                 }
                 <th>
                     <div class="header-content">
@@ -186,12 +186,14 @@
                             </select>
                         </div>
                     </th>
-                    <th class="width-50">
+                    <th class="width-50">                    
                         <div class="filter-container">
-                            <input type="text" class="column-filter" placeholder="@SharedResource.Filter_Company..." data-column="3" />
-                            <i class="fas fa-times filter-icon clear-filter" data-column="3" style="display: none;"></i>
+                            <select id="companyFilter" class="column-filter" data-column="3">
+                                <option value="">All Companies</option>
+                            </select>
+                            <i class="fas fa-times filter-icon clear-filter" data-column="3" style="display:none;"></i>
                         </div>
-                    </th>
+                    </th>                    
                     <th>
                         <div class="date-filter-container">
                             <div class="date-range-wrapper">
@@ -273,6 +275,24 @@
                             <i class="fas fa-times clear-date-filter" data-column="14" style="display: none;"></i>
                         </div>
                     </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="number" class="column-filter" placeholder="@SharedResource.Min_Unsuccessful..." data-column="15" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="15" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="number" class="column-filter" placeholder="@SharedResource.Min_Unsuccessful..." data-column="16" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="16" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="number" class="column-filter" placeholder="@SharedResource.Min_Unsuccessful..." data-column="17" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="17" style="display: none;"></i>
+                        </div>
+                    </th>
                 </tr>
             }
             else
@@ -333,5 +353,5 @@
         </thead>
         <tbody>
         </tbody>
-    </table>
+    </table>    
 </div>
