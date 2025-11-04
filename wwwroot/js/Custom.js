@@ -645,10 +645,7 @@ function updateTextareaFromMap() {
 $(document).on('click', '#confirmSendSms', function () {
     sendSmsAjax();
 });
-//smsForm.addEventListener('submit', function (e) {
-//    e.preventDefault();
-//    sendSmsAjax();
-//});
+ 
 
 
 $(function () {
@@ -931,18 +928,7 @@ function previewExcelRows(file) {
         $('#filePreview').html(html);
     };
 }
-//$(document).on('click', '.ff_custom_upload_btn', function (ev) {
-//    ev.preventDefault();
-//    const $btn = $(this);
-//    const { fancyData, file, uniqueId } = $btn.data();
-
-//    // grab the two columns from your hidden fields
-//    const nameCol = $('#SelectedCustomColumn').val();
-//    const numberCol = $('#SelectedNumberColumn').val();
-
-//    doUpload(fancyData, file, uniqueId, nameCol, numberCol);
-//    return false;  // prevent any other handler
-//});
+ 
 function insertPlaceholder(col) {
     const $msg = $('#message');
     const txt = $msg.val();
@@ -1188,29 +1174,7 @@ $(document).ready(function () {
     });
 
 });
-
-//$('#selectFirm').on('change', function () {
-//    const selectedOption = this.options[this.selectedIndex];
-//    const credit = selectedOption ? selectedOption.getAttribute('data-credit') || 0 : 0;
-
-//    // Update hidden + visible fields
-//    document.getElementById('AvailableCredit').value = credit;
-//    document.getElementById('availableCredit').innerText = parseFloat(credit).toLocaleString('en-US', {
-//        minimumFractionDigits: 2,
-//        maximumFractionDigits: 2
-//    });
-
-//    // Enable dependent fields
-//    const selected = parseInt($(this).val());
-//    const isValid = !isNaN(selected) && selected > 0;
-
-//    $dependentInputs.prop('disabled', !isValid).toggleClass('disabled', !isValid);
-//    $('#numberUpload').closest('.fancy-file-upload').toggleClass('disabled', !isValid);
-
-//    // Recalculate
-//    // updateNumbersCount();
-//});
-// --- Show/Hide password toggle ---
+ 
 $("#show_hide_password a").on('click', function (e) {
     e.preventDefault();
 
@@ -1641,7 +1605,7 @@ $(document).ready(function () {
             orderable: true,
             render: {
                 display: function (data, type, row) {
-                    const orderLink = `<a href="#" class="order-details-toggle" data-id="${row.orderId}">${row.orderId}</a>`;
+                    const orderLink = `<a href="#" class="order-details-toggle greenFont" data-id="${row.orderId}">${row.orderId}</a>`;
                     let actionHtml = '';
                     const status = row.status;
 
@@ -1673,7 +1637,7 @@ $(document).ready(function () {
             render: function (data, type, row) {
                 if (!data) return ''; // no company name
                 if (row.companyId) {
-                    return `<a href="/Companies/Details/${row.companyId}">${data}</a>`;
+                    return `<a href="/Companies/Details/${row.companyId}" class="greenFont">${data}</a>`;
                 }
                 return data;
             }
@@ -1707,13 +1671,16 @@ $(document).ready(function () {
         },
         { data: 'apiName' },
         { data: 'submissionType' },
-        { data: 'loadedCount' },
-        { data: 'deliveredCount' },
-        { data: 'unsuccessfulCount' },
+        { data: 'loadedCount', name: 'loaded' },
+        { data: 'deliveredCount', name: 'delivered' },
+        { data: 'unsuccessfulCount', name: 'undeliverable' },
         { data: 'createdBy' },
         { data: 'refundable', render: data => data ? 'Yes' : 'No' },
         { data: 'returned', render: data => data ? 'Yes' : 'No' },
-        { data: 'returnDate', render: formatDate }
+        { data: 'returnDate', render: formatDate },
+        { data: 'waitingCount', name: 'pending' },
+        { data: 'expiredCount', name: 'expired' },
+        { data: 'refundAmount', name: 'refund' }
     ];
 
     const nonAdminColumns = [
@@ -1747,18 +1714,27 @@ $(document).ready(function () {
                 return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
             }
         },
-        { data: 'deliveredCount' },
-        { data: 'createdBy' }
+        { data: 'deliveredCount', name: 'delivered' },
+        { data: 'createdBy' }         
     ];
+
+    $.fn.dataTable.ext.errMode = 'none';
+    $('#ordersList').on('error.dt', function (e, settings, techNote, message) {
+        console.error('DataTables error:', message);
+    });
+
     const $ordersTable = $('#ordersList');
 
-    if ($ordersTable.length > 0) {
+    if ($ordersTable.length > 0)
+    {
         if ($.fn.DataTable.isDataTable($ordersTable)) {
             $ordersTable.DataTable().clear().destroy();
-        }
+        }         
         const table = $ordersTable.DataTable({
             ajax: {
                 url: window.ordersControllerUrl || '/Orders/GetAllOrders',
+                type: 'GET',
+                headers: { 'Accept': 'application/json' },
                 data: function (d) {
                     const statusFilter = $('#ordersList .filter-row select[data-column="2"]').val();
                     if (statusFilter && statusFilter !== '' && statusFilter !== 'all') {
@@ -1766,18 +1742,43 @@ $(document).ready(function () {
                     }
                     return d;
                 },
+                // ← Keep your structure; just make this parser robust
                 dataSrc: function (json) {
-                    return json?.$values || []; // Correctly returns the array
+                    try {
+
+                        if (Array.isArray(json)) return json;
+                        if (Array.isArray(json?.$values)) return json.$values;
+                        if (Array.isArray(json?.data?.$values)) return json.data.$values;
+                        if (Array.isArray(json?.data)) return json.data;
+                        if (Array.isArray(json?.rows)) return json.rows;
+
+                        console.warn('Unexpected JSON shape from GetAllOrders:', json);
+                        return [];
+                        
+                    } catch (e) {
+                        console.error('dataSrc parse error:', e, json);
+                        return [];
+                    }
+                },
+                error: function (xhr, textStatus, err) {
+                    console.error('Orders AJAX failed:', {
+                        status: xhr.status, textStatus, err, response: xhr.responseText
+                    });
+                    const msg =
+                        xhr.status === 0 ? 'Network error/blocked request.' :
+                            xhr.status === 401 ? 'Unauthorized (401): possibly redirected to Login.' :
+                                xhr.status === 403 ? 'Forbidden (403).' :
+                                    xhr.status === 404 ? 'Endpoint not found (404).' :
+                                        xhr.status === 500 ? 'Server error (500).' :
+                                            `HTTP ${xhr.status}`;
+                    $('#ordersList_wrapper .table-summary').html(
+                        `<div class="text-danger">${msg}</div>`
+                    );
                 }
             },
             pagingType: 'full_numbers',
             language: {
-                paginate: {
-                    first: '«',
-                    last: '»',
-                    next: '›',
-                    previous: '‹'
-                }
+                paginate: { first: '«', last: '»', next: '›', previous: '‹' }
             },
             order: [[1, 'desc']],
             columns: isAdminBool ? adminColumns : nonAdminColumns,
@@ -1787,10 +1788,49 @@ $(document).ready(function () {
             destroy: true,
             lengthChange: true,
             lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
+            dom:
+                '<"top"Bf><"table-responsive"rt>' +
+                '<"bottom d-flex justify-content-between align-items-center gap-3"ilp<"dt-rowcount ms-2 small">>' +
+                '<"table-summary text-center mt-2 small fw-semibold">',
+            drawCallback: function () {
+                const api = this.api();
+                const scope = { search: 'applied', page: 'all' };
 
-            dom: '<"top"Bf><"table-responsive"rt><"bottom d-flex justify-content-between align-items-center"ilp>',
+                const asNum = v => {
+                    const n = typeof v === 'string'
+                        ? parseFloat(v.replace(/[\s,₹$£€$,]/g, ''))
+                        : (typeof v === 'number' ? v : 0);
+                    return Number.isFinite(n) ? n : 0;
+                };
+                const sumByName = (colName) => {
+                    const col = api.column(colName + ':name', scope);
+                    if (!col || col.count() === 0) return 0;
+                    return col.data().reduce((a, b) => a + asNum(b), 0);
+                };
+
+                const totalLoaded = sumByName('loaded');
+                const totalDelivered = sumByName('delivered');
+                const totalUndeliv = sumByName('undeliverable');
+                const totalPending = sumByName('pending');
+                const totalExpired = sumByName('expired');
+                const totalRefund = sumByName('refund');
+                const grandTotal = totalLoaded + totalDelivered + totalUndeliv + totalPending + totalExpired;
+
+                const totalsHtml = `
+  <div class="border-top pt-2 mt-1">
+    <span class="me-3"><strong>Total:</strong> ${grandTotal.toLocaleString()}</span>
+    <span class="me-3"><strong>Delivered:</strong> ${totalDelivered.toLocaleString()}</span>
+    <span class="me-3"><strong>Undeliverable:</strong> ${totalUndeliv.toLocaleString()}</span>
+    <span class="me-3"><strong>Pending:</strong> ${totalPending.toLocaleString()}</span>
+    <span class="me-3"><strong>Delivery Expired:</strong> ${totalExpired.toLocaleString()}</span>
+    <span><strong>Refund Amount:</strong> ${totalRefund.toLocaleString()}</span>
+  </div>`;
+                $('#ordersList_wrapper .table-summary').html(totalsHtml);
+            },
             buttons: getLocalizedButtons()
         });
+
+
         const companyId = parseInt(
             document.querySelector('meta[name="company-id"]').content,
             10
@@ -1819,6 +1859,10 @@ $(document).ready(function () {
                 returned: order.returned ?? order.Returned ?? false,
                 returnDate: order.returnDate || order.ReturnDate || '',
                 createdAt: order.createdAt || order.CreatedAt || ''
+                //,
+                //WaitingCount: order.wa ?? order.WaitingCount ?? 0,
+                //ExpiredCount: order.ExpiredCount ?? order.ExpiredCount ?? 0,
+                //RefundAmount: order.RefundAmount ?? order.RefundAmount ?? 0
             };
             table.row.add(normalized).draw(false);
         });
@@ -2109,6 +2153,30 @@ $(document).ready(function () {
             $('.column-filter[data-column="' + columnIndex + '"], .date-filter[data-column="' + columnIndex + '"]').first().focus();
         });
 
+        $ordersTable.on('xhr.dt', function (e, settings, json) {
+            const rows =
+                (Array.isArray(json) && json) ||
+                json?.$values || json?.data?.$values || json?.data || json?.rows || [];
+
+            const byId = new Map();
+            rows.forEach(r => {
+                const id = r?.companyId ?? r?.CompanyId;
+                const name = r?.companyName ?? r?.CompanyName;
+                if (id != null && name) byId.set(id, name);
+            });
+
+            const companies = [...byId.entries()]
+                .map(([id, name]) => ({ id, name }))
+                .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+            const $ddl = $('#companyFilter');
+            const prev = $ddl.val() || '';
+            $ddl.empty().append('<option value="">All Companies</option>');
+            companies.forEach(c => $ddl.append(
+                `<option value="${c.name}" data-id="${c.id}">${c.name}</option>`
+            ));
+            if (prev && companies.some(c => c.name === prev)) $ddl.val(prev);
+        });
         // Toggle order details
         $ordersTable.on('click', '.order-details-toggle', function (e) {
             e.preventDefault();
@@ -2127,6 +2195,7 @@ $(document).ready(function () {
             }
         });
     }
+   
     $('#clearAllFilters').on('click', function () {
         const table = window.ordersTable; // ✅ now it’s defined
 
@@ -2311,6 +2380,7 @@ $(document).ready(function () {
     //  updateRoles();
 
 });
+
 $(document).on('mouseenter', '.dropdown-submenu', function () {
     const $submenu = $(this).find('.inner-api-list');
     const orderId = $submenu.data('order-id');
@@ -2445,13 +2515,7 @@ $(document).ready(function () {
         $('#unitPrice').val(selectedPrice);
         $('#unitPriceHidden').val(selectedPrice);
     });
-
-    //$('#manualBtn').on('click', function () {
-    //    $('#unitPrice').prop('disabled', false).val('');
-    //    $('#unitPriceHidden').val('');
-    //});
-
-    // Disable unit price field by default
+     // Disable unit price field by default
     $('#unitPrice').prop('disabled', true);
     // Trigger calculation on load (optional)
     $('#priceInput').trigger('input');
@@ -2488,37 +2552,208 @@ $(document).ready(function () {
                 submitButton.prop('disabled', false); // 🔓 Re-enable after AJAX completes
             });
     });
-    $('#creditTopupsTable').DataTable({
+
+    const topupTable = $('#creditTopupsTable').DataTable({
         ajax: {
             url: '/Credit/GetTopups',
             type: 'GET',
             dataSrc: function (json) {
-                return json.$values || [];
+                return json.$values || json || [];
             }
         },
         columns: [
             {
                 data: 'companyName',
-                render: function (data, type, row) {
-                    return `<a href="/Companies/Details/${row.companyId}" class="text-success fw-bold">${data}</a>`;
-                }
+                render: (data, type, row) => `<a href="/Companies/Details/${row.companyId}" class="text-success fw-bold">${data}</a>`
             },
-            { data: 'credit' },
+            { data: 'credit', name: 'credit' },
             {
                 data: 'totalPrice',
+                name: 'totalPrice',
                 render: data => `₺${parseFloat(data).toLocaleString('tr-TR', { minimumFractionDigits: 2 })}`
             },
             { data: 'currency' },
             {
                 data: 'unitPrice',
+                name: 'unitPrice',
                 render: data => `₺${parseFloat(data).toFixed(5)}`
             },
             {
                 data: 'transactionDate',
                 render: data => new Date(data).toLocaleString('tr-TR')
             }
-        ]
+        ],
+        order: [[5, 'desc']],
+        pagingType: 'full_numbers',
+        dom:
+            '<"top"Bf><"table-responsive"rt>' +
+            '<"bottom d-flex justify-content-between align-items-center gap-3"ilp<"dt-rowcount ms-2 small">>' +
+            '<"table-summary text-center mt-2 small fw-semibold">',
+        drawCallback: function () {
+            const api = this.api();
+            const scope = { search: 'applied', page: 'all' };
+
+            const asNum = v => parseFloat(String(v).replace(/[^\d.-]/g, '')) || 0;
+            const sumByName = name => api.column(name + ':name', scope).data().toArray().reduce((a, b) => a + asNum(b), 0);
+
+            const totalPrice = sumByName('totalPrice');
+
+            $('#creditTopupsTable_wrapper .table-summary').html(`
+            <div class="border-top pt-2 mt-1">
+                <span><strong>Total Price:</strong> ₺${totalPrice.toLocaleString('tr-TR', { minimumFractionDigits: 2 })}</span>
+            </div>
+        `);
+        }
     });
+    // ================== Populate Company dropdown from Ajax ==================
+    topupTable.on('xhr.dt', function (e, settings, json) {
+        if (!json) return;
+
+        const rows = json.$values || json || [];
+        // Unique by companyId (ignore empty)
+        const byId = new Map();
+        rows.forEach(r => {
+            if (r?.companyId != null && r?.companyName) byId.set(r.companyId, r.companyName);
+        });
+
+        // Sort by name using Turkish locale
+        const companies = [...byId.entries()]
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+        const $ddl = $('#companyFilter');
+        const current = $ddl.val() || '';
+
+        $ddl.empty().append('<option value="">All Companies</option>');
+        companies.forEach(c => {
+            $ddl.append(`<option value="${c.name}" data-id="${c.id}">${c.name}</option>`);
+        });
+
+        // restore selection if still valid
+        if (current && companies.some(c => c.name === current)) {
+            $ddl.val(current);
+        }
+    });
+    //============= credit topup search start
+    (function initTopupFilters() {
+        const dt = $('#creditTopupsTable').DataTable();
+        const $wrapper = $('#creditTopupsTable_wrapper');
+        const $clearAll = $('#clearAllTopupFilters');
+
+        const parseNum = v => parseFloat(String(v).replace(/[^\d.-]/g, '')) || 0;
+        const parseDate = v => v ? new Date(v) : null;
+
+        const refreshClearAllVisibility = () => {
+            const active = $wrapper.find('.filter-row input, .filter-row select')
+                .toArray().some(i => (i.value ?? '').trim() !== '');
+            $clearAll.toggle(active);
+        };
+        $(document).on('change', '#companyFilter', function () {
+            const val = $(this).val();
+            if (val) {
+                const escaped = $.fn.dataTable.util.escapeRegex(val);
+                dt.column(0).search(`^${escaped}$`, true, false).draw(); // regex=true, smart=false
+            } else {
+                dt.column(0).search('').draw();
+            }
+            $wrapper.find(`.clear-filter[data-column="0"]`).toggle(!!val);
+            refreshClearAllVisibility();
+        });
+
+        // Generic text/select (kept for other filters)
+        $wrapper.on('input change', '.column-filter', function () {
+            const col = Number(this.dataset.column);
+            if (this.id === 'companyFilter') return; // handled above
+            dt.column(col).search(this.value).draw();
+            $wrapper.find(`.clear-filter[data-column="${col}"]`).toggle(!!this.value);
+            refreshClearAllVisibility();
+        });
+        // Number "min" filters
+        $.fn.dataTable.ext.search.push(function (settings, data, idx, rowData, counter) {
+            if (settings.nTable !== dt.table().node()) return true;
+
+            let ok = true;
+            $wrapper.find('input[type="number"].column-filter').each(function () {
+                const val = this.value;
+                if (!val) return;
+                const col = Number(this.dataset.column);
+                const num = parseNum(data[col]);
+                if (num < parseNum(val)) ok = false;
+            });
+            return ok;
+        });
+
+        // Date range filters (Transaction Date)
+        $.fn.dataTable.ext.search.push(function (settings, data) {
+            const dt = $('#creditTopupsTable').DataTable();
+            if (settings.nTable !== dt.table().node()) return true;
+
+            const col = 5; // Transaction Date column (displayed)
+            const startVal = $('#topupStartDate').val(); // YYYY-MM-DD
+            const endVal = $('#topupEndDate').val();   // YYYY-MM-DD
+
+            if (!startVal && !endVal) return true;
+
+            // data[col] is like "27.09.2025 15:17:24"
+            const raw = data[col];
+            if (!raw) return false;
+
+            const m = raw.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:\s+(\d{2}):(\d{2}):(\d{2}))?$/);
+            if (!m) return true; // if format unexpected, don't block
+
+            const [, dd, MM, yyyy, hh = '00', mm = '00', ss = '00'] = m;
+            const cell = new Date(+yyyy, +MM - 1, +dd, +hh, +mm, +ss);
+
+            if (startVal) {
+                const s = new Date(startVal); // 00:00:00
+                if (cell < s) return false;
+            }
+            if (endVal) {
+                const e = new Date(endVal);
+                e.setHours(23, 59, 59, 999);  // inclusive end of day
+                if (cell > e) return false;
+            }
+            return true;
+        });
+        // Simple redraw trigger (same pattern you used for Orders)
+        $('#topupStartDate, #topupEndDate').on('change', function () {
+            $('#creditTopupsTable').DataTable().draw();
+            refreshClearAllVisibility();          // ← add this
+        });
+
+
+        // Clear one
+        $wrapper.on('click', '.clear-filter', function () {
+            const col = this.dataset.column;
+            $wrapper.find(`.column-filter[data-column="${col}"]`).val('').trigger('input');
+            dt.column(Number(col)).search('').draw();
+            $(this).hide();
+            refreshClearAllVisibility();
+        });
+
+        // Clear date range
+        $wrapper.on('click', '.clear-date-filter', function () {
+            const col = this.dataset.column;
+            $wrapper.find(`.date-filter[data-column="${col}"]`).val('');
+            dt.draw();
+            $(this).hide();
+            refreshClearAllVisibility();
+        });
+
+        // Clear all
+        $clearAll.on('click', function () {
+            $wrapper.find('.filter-row input, .filter-row select').val('');
+            $wrapper.find('.clear-filter, .clear-date-filter').hide();
+            dt.columns().search('');
+            dt.draw();
+            refreshClearAllVisibility();
+        });
+
+        refreshClearAllVisibility();
+    })();
+
+    ///==============credit topup search end 
+
     $('#transactionsTable').DataTable({
         ajax: '/Transactions/GetCompanyTransactions',
         columns: [
@@ -2945,32 +3180,13 @@ $('#ordersList').on('click', '.confirm-sms-btn', function () {
         });
     }
 });
-//$('#ordersList tbody').on('click', 'td.details-control', function () {
-//    const tr = $(this).closest('tr');
-//    const row = $('#ordersList').DataTable().row(tr);
-
-//    if (row.child.isShown()) {
-//        // Row is open: close it
-//        row.child.hide();
-//        tr.find('.toggle-icon').text('➕');
-//    } else {
-//        // Row is closed: open it
-//        const orderId = row.data().orderId;
-
-//        $.get('/Home/GetOrderDetails', { id: orderId }, function (html) {
-//            row.child(html).show();
-//            tr.find('.toggle-icon').text('➖');
-//        });
-//    }
-//});
+ 
 function formatDate(value) {
     if (!value) return '';
     const date = new Date(value);
     if (isNaN(date)) return '';
     return date.toLocaleString('en-US'); // or 'tr-TR' for Turkish
 }
-
-
 
 flatpickr("#startDate, #endDate", {
     dateFormat: "Y-m-d"
@@ -3186,8 +3402,7 @@ if (document.getElementById("updateRolesBtn")) {
         });
     });
 }
-let currentDownloadUrl = ''; // store globally
-
+let currentDownloadUrl = ''; 
 function openEditDirectory(id) {
     $.get(`/Directory/Get?id=${id}`, function (res) {
         if (res.success) {
@@ -3245,37 +3460,7 @@ function submitEditDirectory() {
     });
 }
 
-//$.get('/Directory/List', function (res) {
-//    if (res.success) {
-//        const data = res.data;
-//        const tbody = $('table tbody');
-//        tbody.empty();
-
-//        if (data.length === 0) {
-//            tbody.append(`
-//                <tr>
-//                    <td colspan="4" class="text-center text-muted">No records found.</td>
-//                </tr>
-//            `);
-//        } else {
-//            data.forEach(d => {
-//                tbody.append(`
-//                    <tr>
-//                        <td>${d.directoryName}</td>
-//                        <td>${d.numberCount}</td>
-//                        <td>${new Date(d.createdAt).toLocaleDateString()}</td>
-//                        <td>
-//                            <button class="btn btn-sm btn-outline-primary" onclick="openEditDirectory(${d.directoryId})">Edit</button>
-//                            <button class="btn btn-sm btn-outline-danger" onclick="deleteDirectory(${d.directoryId})">Delete</button>
-//                        </td>
-//                    </tr>
-//                `);
-//            });
-//        }
-//    } else {
-//        toastr.error(res.message || 'Failed to load directories');
-//    }
-//});
+ 
 $('#createDirectoryBtn').on('click', function () {
     var formData = new FormData($('#directoryForm')[0]);
 
@@ -3340,9 +3525,6 @@ function generatePassword() {
     }
     document.getElementById("Password").value = password;
 }
-
-// Example submit (AJAX)
-// Example submit (AJAX)
 let isSubmittingform = false;
 
 $('#createCompanyUserForm').on('submit', function (e) {
@@ -3410,7 +3592,7 @@ $('#createCompanyUserForm').on('submit', function (e) {
         }
     });
 });
-//const { canEditUsers, isCompanyUser } = window.userPermissions;
+ 
 var isCompanyUserVal = $('#isCompanyUser').val() === 'true';
 $('#allcompanyUsersList').DataTable({
     ordering: true,
@@ -3471,8 +3653,6 @@ $('#allcompanyUsersList').DataTable({
     dom: 'Bfrtip',
     buttons: ['copy', 'excel', 'pdf', 'print']
 });
-
-
 function confirmDelete(userId) {
     if (confirm(window.localizedTextDT.deleteuserconfirmation || "Are you sure you want to delete this user?")) {
         fetch(`/Users/Delete/${userId}`, {
@@ -3711,10 +3891,6 @@ $('#editUserForm').submit(function (e) {
         }
     });
 });
-
-
-
-
 $('#CompanyPhone').on('input', function () {
     var phone = $(this).val().replace(/\D/g, '');
     if (phone.length > 0) {
@@ -3722,34 +3898,6 @@ $('#CompanyPhone').on('input', function () {
     }
     $(this).val(phone);
 });
-
-
-// On Company change → update AvailableCredit
-//document.getElementById('selectFirm').addEventListener('change', function () {
-//    var selectedOption = this.options[this.selectedIndex];
-//    var credit = selectedOption.getAttribute('data-credit') || 0;
-//    document.getElementById('AvailableCredit').value = credit;
-//    document.getElementById('availableCredit').innerText = parseFloat(credit).toFixed(2);
-
-//    // Recalculate
-//    updateNumbersCount();
-//});
-
-// On API change → update SmsPrice
-//document.getElementById('chooseApi').addEventListener('change', function () {
-//    var selectedOption = this.options[this.selectedIndex];
-//    var pricing = selectedOption.getAttribute('data-pricing') || 0;
-//    document.getElementById('SmsPrice').value = pricing;
-//    document.getElementById('smsPrice').innerText = parseFloat(pricing).toFixed(2);
-
-//    // Recalculate
-//    updateNumbersCount();
-//});
-
-// On textarea input → update count
-//document.getElementById('PhoneNumbers').addEventListener('input', updateNumbersCount);
-
-
 $('#runReportBtn').on('click', function () {
     if (confirm("Are you sure you want to run the report now? 🚀")) {
         $.post('/Report/RunNow', function (res) {
@@ -3785,9 +3933,6 @@ function debugTableData() {
     const statuses = data.toArray().map(row => row.status);
 }
 
-
-
-
 function loadTodaySmsStats() {
     $.get('/Home/GetTodaySmsStats', function (data) {
         // Update count
@@ -3812,7 +3957,6 @@ function loadTodaySmsStats() {
     });
 }
 var chart6; // global
-
 function initChart6_ALL() {
     const el = document.querySelector("#chart6");
     if (!el) return;        // ← nothing to do if chart container is missing
@@ -3830,7 +3974,6 @@ function initChart6_ALL() {
     chart6 = new ApexCharts(el, options);
     chart6.render();
 }
-
 function loadDashboardStats() {
     $.get('/Home/GetDashboardStats', function (data) {
         // Safely pull each value, defaulting to 0 if undefined
@@ -3886,7 +4029,6 @@ function loadDashboardStats() {
     });
 }
 var chart7;
-
 function initChart7() {
     const el = document.querySelector("#chart7");
     if (!el) return;  // ← bail out if no container on this page
@@ -3911,8 +4053,6 @@ function initChart7() {
     chart7 = new ApexCharts(el, options);
     chart7.render();
 }
-
-
 function deactivateCompany(companyId) {
     if (confirm(window.localizedTextDT.deactivatecompany || "Are you sure you want to deactivate this company?")) {
         fetch(`/Companies/Deactivate/${companyId}`, {
@@ -3928,7 +4068,6 @@ function deactivateCompany(companyId) {
             });
     }
 }
-
 function deleteCompany(companyId) {
     if (confirm(window.localizedTextDT.companydeleteconfirmation || "Are you sure you want to delete this company? This cannot be undone.")) {
         fetch(`/Companies/Delete/${companyId}`, {
@@ -3991,9 +4130,6 @@ function updateSmsPricePerUnit() {
     $('#smsPrice').text(unitPrice);
 }
 
-//$('#PhoneNumbers, #Message').on('blur change input', function () {
-//    updateSmsPricePerUnit();
-//});
 function updateRoles() {
     const updateBtn = document.getElementById("updateRolesBtn");
     if (!updateBtn) {

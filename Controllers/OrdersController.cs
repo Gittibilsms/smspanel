@@ -63,7 +63,6 @@ namespace GittBilSmsCore.Controllers
                 }
                 else
                 {
-                    // ✅ Sub user: see only their own orders
                     ordersQuery = ordersQuery.Where(o => o.CompanyId == companyId.Value && o.CreatedByUserId == userId);
                 }
             }
@@ -100,7 +99,10 @@ namespace GittBilSmsCore.Controllers
                    o.Refundable,
                    o.Returned,
                    o.ReturnDate,
-                   o.CreatedAt
+                   o.CreatedAt,
+                   o.WaitingCount,
+                   o.ExpiredCount,
+                   o.RefundAmount
                })
                 .ToListAsync();
 

@@ -1,19 +1,96 @@
 ﻿@{
     ViewData["Title"] = "Credit Top-ups";
 }
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 
+<style>
+    .filter-container,
+    .date-filter-container {
+        position: relative;
+    }
+
+    .filter-icon.clear-filter,
+    .clear-date-filter {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #999;
+    }
+
+        .filter-icon.clear-filter:hover,
+        .clear-date-filter:hover {
+            color: #333;
+        }
+
+</style>
 <h3># @SharedResource.Credittopups</h3>
 <div class="table-responsive">
-<table id="creditTopupsTable" class="table table-bordered">
-    <thead>
-        <tr>
-            <th>@SharedResource.Firm</th>
-            <th>@SharedResource.Credit</th>
-            <th>@SharedResource.Total</th>
-            <th>@SharedResource.Currency</th>
-            <th>@SharedResource.Unit_Price</th>
-            <th>@SharedResource.Transaction_Date</th>
-        </tr>
-    </thead>
-</table>
+    <button id="clearAllTopupFilters" class="btn btn-sm btn-outline-danger mb-2" style="display:none">
+        @SharedResource.clearallfilters
+    </button>
+
+    <table id="creditTopupsTable" class="table table-bordered">
+        <thead>
+            <!-- HEADER ROW -->
+            <tr>
+                <th>@SharedResource.Firm</th>
+                <th>@SharedResource.Credit</th>
+                <th>@SharedResource.Total</th>
+                <th>@SharedResource.Currency</th>
+                <th>@SharedResource.Unit_Price</th>
+                <th>@SharedResource.Transaction_Date</th>
+            </tr>
+
+            <!-- FILTER ROW -->
+            <tr class="filter-row">
+                <th>
+                    <div class="filter-container">
+                        <select id="companyFilter" class="column-filter" data-column="0">
+                            <option value="">All Companies</option>
+                        </select>
+                        <i class="fas fa-times filter-icon clear-filter" data-column="0" style="display:none;"></i>
+                    </div>
+                </th>
+                <th>
+                    <div class="filter-container">
+                        <input type="number" class="column-filter" placeholder="" data-column="1" />
+                        <i class="fas fa-times filter-icon clear-filter" data-column="1" style="display:none;"></i>
+                    </div>
+                </th>
+                <th>
+                    <div class="filter-container">
+                        <input type="number" class="column-filter" placeholder="" data-column="2" />
+                        <i class="fas fa-times filter-icon clear-filter" data-column="2" style="display:none;"></i>
+                    </div>
+                </th>
+                <th>
+                    <div class="filter-container">
+                        <select class="column-filter" data-column="3">
+                            <option value="">@SharedResource.All</option>
+                            <option value="TRY">TRY</option>
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                        </select>
+                    </div>
+                </th>
+                <th>
+                    <div class="filter-container">
+                        <input type="number" class="column-filter" placeholder="" data-column="4" />
+                        <i class="fas fa-times filter-icon clear-filter" data-column="4" style="display:none;"></i>
+                    </div>
+                </th>
+                <th>
+                    <div class="date-filter-container">
+                        <div class="date-range-wrapper">
+                            <input id="topupStartDate" type="date" class="date-filter start-date" data-column="5" />
+                            <input id="topupEndDate" type="date" class="date-filter end-date" data-column="5" />
+                        </div>
+                        <i class="fas fa-times clear-date-filter" data-column="5" style="display:none;"></i>
+                    </div>
+                </th>
+            </tr>
+        </thead>
+    </table>
 </div>

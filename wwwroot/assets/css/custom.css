@@ -151,6 +151,9 @@ h4,h5{
     background-color: var(--bs-btn-active-bg);
     border-color: var(--bs-btn-active-border-color);
 }
+[data-bs-theme=blue-theme] .greenFont {
+    color: #98ec2d;
+}
 
 [data-bs-theme=light] .offcanvas-body #BlueTheme + .btn,
 [data-bs-theme=dark] .offcanvas-body #BlueTheme + .btn,
