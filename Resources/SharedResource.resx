@@ -1407,4 +1407,22 @@
   <data name="userCreated" xml:space="preserve">
     <value>{0} kullanıcı {1} IP'sini oluşturdu: {2}. Konum: {3}. Kullanıcı Aracısı: {4}.</value>
   </data>
+  <data name="fTotal" xml:space="preserve">
+    <value>Toplam</value>
+  </data>
+  <data name="fDelivered" xml:space="preserve">
+    <value>Teslim edilmiş</value>
+  </data>
+  <data name="fundelivered" xml:space="preserve">
+    <value>Teslim edilmedi</value>
+  </data>
+  <data name="fPending" xml:space="preserve">
+    <value>Askıda olması</value>
+  </data>
+  <data name="fExpired" xml:space="preserve">
+    <value>Günü geçmiş</value>
+  </data>
+  <data name="fRefund" xml:space="preserve">
+    <value>Geri ödemek</value>
+  </data>
 </root>
