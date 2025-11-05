@@ -1501,6 +1501,24 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Teslim edilmiş.
+        /// </summary>
+        public static string fDelivered {
+            get {
+                return ResourceManager.GetString("fDelivered", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Günü geçmiş.
+        /// </summary>
+        public static string fExpired {
+            get {
+                return ResourceManager.GetString("fExpired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Dosya.
         /// </summary>
         public static string File {
@@ -1636,6 +1654,24 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Askıda olması.
+        /// </summary>
+        public static string fPending {
+            get {
+                return ResourceManager.GetString("fPending", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Geri ödemek.
+        /// </summary>
+        public static string fRefund {
+            get {
+                return ResourceManager.GetString("fRefund", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to geçen aydan itibaren.
         /// </summary>
         public static string from_last_month {
@@ -1645,11 +1681,29 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Toplam.
+        /// </summary>
+        public static string fTotal {
+            get {
+                return ResourceManager.GetString("fTotal", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Ad Soyad.
         /// </summary>
         public static string Full_Name {
             get {
                 return ResourceManager.GetString("Full Name", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Teslim edilmedi.
+        /// </summary>
+        public static string fundelivered {
+            get {
+                return ResourceManager.GetString("fundelivered", resourceCulture);
             }
         }
         

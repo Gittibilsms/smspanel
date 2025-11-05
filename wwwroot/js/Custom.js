@@ -1722,15 +1722,29 @@ $(document).ready(function () {
     $('#ordersList').on('error.dt', function (e, settings, techNote, message) {
         console.error('DataTables error:', message);
     });
+    function initCompanyOrdersSelect2() {
+        const $ddl = $('#companyFilter');
 
+        // Avoid double-init
+        if ($ddl.data('select2')) return;
+
+        $ddl.select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: $ddl.data('placeholder') || 'Firm',
+            allowClear: true
+        });
+    }
     const $ordersTable = $('#ordersList');
-
+    $('#ordersList').on('init.dt', initCompanyOrdersSelect2);
     if ($ordersTable.length > 0)
     {
         if ($.fn.DataTable.isDataTable($ordersTable)) {
             $ordersTable.DataTable().clear().destroy();
-        }         
+        }
+        
         const table = $ordersTable.DataTable({
+            orderCellsTop: true, 
             ajax: {
                 url: window.ordersControllerUrl || '/Orders/GetAllOrders',
                 type: 'GET',
@@ -1818,12 +1832,12 @@ $(document).ready(function () {
 
                 const totalsHtml = `
   <div class="border-top pt-2 mt-1">
-    <span class="me-3"><strong>Total:</strong> ${grandTotal.toLocaleString()}</span>
-    <span class="me-3"><strong>Delivered:</strong> ${totalDelivered.toLocaleString()}</span>
-    <span class="me-3"><strong>Undeliverable:</strong> ${totalUndeliv.toLocaleString()}</span>
-    <span class="me-3"><strong>Pending:</strong> ${totalPending.toLocaleString()}</span>
-    <span class="me-3"><strong>Delivery Expired:</strong> ${totalExpired.toLocaleString()}</span>
-    <span><strong>Refund Amount:</strong> ${totalRefund.toLocaleString()}</span>
+    <span class="me-3"><strong>${localizedTextDT.fTotal || 'Total'}:</strong> ${grandTotal.toLocaleString()}</span>
+    <span class="me-3"><strong>${localizedTextDT.fDelivered || 'Delivered'}:</strong> ${totalDelivered.toLocaleString()}</span>
+    <span class="me-3"><strong>${localizedTextDT.fundelivered || 'UnDelivered'}:</strong> ${totalUndeliv.toLocaleString()}</span>
+    <span class="me-3"><strong>${localizedTextDT.fPending || 'Pending'}:</strong> ${totalPending.toLocaleString()}</span>
+    <span class="me-3"><strong>${localizedTextDT.fExpired || 'Expired'}:</strong> ${totalExpired.toLocaleString()}</span>
+    <span class="me-3"><strong>${localizedTextDT.fRefund || 'Refund'}:</strong> ${totalRefund.toLocaleString()}</span>
   </div>`;
                 $('#ordersList_wrapper .table-summary').html(totalsHtml);
             },
@@ -2070,6 +2084,7 @@ $(document).ready(function () {
             checkIfAnyFilterApplied();
         });
 
+
         // Date range filter function
         function filterByDateRange(columnIndex, startDate, endDate) {
             // Remove previous filters for this column
@@ -2175,7 +2190,14 @@ $(document).ready(function () {
             companies.forEach(c => $ddl.append(
                 `<option value="${c.name}" data-id="${c.id}">${c.name}</option>`
             ));
-            if (prev && companies.some(c => c.name === prev)) $ddl.val(prev);
+            // if (prev && companies.some(c => c.name === prev)) $ddl.val(prev);
+            initCompanyOrdersSelect2();
+            if (prev && companies.some(c => c.name === prev)) {
+                $ddl.val(prev).trigger('change.select2');
+            } else {
+                // keep placeholder if previous selection vanished
+                $ddl.val(null).trigger('change.select2');
+            }
         });
         // Toggle order details
         $ordersTable.on('click', '.order-details-toggle', function (e) {
@@ -2194,7 +2216,7 @@ $(document).ready(function () {
                 });
             }
         });
-    }
+        }
    
     $('#clearAllFilters').on('click', function () {
         const table = window.ordersTable; // ✅ now it’s defined
@@ -2204,7 +2226,12 @@ $(document).ready(function () {
 
         $('.date-filter').val('');
         $('.clear-date-filter').hide();
-
+        if ($('#companyFilter').data('select2')) {
+            $('#companyFilter').val(null).trigger('change.select2');
+        } else {
+            $('#companyFilter').val('').trigger('change');
+        }
+        $('.clear-filter[data-column="0"]').hide();
         table.columns().search('');
 
         $.fn.dataTable.ext.search = [];
@@ -2554,6 +2581,7 @@ $(document).ready(function () {
     });
 
     const topupTable = $('#creditTopupsTable').DataTable({
+        orderCellsTop: true, 
         ajax: {
             url: '/Credit/GetTopups',
             type: 'GET',
@@ -2606,7 +2634,8 @@ $(document).ready(function () {
         }
     });
     // ================== Populate Company dropdown from Ajax ==================
-    topupTable.on('xhr.dt', function (e, settings, json) {
+    topupTable.on('xhr.dt', function (e, settings, json)
+    {
         if (!json) return;
 
         const rows = json.$values || json || [];
@@ -2629,9 +2658,12 @@ $(document).ready(function () {
             $ddl.append(`<option value="${c.name}" data-id="${c.id}">${c.name}</option>`);
         });
 
-        // restore selection if still valid
+        initCompanySelect2();
         if (current && companies.some(c => c.name === current)) {
-            $ddl.val(current);
+            $ddl.val(current).trigger('change.select2');
+        } else {
+            // keep placeholder if previous selection vanished
+            $ddl.val(null).trigger('change.select2');
         }
     });
     //============= credit topup search start
@@ -2648,6 +2680,9 @@ $(document).ready(function () {
                 .toArray().some(i => (i.value ?? '').trim() !== '');
             $clearAll.toggle(active);
         };
+
+        $('#creditTopupsTable').on('init.dt', initCompanySelect2);  
+
         $(document).on('change', '#companyFilter', function () {
             const val = $(this).val();
             if (val) {
@@ -2742,8 +2777,16 @@ $(document).ready(function () {
 
         // Clear all
         $clearAll.on('click', function () {
+            const $company = $('#companyFilter');
+            if ($company.length) {
+                if ($company.data('select2')) {
+                    $company.val(null).trigger('change.select2');   
+                } else {
+                    $company.val('').trigger('change');
+                }
+            }
             $wrapper.find('.filter-row input, .filter-row select').val('');
-            $wrapper.find('.clear-filter, .clear-date-filter').hide();
+            $wrapper.find('.clear-filter, .clear-date-filter').hide();          
             dt.columns().search('');
             dt.draw();
             refreshClearAllVisibility();
@@ -2753,6 +2796,21 @@ $(document).ready(function () {
     })();
 
     ///==============credit topup search end 
+    function initCompanySelect2() {
+        const $ddl = $('#companyFilter');
+
+        // Avoid double-init
+        if ($ddl.data('select2')) return;
+
+        $ddl.select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: $ddl.data('placeholder') || 'Firm',
+            allowClear: true            
+        });
+    }
+
+    
 
     $('#transactionsTable').DataTable({
         ajax: '/Transactions/GetCompanyTransactions',

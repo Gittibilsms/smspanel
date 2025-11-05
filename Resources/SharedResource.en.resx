@@ -1407,4 +1407,22 @@
   <data name="userCreated" xml:space="preserve">
     <value>{0} created user {1} IP: {2}. Location: {3}. User Agent: {4}.</value>
   </data>
+  <data name="fTotal" xml:space="preserve">
+    <value>Total</value>
+  </data>
+  <data name="fDelivered" xml:space="preserve">
+    <value>Delivered</value>
+  </data>
+  <data name="fundelivered" xml:space="preserve">
+    <value>Undelivered</value>
+  </data>
+  <data name="fPending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="fExpired" xml:space="preserve">
+    <value>Expired</value>
+  </data>
+  <data name="fRefund" xml:space="preserve">
+    <value>Refund</value>
+  </data>
 </root>
