@@ -27,64 +27,77 @@ namespace GittBilSmsCore.Controllers
 
         public async Task<IActionResult> Index()
         {
-
-            var currentUser = await _userManager.GetUserAsync(User);
-            var userType = HttpContext.Session.GetString("UserType") ?? string.Empty;
-            var isCompanyUser = userType == "CompanyUser";
-          
-            var isMainUser = HttpContext.Session.GetInt32("IsMainUser") == 1;
-            var canCreateTicket = HttpContext.Session.GetInt32("CanSendSupportRequest") == 1;
-
-            // load granular permissions from session
-            var permissionJson = HttpContext.Session.GetString("UserPermissions");
-            var permissions = string.IsNullOrEmpty(permissionJson)
-                ? new List<RolePermission>()
-                : JsonSerializer.Deserialize<List<RolePermission>>(permissionJson);
-
-            // who can *view* support tickets?
-            var hasSupportRead = permissions.Any(p =>
-                p.Module == "Request_for_support" && (p.CanRead || p.CanEdit));
-
-            // start from Tickets joined to Users so we can filter by CompanyId
-            var ticketQuery =
-                from t in _context.Tickets
-                join u in _context.Users on t.CreatedByUserId equals u.Id
-                select new { Ticket = t, User = u };
-
-            if (!isCompanyUser && hasSupportRead)
+            try
             {
-                // System/Admin: show *all* tickets
-            }
-            else if (isCompanyUser && isMainUser)
-            {
-                // Company *main* user: show *all* tickets from within their company
-                ticketQuery = ticketQuery
-                    .Where(x => x.User.CompanyId == currentUser.CompanyId);
-            }
-            else if (isCompanyUser && canCreateTicket)
-            {
-                // Company *sub*-user: show *only their own* tickets
-                ticketQuery = ticketQuery
-                    .Where(x => x.Ticket.CreatedByUserId == currentUser.Id);
-            }
-            else
-            {
-                return RedirectToAction("AccessDenied", "Home");
-            }
-
-            var list = await ticketQuery
-                .OrderByDescending(x => x.Ticket.CreatedAt)
-                .Select(x => new TicketListItemViewModel
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser == null)
                 {
-                    Id = x.Ticket.Id,
-                    Subject = x.Ticket.Subject,
-                    Status = x.Ticket.Status.ToString(),
-                    CreatedAt = x.Ticket.CreatedAt,
-                    CreatedByUserName = x.User.UserName
-                })
-                .ToListAsync();
-            ViewBag.CurrentCompanyId = currentUser.CompanyId;
-            return View(list);
+                  //  _logger.LogWarning("User not found in Index. Redirecting to login.");
+                    return RedirectToAction("Login", "Account");
+                }
+
+                var userType = HttpContext.Session.GetString("UserType") ?? string.Empty;
+                var isCompanyUser = userType == "CompanyUser";
+                var isMainUser = HttpContext.Session.GetInt32("IsMainUser") == 1;
+                var canCreateTicket = HttpContext.Session.GetInt32("CanSendSupportRequest") == 1;
+
+                var permissionJson = HttpContext.Session.GetString("UserPermissions");
+                var permissions = string.IsNullOrEmpty(permissionJson)
+                    ? new List<RolePermission>()
+                    : JsonSerializer.Deserialize<List<RolePermission>>(permissionJson);
+
+                var hasSupportRead = permissions.Any(p =>
+                    p.Module == "Request_for_support" && (p.CanRead || p.CanEdit));
+
+                var ticketQuery =
+                    from t in _context.Tickets
+                    join u in _context.Users on t.CreatedByUserId equals u.Id
+                    select new { Ticket = t, User = u };
+
+                if (!isCompanyUser && hasSupportRead)
+                {
+                    // System/Admin: show *all* tickets
+                }
+                else if (isCompanyUser && isMainUser)
+                {
+                    ticketQuery = ticketQuery
+                        .Where(x => x.User.CompanyId == currentUser.CompanyId);
+                }
+                else if (isCompanyUser && canCreateTicket)
+                {
+                    ticketQuery = ticketQuery
+                        .Where(x => x.Ticket.CreatedByUserId == currentUser.Id);
+                }
+                else
+                {
+                    return RedirectToAction("AccessDenied", "Home");
+                }
+
+                var list = await ticketQuery
+                    .OrderByDescending(x => x.Ticket.CreatedAt)
+                    .Select(x => new TicketListItemViewModel
+                    {
+                        Id = x.Ticket.Id,
+                        Subject = x.Ticket.Subject,
+                        Status = x.Ticket.Status.ToString(),
+                        CreatedAt = x.Ticket.CreatedAt,
+                        CreatedByUserName = x.User.UserName
+                    })
+                    .ToListAsync();
+
+                ViewBag.CurrentCompanyId = currentUser.CompanyId;
+                return View(list);
+            }
+            catch (Exception ex)
+            {
+                // Log to console / file / Azure log stream
+                //_log.LogError(ex, "Error in SupportController.Index");
+                // Option 1: Show custom error page
+                return RedirectToAction("Error", "Home");
+
+                // Option 2: For debugging, you could temporarily use:
+                // return Content($"Error: {ex.Message}\n{ex.StackTrace}");
+            }
         }
 
         [HttpGet]
