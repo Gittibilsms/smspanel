@@ -27,8 +27,11 @@ namespace GittBilSmsCore.Controllers
 
         public async Task<IActionResult> Index()
         {
+
             var currentUser = await _userManager.GetUserAsync(User);
-            var isCompanyUser = currentUser.UserType == "CompanyUser";
+            var userType = HttpContext.Session.GetString("UserType") ?? string.Empty;
+            var isCompanyUser = userType == "CompanyUser";
+          
             var isMainUser = HttpContext.Session.GetInt32("IsMainUser") == 1;
             var canCreateTicket = HttpContext.Session.GetInt32("CanSendSupportRequest") == 1;
 
