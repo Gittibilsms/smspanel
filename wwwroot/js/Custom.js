@@ -1828,7 +1828,8 @@ $(document).ready(function () {
                 const totalPending = sumByName('pending');
                 const totalExpired = sumByName('expired');
                 const totalRefund = sumByName('refund');
-                const grandTotal = totalLoaded + totalDelivered + totalUndeliv + totalPending + totalExpired;
+                // const grandTotal = totalLoaded + totalDelivered + totalUndeliv + totalPending + totalExpired;
+                const grandTotal = totalLoaded;
 
                 const totalsHtml = `
   <div class="border-top pt-2 mt-1">
