@@ -1425,4 +1425,10 @@
   <data name="fRefund" xml:space="preserve">
     <value>Refund</value>
   </data>
+  <data name="fother" xml:space="preserve">
+    <value>Others</value>
+  </data>
+  <data name="newOrder" xml:space="preserve">
+    <value>New Order</value>
+  </data>
 </root>

@@ -1425,4 +1425,10 @@
   <data name="fRefund" xml:space="preserve">
     <value>Geri ödemek</value>
   </data>
+  <data name="fother" xml:space="preserve">
+    <value>Diğerleri</value>
+  </data>
+  <data name="newOrder" xml:space="preserve">
+    <value>Yeni Sipariş</value>
+  </data>
 </root>

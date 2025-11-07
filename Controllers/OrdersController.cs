@@ -102,8 +102,13 @@ namespace GittBilSmsCore.Controllers
                    o.CreatedAt,
                    o.WaitingCount,
                    o.ExpiredCount,
-                   o.RefundAmount
-               })
+                   o.RefundAmount,
+                   o.UndeliveredCount,
+                   o.InvalidCount,  
+                   o.BlacklistedCount,  
+                   o.RepeatedCount, 
+                   o.BannedCount
+               })//.Where(o => o.OrderId == 49215) // Dummy where to ensure IQueryable 
                 .ToListAsync();
 
             return Json(orders);

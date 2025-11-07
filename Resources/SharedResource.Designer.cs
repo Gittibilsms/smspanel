@@ -1654,6 +1654,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Diğerleri.
+        /// </summary>
+        public static string fother {
+            get {
+                return ResourceManager.GetString("fother", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Askıda olması.
         /// </summary>
         public static string fPending {
@@ -2136,6 +2145,15 @@ namespace GittBilSmsCore.Resources {
         public static string New_User {
             get {
                 return ResourceManager.GetString("New User", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Yeni Sipariş.
+        /// </summary>
+        public static string newOrder {
+            get {
+                return ResourceManager.GetString("newOrder", resourceCulture);
             }
         }
         
