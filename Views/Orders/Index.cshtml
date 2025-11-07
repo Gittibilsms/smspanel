@@ -32,8 +32,17 @@
     window.getApisUrl = '/Orders/GetApis';
        window.resendUrl = '/Orders/ResendOrder';
 </script>
-<h4 class="mb-4">@SharedResource.All_Orders</h4>
 
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="">All Orders</h4>
+
+    <button class="btn btn-primary d-flex align-items-center m-0 text-teal" id="addnewOrderBtn" onclick="showSmsFormModal()">
+        <i class="material-icons-outlined">add</i>
+        @SharedResource.newOrder
+    </button>
+</div>
+
+ 
 <!-- Filter dropdown -->
 <div class="row mb-3 d-none">
     <div class="col-md-4">
@@ -291,6 +300,36 @@
                         <div class="filter-container">
                             <input type="number" class="column-filter" placeholder="@SharedResource.Min_Unsuccessful..." data-column="17" />
                             <i class="fas fa-times filter-icon clear-filter" data-column="17" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="number" class="column-filter" placeholder="@SharedResource.Min_Unsuccessful..." data-column="18" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="18" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="number" class="column-filter" placeholder="@SharedResource.Min_Unsuccessful..." data-column="19" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="19" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="number" class="column-filter" placeholder="@SharedResource.Min_Unsuccessful..." data-column="20" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="20" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="number" class="column-filter" placeholder="@SharedResource.Min_Unsuccessful..." data-column="21" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="21" style="display: none;"></i>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="filter-container">
+                            <input type="number" class="column-filter" placeholder="@SharedResource.Min_Unsuccessful..." data-column="22" />
+                            <i class="fas fa-times filter-icon clear-filter" data-column="22" style="display: none;"></i>
                         </div>
                     </th>
                 </tr>
