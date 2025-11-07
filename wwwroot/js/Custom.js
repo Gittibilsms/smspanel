@@ -1850,13 +1850,13 @@ $(document).ready(function () {
     <span class="me-3"><strong>${localizedTextDT.fPending || 'Pending'}:</strong> ${totalPending.toLocaleString()}</span>
     <span class="me-3"><strong>${localizedTextDT.fExpired || 'Expired'}:</strong> ${totalExpired.toLocaleString()}</span>
     <span class="me-3"><strong>${localizedTextDT.fRefund || 'Refund'}:</strong> ${totalRefund.toLocaleString()}</span>
-     <span class="me-3"><strong>${localizedTextDT.fother || 'Other'}:</strong> ${otherTotal.toLocaleString()}</span>
+  
   </div>`;
                 $('#ordersList_wrapper .table-summary').html(totalsHtml);
             },
             buttons: getLocalizedButtons()
         });
-
+        /*   <span class="me-3"><strong>${localizedTextDT.fother || 'Other'}:</strong> ${otherTotal.toLocaleString()}</span>*/
 
         const companyId = parseInt(
             document.querySelector('meta[name="company-id"]').content,
