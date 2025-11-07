@@ -1680,7 +1680,12 @@ $(document).ready(function () {
         { data: 'returnDate', render: formatDate },
         { data: 'waitingCount', name: 'pending' },
         { data: 'expiredCount', name: 'expired' },
-        { data: 'refundAmount', name: 'refund' }
+        { data: 'refundAmount', name: 'refund' },
+        { data: 'undeliveredCount', name: 'undeliveredCount' } ,
+        { data: 'invalidCount', name: 'invalidCount' },
+        { data: 'blacklistedCount', name: 'blacklistedCount' },
+        { data: 'repeatedCount', name: 'repeatedCount' },
+        { data: 'bannedCount', name: 'bannedCount' }
     ];
 
     const nonAdminColumns = [
@@ -1828,8 +1833,14 @@ $(document).ready(function () {
                 const totalPending = sumByName('pending');
                 const totalExpired = sumByName('expired');
                 const totalRefund = sumByName('refund');
+                //
+                const totalInvalid = sumByName('invalidCount');
+                const totalbcount = sumByName('blacklistedCount');
+                const totalrcount = sumByName('repeatedCount');
+                const totalbancount = sumByName('bannedCount');
                 // const grandTotal = totalLoaded + totalDelivered + totalUndeliv + totalPending + totalExpired;
                 const grandTotal = totalLoaded;
+                const otherTotal = totalInvalid + totalbcount + totalrcount + totalbancount;
 
                 const totalsHtml = `
   <div class="border-top pt-2 mt-1">
@@ -1839,6 +1850,7 @@ $(document).ready(function () {
     <span class="me-3"><strong>${localizedTextDT.fPending || 'Pending'}:</strong> ${totalPending.toLocaleString()}</span>
     <span class="me-3"><strong>${localizedTextDT.fExpired || 'Expired'}:</strong> ${totalExpired.toLocaleString()}</span>
     <span class="me-3"><strong>${localizedTextDT.fRefund || 'Refund'}:</strong> ${totalRefund.toLocaleString()}</span>
+     <span class="me-3"><strong>${localizedTextDT.fother || 'Other'}:</strong> ${otherTotal.toLocaleString()}</span>
   </div>`;
                 $('#ordersList_wrapper .table-summary').html(totalsHtml);
             },
