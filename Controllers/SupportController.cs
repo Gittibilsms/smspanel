@@ -29,12 +29,16 @@ namespace GittBilSmsCore.Controllers
         {
             try
             {
-                var currentUser = await _userManager.GetUserAsync(User);
-                if (currentUser == null)
-                {
-                  //  _logger.LogWarning("User not found in Index. Redirecting to login.");
-                    return RedirectToAction("Login", "Account");
-                }
+                //var currentUser = await _userManager.GetUserAsync(User);
+                var companyId = HttpContext.Session.GetInt32("CompanyId");
+                var userId = HttpContext.Session.GetInt32("UserId");
+                //if (currentUser == null)
+                //{
+                //    return Content($"<h3 style='color:red'>Error:</h3><h4>Stack Trace:</h4><pre>Top error</pre>", "text/html");
+
+                //    //  _logger.LogWarning("User not found in Index. Redirecting to login.");
+                //    //return RedirectToAction("Login", "Account");
+                //}
 
                 var userType = HttpContext.Session.GetString("UserType") ?? string.Empty;
                 var isCompanyUser = userType == "CompanyUser";
@@ -61,12 +65,12 @@ namespace GittBilSmsCore.Controllers
                 else if (isCompanyUser && isMainUser)
                 {
                     ticketQuery = ticketQuery
-                        .Where(x => x.User.CompanyId == currentUser.CompanyId);
+                        .Where(x => x.User.CompanyId == companyId);
                 }
                 else if (isCompanyUser && canCreateTicket)
                 {
                     ticketQuery = ticketQuery
-                        .Where(x => x.Ticket.CreatedByUserId == currentUser.Id);
+                        .Where(x => x.Ticket.CreatedByUserId == userId);
                 }
                 else
                 {
@@ -85,7 +89,7 @@ namespace GittBilSmsCore.Controllers
                     })
                     .ToListAsync();
 
-                ViewBag.CurrentCompanyId = currentUser.CompanyId;
+                ViewBag.CurrentCompanyId = companyId;
                 return View(list);
             }
             catch (Exception ex)
@@ -93,7 +97,8 @@ namespace GittBilSmsCore.Controllers
                 // Log to console / file / Azure log stream
                 //_log.LogError(ex, "Error in SupportController.Index");
                 // Option 1: Show custom error page
-                return RedirectToAction("Error", "Home");
+                //return RedirectToAction("Error", "Home");
+                return Content($"<h3 style='color:red'>Error:</h3><pre>{ex.Message}</pre><h4>Stack Trace:</h4><pre>{ex.StackTrace}</pre>", "text/html");
 
                 // Option 2: For debugging, you could temporarily use:
                 // return Content($"Error: {ex.Message}\n{ex.StackTrace}");
