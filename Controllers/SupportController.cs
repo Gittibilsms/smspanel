@@ -193,8 +193,16 @@ namespace GittBilSmsCore.Controllers
         {
             if (string.IsNullOrWhiteSpace(model.ResponseText))
                 return BadRequest("Message cannot be empty.");
-
-            var user = await _userManager.GetUserAsync(User);
+            var companyId = HttpContext.Session.GetInt32("CompanyId");
+            var userId = HttpContext.Session.GetInt32("UserId");
+            var user = await _userManager.Users
+              .Include(u => u.UserRoles)
+                  .ThenInclude(ur => ur.Role)
+                      .ThenInclude(r => r.RolePermissions)
+              .FirstOrDefaultAsync(u => u.Id == userId);
+            var userType = HttpContext.Session.GetString("UserType") ?? string.Empty;
+            var isCompanyUser = userType == "CompanyUser";
+            var isMainUser = HttpContext.Session.GetInt32("IsMainUser") == 1;
             var ticket = await _context.Tickets.FindAsync(model.TicketId);
             if (ticket == null) return NotFound();
 
@@ -205,11 +213,12 @@ namespace GittBilSmsCore.Controllers
                 Message = model.ResponseText,
                 ResponseText = model.ResponseText,
                 CreatedDate = TimeHelper.NowInTurkey(),
-                ResponderId = user.Id,
-                RespondedByUserId = user.Id
+                ResponderId = userId,
+                RespondedByUserId = userId
             };
             _context.TicketResponses.Add(response);
-            var isAdmin = (await _userManager.GetRolesAsync(user)).Contains("Admin");
+            var roleId = HttpContext.Session.GetInt32("RoleId");
+            var isAdmin = roleId == 1;
             if (isAdmin)
             {
                 ticket.Status = TicketStatus.Answered;

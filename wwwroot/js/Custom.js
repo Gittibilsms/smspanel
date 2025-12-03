@@ -405,25 +405,53 @@ function updateSmsPriceAndCost() {
     $('#totalCost').text(totalCost); // optional if you show it
 }
 
-function updateNumbersCount() {
-    const text = document.getElementById('PhoneNumbers').value;
+//function updateNumbersCount() {
+//    const text = document.getElementById('PhoneNumbers').value;
 
-    // ✅ Use cache to avoid re-processing same data
+//    // ✅ Use cache to avoid re-processing same data
+//    if (phoneNumbersCache.lastText === text) {
+//        updateDisplayCounts();
+//        return phoneNumbersCache.totalCount;
+//    }
+
+//    // ✅ Only process if text changed
+//    phoneNumbersCache.lastText = text;
+
+//    // ✅ Optimized splitting - use single regex and filter in one pass
+//    const rawNumbers = text.split(/[,;\n\r]+/).filter(n => n.trim() !== "");
+//    phoneNumbersCache.rawNumbers = rawNumbers;
+//    phoneNumbersCache.totalCount = rawNumbers.length;
+
+//    // ✅ For large datasets, use batch processing to avoid blocking UI
+//    if (rawNumbers.length > 1000) {
+//        processNumbersBatched(rawNumbers);
+//    } else {
+//        processNumbersSync(rawNumbers);
+//    }
+
+//    updateDisplayCounts();
+//    return phoneNumbersCache.totalCount;
+//}
+function updateNumbersCount() {
+    const textarea = document.getElementById('PhoneNumbers');
+    const text = textarea.value;
+
+    // Use cache if text hasn't changed
     if (phoneNumbersCache.lastText === text) {
         updateDisplayCounts();
         return phoneNumbersCache.totalCount;
     }
 
-    // ✅ Only process if text changed
+    // Update cache text
     phoneNumbersCache.lastText = text;
 
-    // ✅ Optimized splitting - use single regex and filter in one pass
+    // Quick count using split (O(n) - fast)
     const rawNumbers = text.split(/[,;\n\r]+/).filter(n => n.trim() !== "");
     phoneNumbersCache.rawNumbers = rawNumbers;
     phoneNumbersCache.totalCount = rawNumbers.length;
 
-    // ✅ For large datasets, use batch processing to avoid blocking UI
-    if (rawNumbers.length > 1000) {
+    // For very large datasets, use async processing
+    if (rawNumbers.length > 5000) {
         processNumbersBatched(rawNumbers);
     } else {
         processNumbersSync(rawNumbers);
@@ -431,6 +459,123 @@ function updateNumbersCount() {
 
     updateDisplayCounts();
     return phoneNumbersCache.totalCount;
+}
+function processNumbersSync_Optimized(allRaw) {
+    const validNumbers = [];
+    const invalidNumbers = [];
+
+    for (let i = 0; i < allRaw.length; i++) {
+        const trimmed = allRaw[i].trim();
+        const num = normalizePhoneNumber(trimmed);
+        if (num) {
+            validNumbers.push(num);
+        } else if (/^[\d\+\-\s\(\)]+$/.test(trimmed)) {
+            invalidNumbers.push(trimmed);
+        }
+    }
+
+    // Use Set for deduplication (O(n) instead of checking each time)
+    const uniqueValid = [...new Set(validNumbers)];
+    const uniqueInvalid = [...new Set(invalidNumbers)];
+
+    // Update textarea without triggering input event
+    const textarea = document.getElementById('PhoneNumbers');
+    const newValue = uniqueValid.concat(uniqueInvalid).join('\n');
+
+    // Only update if value changed
+    if (textarea.value !== newValue) {
+        suppressMapUpdate = true;
+        textarea.value = newValue;
+        suppressMapUpdate = false;
+    }
+
+    // Update counts directly
+    $('#validCount').text(`✅ Valid: ${uniqueValid.length}`);
+    $('#invalidCount').text(`❌ Numeric-but-format-invalid: ${uniqueInvalid.length}`);
+
+    // Update cache for subsequent calls
+    phoneNumbersCache.lastText = newValue;
+    phoneNumbersCache.validCount = uniqueValid.length;
+    phoneNumbersCache.invalidCount = uniqueInvalid.length;
+    phoneNumbersCache.totalCount = uniqueValid.length + uniqueInvalid.length;
+
+    updateDisplayCounts();
+
+    // Enable textarea if empty
+    if (!uniqueValid.length && !uniqueInvalid.length) {
+        $('#PhoneNumbers, #numberUpload').prop('disabled', false);
+    }
+}
+
+function processNumbersInChunks(allRaw) {
+    const validNumbers = [];
+    const invalidNumbers = [];
+    let currentIndex = 0;
+    const chunkSize = 2000; // Process 2000 numbers per frame
+    const totalCount = allRaw.length;
+
+    // Show progress indicator
+    $('#validCount').text(`✅ Processing... 0%`);
+
+    function processChunk() {
+        const endIndex = Math.min(currentIndex + chunkSize, totalCount);
+
+        for (let i = currentIndex; i < endIndex; i++) {
+            const trimmed = allRaw[i].trim();
+            const num = normalizePhoneNumber(trimmed);
+            if (num) {
+                validNumbers.push(num);
+            } else if (/^[\d\+\-\s\(\)]+$/.test(trimmed)) {
+                invalidNumbers.push(trimmed);
+            }
+        }
+
+        currentIndex = endIndex;
+        const progress = Math.round((currentIndex / totalCount) * 100);
+
+        if (currentIndex < totalCount) {
+            // Update progress
+            $('#validCount').text(`✅ Processing... ${progress}%`);
+            // Continue with next chunk
+            requestAnimationFrame(processChunk);
+        } else {
+            // Processing complete - finalize
+            finalizeChunkedProcessing(validNumbers, invalidNumbers);
+        }
+    }
+
+    // Start processing
+    requestAnimationFrame(processChunk);
+}
+function finalizeChunkedProcessing(validNumbers, invalidNumbers) {
+    // Use Set for deduplication
+    const uniqueValid = [...new Set(validNumbers)];
+    const uniqueInvalid = [...new Set(invalidNumbers)];
+
+    // Build the final string
+    const newValue = uniqueValid.concat(uniqueInvalid).join('\n');
+
+    // Update textarea without triggering events
+    const textarea = document.getElementById('PhoneNumbers');
+    suppressMapUpdate = true;
+    textarea.value = newValue;
+    suppressMapUpdate = false;
+
+    // Update counts
+    $('#validCount').text(`✅ ` + window.localizedTextDT.validcounts.replace("{0}", uniqueValid.length));
+    $('#invalidCount').text(`❌ ` + window.localizedTextDT.invalidcounts.replace("{0}", uniqueInvalid.length));
+
+    // Update cache
+    phoneNumbersCache.lastText = newValue;
+    phoneNumbersCache.validCount = uniqueValid.length;
+    phoneNumbersCache.invalidCount = uniqueInvalid.length;
+    phoneNumbersCache.totalCount = uniqueValid.length + uniqueInvalid.length;
+
+    updateDisplayCounts();
+
+    if (!uniqueValid.length && !uniqueInvalid.length) {
+        $('#PhoneNumbers, #numberUpload').prop('disabled', false);
+    }
 }
 function processNumbersSync(rawNumbers) {
     let validCount = 0;
@@ -495,29 +640,51 @@ function updateDisplayCounts() {
     document.getElementById('validCount').innerText = `✅ ` + window.localizedTextDT.validcounts.replace("{0}", validCount);
     document.getElementById('invalidCount').innerText = `❌ ` + window.localizedTextDT.invalidcounts.replace("{0}", invalidCount);
 }
+const NORMALIZE_REGEX = /[\s\u00A0\-\(\)\+]/g;
+const NON_DIGIT_REGEX = /[^\d]/g;
+const PHONE_MATCH_REGEX = /5\d{9}$/;
+
+// Cache for normalized numbers to avoid reprocessing
+const normalizedNumberCache = new Map();
+const MAX_CACHE_SIZE = 100000;
 function normalizePhoneNumber(rawNumber) {
     if (!rawNumber) return null;
 
-    // Normalize Unicode, remove spaces, dashes, parens, plus
-    let number = rawNumber.normalize('NFKC').replace(/[\s\u00A0\-\(\)\+]/g, '');
-
-    // Remove any non-digit characters
-    number = number.replace(/[^\d]/g, '');
-
-    // Extract last 10 digits starting with 5
-    const match = number.match(/5\d{9}$/);
-
-    if (!match) {
-        //console.log(`❌ Invalid: "${rawNumber}" → "${number}" (length=${number.length})`);
-        return null; // Will fallback to raw in updateTextareaFromMap
+    // Check cache first
+    if (normalizedNumberCache.has(rawNumber)) {
+        return normalizedNumberCache.get(rawNumber);
     }
 
-    const cleanedNumber = match[0];
+    // Normalize Unicode, remove spaces, dashes, parens, plus
+    let number = rawNumber.normalize('NFKC').replace(NORMALIZE_REGEX, '');
 
+    // Remove any non-digit characters
+    number = number.replace(NON_DIGIT_REGEX, '');
 
+    // Extract last 10 digits starting with 5
+    const match = number.match(PHONE_MATCH_REGEX);
 
-    return '90' + cleanedNumber;
+    if (!match) {
+        // Cache null results too
+        if (normalizedNumberCache.size < MAX_CACHE_SIZE) {
+            normalizedNumberCache.set(rawNumber, null);
+        }
+        return null;
+    }
+
+    const result = '90' + match[0];
+
+    // Cache the result
+    if (normalizedNumberCache.size < MAX_CACHE_SIZE) {
+        normalizedNumberCache.set(rawNumber, result);
+    }
+
+    return result;
 }
+function clearNormalizedNumberCache() {
+    normalizedNumberCache.clear();
+}
+
 function setLanguage(culture) {
     // Set cookie for 1 year
     document.cookie = ".AspNetCore.Culture=c=" + culture + "|uic=" + culture + "; path=/; max-age=" + (60 * 60 * 24 * 365);
@@ -535,9 +702,55 @@ function sendSmsAjax() {
         ? 0
         : Math.ceil(totalUnits / SEGMENT_UNITS);
 
-    // 2️⃣ Append it to the form data
     formData.append('TotalSmsCount', TotalSmsCount);
-    formData.set('FileMode', $('input[name="fileMode"]:checked').val());
+
+    const fileMode = $('input[name="fileMode"]:checked').val();
+    formData.set('FileMode', fileMode);
+
+    // ============================================
+    // KEY: Get TempUploadId and clear large data
+    // ============================================
+    const tempUploadId = formData.get('TempUploadId') || currentTempUploadId;
+
+    console.log('=== SendSms Debug ===');
+    console.log('FileMode:', fileMode);
+    console.log('TempUploadId:', tempUploadId);
+    console.log('PhoneNumbers length (before):', (formData.get('PhoneNumbers') || '').length);
+    console.log('RecipientsJson length (before):', (formData.get('RecipientsJson') || '').length);
+
+    // If we have a temp upload, use it and clear large fields
+    if (tempUploadId) {
+        formData.set('TempUploadId', tempUploadId);
+        formData.set('PhoneNumbers', '');      // Clear - server reads from temp file
+        formData.set('RecipientsJson', '');    // Clear - server reads from temp file
+        formData.set('FileMode', 'custom');    // Force custom mode
+
+        // Remove any file attachments (already uploaded)
+        formData.delete('files');
+
+        console.log('✅ Using TempUploadId - cleared large fields');
+    }
+    // If no temp upload but large data, warn
+    else {
+        const phoneNumbersLen = (formData.get('PhoneNumbers') || '').length;
+        const recipientsJsonLen = (formData.get('RecipientsJson') || '').length;
+
+        if (phoneNumbersLen > 1000000 || recipientsJsonLen > 1000000) {
+            console.warn('⚠️ Large payload without TempUploadId - may timeout');
+        }
+
+        // For custom mode, at least clear PhoneNumbers if RecipientsJson exists
+        if (fileMode === 'custom' && recipientsJsonLen > 0) {
+            formData.set('PhoneNumbers', '');
+            console.log('Cleared PhoneNumbers for custom mode');
+        }
+    }
+
+    console.log('Final payload:');
+    console.log('  TempUploadId:', formData.get('TempUploadId'));
+    console.log('  PhoneNumbers length:', (formData.get('PhoneNumbers') || '').length);
+    console.log('  RecipientsJson length:', (formData.get('RecipientsJson') || '').length);
+
     submitButton.disabled = true;
     $('#globalSpinnerOverlay').show();
 
@@ -546,37 +759,57 @@ function sendSmsAjax() {
         body: formData
     })
         .then(async res => {
-            const result = await res.json().catch(() => ({}));
+            const text = await res.text();
+            console.log('Response status:', res.status);
+            console.log('Response text:', text.substring(0, 500));
+
+            let result = {};
+            try {
+                result = JSON.parse(text);
+            } catch (e) {
+                console.log('Response is not JSON');
+            }
 
             if (res.ok) {
-                // SUCCESS
                 const message = typeof result.message === 'object' ? result.message.value : result.message;
                 alert('✅ ' + (message || 'SMS başarıyla gönderildi.'));
+
+                // Clear temp upload after successful send
+                clearTempUpload();
             } else {
-                // FAILURE (handled here, not in .catch)
-                const errorText = result?.value?.value || result?.value || result?.message || 'SMS gönderimi başarısız oldu.';
+                let errorText = 'SMS gönderimi başarısız oldu.';
+
+                if (result.error) {
+                    errorText = result.error;
+                } else if (result.message) {
+                    errorText = result.message;
+                } else if (text) {
+                    errorText = text.substring(0, 500);
+                }
+
+                console.error('Server error:', result);
                 alert('❌ ' + errorText);
             }
 
             // Close modals
-            const previewModalEl = document.getElementById('smsPreviewModal');
-            bootstrap.Modal.getInstance(previewModalEl)?.hide();
-
-            const smsModalEl = document.getElementById('smsModal');
-            bootstrap.Modal.getInstance(smsModalEl)?.hide();
+            bootstrap.Modal.getInstance(document.getElementById('smsPreviewModal'))?.hide();
+            bootstrap.Modal.getInstance(document.getElementById('smsModal'))?.hide();
 
             // Reload table & reset form
             $('#ordersList').DataTable().ajax.reload(null, false);
             smsForm.reset();
-            $('#numberUpload').FancyFileUpload('reset');
+
+            if (typeof $ !== 'undefined' && $('#numberUpload').length) {
+                $('#numberUpload').FancyFileUpload('reset');
+            }
+
             $('#PhoneNumbers').val('');
+            clearTempUpload();
         })
         .catch(err => {
-            // Only for network errors or unhandled JS issues
-            alert('⚠ Ağ hatası oluştu. Lütfen tekrar deneyin.');
-            console.error('Unexpected fetch error:', err);
+            console.error('Fetch error:', err);
+            alert('⚠ Ağ hatası: ' + err.message);
 
-            // Close modals just in case
             bootstrap.Modal.getInstance(document.getElementById('smsPreviewModal'))?.hide();
             bootstrap.Modal.getInstance(document.getElementById('smsModal'))?.hide();
         })
@@ -586,13 +819,40 @@ function sendSmsAjax() {
         });
 }
 
+function clearTempUpload() {
+    currentTempUploadId = null;
+    currentTempUploadCount = 0;
+    $('#TempUploadId').val('');
+
+    if (typeof uploadedNumbersMap !== 'undefined') {
+        uploadedNumbersMap.clear();
+    }
+
+    updateUploadStatus('', '');
+    updateTotalCount();
+}
+
+
 // Handle SMS Form Submission
 
+
+let updateTextareaTimeout = null;
 
 function updateTextareaFromMap() {
     if (suppressMapUpdate) return;
 
-    // 1) collect every raw string in entry.numbers
+    // Debounce rapid calls
+    if (updateTextareaTimeout) {
+        clearTimeout(updateTextareaTimeout);
+    }
+
+    updateTextareaTimeout = setTimeout(() => {
+        performTextareaUpdate();
+    }, 100);
+}
+
+function performTextareaUpdate() {
+    // 1) Collect all raw strings
     let allRaw = [];
     uploadedNumbersMap.forEach(entry => {
         if (Array.isArray(entry.numbers)) {
@@ -600,47 +860,15 @@ function updateTextareaFromMap() {
         }
     });
 
-    // 2) normalize & classify
-    const validNumbers = [];
-    const invalidNumbers = [];
-    allRaw.forEach(raw => {
-        const trimmed = raw.trim();
-        const num = normalizePhoneNumber(trimmed);
-        if (num) {
-            validNumbers.push(num);
-        }
-        else {
-            // only keep “invalid” entries if they still look like a number
-            // (e.g. “123-4567” or “+1 (800) 555-1212”)
-            if (/^[\d\+\-\s\(\)]+$/.test(trimmed)) {
-                invalidNumbers.push(trimmed);
-            }
-        }
-    });
+    const totalCount = allRaw.length;
 
-    // 3) uniq them
-    const uniqueValid = [...new Set(validNumbers)];
-    const uniqueInvalid = [...new Set(invalidNumbers)];
-
-    // 4) write _only_ numeric lines (valid + numeric-invalid) into the textarea
-    $('#PhoneNumbers').val(
-        uniqueValid
-            .concat(uniqueInvalid)
-            .join('\n')
-    );
-
-    // 5) update counts
-    $('#validCount').text(`✅ Valid: ${uniqueValid.length}`);
-    $('#invalidCount').text(`❌ Numeric-but-format-invalid: ${uniqueInvalid.length}`);
-
-    updateNumbersCount();
-
-    // 6) re-enable textarea if empty
-    if (!uniqueValid.length && !uniqueInvalid.length) {
-        $('#PhoneNumbers, #numberUpload').prop('disabled', false);
+    // For very large datasets, process in chunks
+    if (totalCount > 5000) {
+        processNumbersInChunks(allRaw);
+    } else {
+        processNumbersSync_Optimized(allRaw);
     }
 }
-
 
 $(document).on('click', '#confirmSendSms', function () {
     sendSmsAjax();
@@ -962,73 +1190,247 @@ function loadNumbersForColumn(file, col) {
         // optionally trigger your existing validator/summary updater here
     });
 }
+//function doUpload(data, file, uniqueId, nameCol, numberCol) {
+//    const fd = new FormData();
+//    fd.append('files', file);
+
+//    let url = nameCol && numberCol
+//        ? '/Home/UploadCustomRecipients'
+//        : '/Home/UploadNumbers';
+
+//    if (nameCol && numberCol) {
+//        fd.append('file', file);
+//        fd.append('nameColumn', nameCol);
+//        fd.append('numberColumn', numberCol);
+//        url = '/Home/UploadCustomRecipients';
+//    }
+//    else {
+//        // your existing standard endpoint
+//        fd.append('files', file);
+//        url = '/Home/UploadNumbers';
+//    }
+
+
+//    $.ajax({
+//        url,
+//        type: 'POST',
+//        data: fd,
+//        contentType: false,
+//        processData: false,
+//        dataType: 'json'
+//    }).done(res => {
+//        let recs = [];
+
+//        if (Array.isArray(res.records)) {
+//            recs = res.records.map(r => ({
+//                Name: r.name ?? r.Name,
+//                Number: r.number ?? r.Number
+//            }));
+//        }
+//        else if (res.numbers) {
+//            // handle top‑level numbers array or numbers.$values
+//            const nums = Array.isArray(res.numbers)
+//                ? res.numbers
+//                : Array.isArray(res.numbers.$values)
+//                    ? res.numbers.$values
+//                    : [];
+//            recs = nums.map(n => ({ Name: '', Number: n }));
+//        }
+
+//        // store the full Name/Number array for your form post
+//        $('#RecipientsJson').val(JSON.stringify(recs));
+
+//        const $row = $('.ff_fileupload_queued').last();
+//        $row.attr('data-file-id', uniqueId);
+//        $row.find('.ff_fileupload_remove_file').attr('data-file-id', uniqueId);
+//        const nums = recs.map(r => r.Number);
+//        // 4) store in your map and update textarea
+//        uploadedNumbersMap.set(uniqueId, { numbers: nums });
+//        updateTextareaFromMap();
+//    });
+//}
+
+let currentTempUploadId = null;
+let currentTempUploadCount = 0;
+
 function doUpload(data, file, uniqueId, nameCol, numberCol) {
     const fd = new FormData();
     fd.append('files', file);
 
-    let url = nameCol && numberCol
-        ? '/Home/UploadCustomRecipients'
-        : '/Home/UploadNumbers';
+    // Add column info if provided
+    if (nameCol) fd.append('nameColumn', nameCol);
+    if (numberCol) fd.append('numberColumn', numberCol);
 
-    if (nameCol && numberCol) {
-        fd.append('file', file);
-        fd.append('nameColumn', nameCol);
-        fd.append('numberColumn', numberCol);
-        url = '/Home/UploadCustomRecipients';
-    }
-    else {
-        // your existing standard endpoint
-        fd.append('files', file);
-        url = '/Home/UploadNumbers';
-    }
+    // Check if has custom name column
+    const hasName = nameCol && nameCol.length > 0;
+    fd.append('hasName', hasName);
 
+    // Show uploading status
+    updateUploadStatus('uploading', 'Yükleniyor...');
 
     $.ajax({
-        url,
+        url: '/Home/UploadNumbersTemp',  // NEW ENDPOINT
         type: 'POST',
         data: fd,
         contentType: false,
         processData: false,
-        dataType: 'json'
-    }).done(res => {
-        let recs = [];
-
-        if (Array.isArray(res.records)) {
-            recs = res.records.map(r => ({
-                Name: r.name ?? r.Name,
-                Number: r.number ?? r.Number
-            }));
+        dataType: 'json',
+        timeout: 600000, // 10 minutes for very large files
+        xhr: function () {
+            var xhr = new window.XMLHttpRequest();
+            xhr.upload.addEventListener("progress", function (evt) {
+                if (evt.lengthComputable) {
+                    var percentComplete = Math.round((evt.loaded / evt.total) * 100);
+                    updateUploadStatus('uploading', `Yükleniyor... ${percentComplete}%`);
+                }
+            }, false);
+            return xhr;
         }
-        else if (res.numbers) {
-            // handle top‑level numbers array or numbers.$values
-            const nums = Array.isArray(res.numbers)
-                ? res.numbers
-                : Array.isArray(res.numbers.$values)
-                    ? res.numbers.$values
-                    : [];
-            recs = nums.map(n => ({ Name: '', Number: n }));
+    }).done(function (res) {
+        if (res.success) {
+            // Store the temp upload ID
+            currentTempUploadId = res.tempId;
+            currentTempUploadCount = res.count;
+
+            console.log('✅ Upload successful:', {
+                tempId: res.tempId,
+                count: res.count,
+                stats: res.stats,
+                processingTime: res.processingTimeMs + 'ms'
+            });
+
+            // Update UI with stats
+            const statsText = `✅ ${res.count.toLocaleString()} geçerli numara` +
+                (res.stats.invalid > 0 ? ` | ${res.stats.invalid.toLocaleString()} geçersiz` : '') +
+                (res.stats.duplicates > 0 ? ` | ${res.stats.duplicates.toLocaleString()} tekrar` : '') +
+                (res.stats.blacklisted > 0 ? ` | ${res.stats.blacklisted.toLocaleString()} kara liste` : '');
+
+            updateUploadStatus('success', statsText);
+
+            // Store tempId in hidden field (create if doesn't exist)
+            let $tempIdField = $('#TempUploadId');
+            if (!$tempIdField.length) {
+                $('#smsForm').append(`<input type="hidden" id="TempUploadId" name="TempUploadId" value="${res.tempId}">`);
+            } else {
+                $tempIdField.val(res.tempId);
+            }
+
+            // Update phone numbers textarea with placeholder (not actual data)
+            $('#PhoneNumbers').val(`[${res.count.toLocaleString()} numara yüklendi - Ref: ${res.tempId.substring(0, 8)}...]`);
+
+            // Clear RecipientsJson - not needed anymore
+            $('#RecipientsJson').val('');
+
+            // Update the row with file ID for tracking
+            const $row = $('.ff_fileupload_queued').last();
+            if ($row.length) {
+                $row.attr('data-file-id', uniqueId);
+                $row.attr('data-temp-id', res.tempId);
+                $row.find('.ff_fileupload_remove_file').attr('data-file-id', uniqueId);
+            }
+
+            // Store in map for tracking (if you use uploadedNumbersMap)
+            if (typeof uploadedNumbersMap !== 'undefined') {
+                uploadedNumbersMap.set(uniqueId, {
+                    tempId: res.tempId,
+                    count: res.count,
+                    hasCustomData: res.hasCustomData
+                });
+            }
+
+            // Update total count display
+            updateTotalCount();
+
+            // Show success toast
+            if (typeof toastr !== 'undefined') {
+                toastr.success(`${res.count.toLocaleString()} numara başarıyla yüklendi`, 'Yükleme Tamamlandı');
+            }
+
+        } else {
+            console.error('Upload failed:', res.message);
+            updateUploadStatus('error', res.message || 'Yükleme başarısız');
+
+            if (typeof toastr !== 'undefined') {
+                toastr.error(res.message || 'Yükleme başarısız');
+            }
+        }
+    }).fail(function (xhr, status, error) {
+        console.error('Upload failed:', status, error);
+        console.error('Response:', xhr.responseText);
+
+        let errorMsg = 'Yükleme başarısız';
+        if (xhr.status === 413) {
+            errorMsg = 'Dosya çok büyük';
+        } else if (xhr.status === 500) {
+            errorMsg = 'Sunucu hatası';
+        } else if (status === 'timeout') {
+            errorMsg = 'Zaman aşımı - dosya çok büyük olabilir';
         }
 
-        // store the full Name/Number array for your form post
-        $('#RecipientsJson').val(JSON.stringify(recs));
+        updateUploadStatus('error', errorMsg);
 
-        const $row = $('.ff_fileupload_queued').last();
-        $row.attr('data-file-id', uniqueId);
-        $row.find('.ff_fileupload_remove_file').attr('data-file-id', uniqueId);
-        const nums = recs.map(r => r.Number);
-        // 4) store in your map and update textarea
-        uploadedNumbersMap.set(uniqueId, { numbers: nums });
-        updateTextareaFromMap();
+        if (typeof toastr !== 'undefined') {
+            toastr.error(errorMsg);
+        }
     });
 }
+function updateUploadStatus(status, message) {
+    const $statusEl = $('#uploadStatus, #validCount, .upload-status');
 
-$(document).on('click', '.ff_fileupload_remove_file', function () {
-    const fileId = $(this).data('file-id');
-
-    if (fileId && uploadedNumbersMap.has(fileId)) {
-        uploadedNumbersMap.delete(fileId);
-        updateTextareaFromMap();
+    if (status === 'uploading') {
+        $statusEl.html(`<span class="text-info"><i class="fas fa-spinner fa-spin"></i> ${message}</span>`);
+    } else if (status === 'success') {
+        $statusEl.html(`<span class="text-success"><i class="fas fa-check-circle"></i> ${message}</span>`);
+    } else if (status === 'error') {
+        $statusEl.html(`<span class="text-danger"><i class="fas fa-times-circle"></i> ${message}</span>`);
+    } else {
+        $statusEl.text(message);
     }
+}
+function updateTotalCount() {
+    let total = currentTempUploadCount;
+
+    // If using uploadedNumbersMap, sum all counts
+    if (typeof uploadedNumbersMap !== 'undefined' && uploadedNumbersMap.size > 0) {
+        total = 0;
+        uploadedNumbersMap.forEach(item => {
+            total += item.count || 0;
+        });
+    }
+
+    const $countEl = $('#totalNumberCount, #smsCount, .total-count');
+    if ($countEl.length) {
+        $countEl.text(`Toplam: ${total.toLocaleString()} numara`);
+    }
+}
+//$(document).on('click', '.ff_fileupload_remove_file', function () {
+//    const fileId = $(this).data('file-id');
+
+//    if (fileId && uploadedNumbersMap.has(fileId)) {
+//        uploadedNumbersMap.delete(fileId);
+//        updateTextareaFromMap();
+//    }
+//});
+$(document).on('click', '.ff_fileupload_remove_file', function() {
+    const fileId = $(this).data('file-id');
+    const tempId = $(this).closest('.ff_fileupload_queued').data('temp-id');
+    
+    console.log('Removing file:', fileId, 'TempId:', tempId);
+    
+    if (typeof uploadedNumbersMap !== 'undefined' && fileId) {
+        uploadedNumbersMap.delete(fileId);
+    }
+    
+    // If this was the current temp upload, clear it
+    if (tempId === currentTempUploadId) {
+        clearTempUpload();
+    }
+    
+    updateTotalCount();
+    $('#PhoneNumbers').val('');
+});
+$(document).on('reset', '#smsForm', function () {
+    clearTempUpload();
 });
 $(document).ready(function () {
     bindGlobalPasswordGenerators();
@@ -1046,6 +1448,7 @@ $(document).ready(function () {
         // Clear the uploaded numbers map and textarea
         uploadedNumbersMap.clear();
         $('#PhoneNumbers').val('');
+        clearTempUpload();
         const $dependentInputs = $('.dependent-fields').find('input, select, textarea, button');
         $dependentInputs.prop('disabled', true).addClass('disabled');
         $('#smsCount').text("Total Numbers: 0");
@@ -1678,14 +2081,14 @@ $(document).ready(function () {
         { data: 'refundable', render: data => data ? 'Yes' : 'No' },
         { data: 'returned', render: data => data ? 'Yes' : 'No' },
         { data: 'returnDate', render: formatDate },
-        { data: 'waitingCount', name: 'pending' },
-        { data: 'expiredCount', name: 'expired' },
-        { data: 'refundAmount', name: 'refund' },
-        { data: 'undeliveredCount', name: 'undeliveredCount' } ,
-        { data: 'invalidCount', name: 'invalidCount' },
-        { data: 'blacklistedCount', name: 'blacklistedCount' },
-        { data: 'repeatedCount', name: 'repeatedCount' },
-        { data: 'bannedCount', name: 'bannedCount' }
+        //{ data: 'waitingCount', name: 'pending' },
+        //{ data: 'expiredCount', name: 'expired' },
+        //{ data: 'refundAmount', name: 'refund' },
+        //{ data: 'undeliveredCount', name: 'undeliveredCount' } ,
+        //{ data: 'invalidCount', name: 'invalidCount' },
+        //{ data: 'blacklistedCount', name: 'blacklistedCount' },
+        //{ data: 'repeatedCount', name: 'repeatedCount' },
+        //{ data: 'bannedCount', name: 'bannedCount' }
     ];
 
     const nonAdminColumns = [

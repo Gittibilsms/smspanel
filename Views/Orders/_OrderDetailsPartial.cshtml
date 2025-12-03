@@ -201,12 +201,12 @@
                 </div>
 
                 <!-- Counts -->
-                <div class="row g-3 mb-2">
+                <div class="row g-3 mb-2 d-flex justify-content-around">
                     <div class="col-md-3 col-6"><div class="card text-center"><div class="fs-6 text-white d-flex">@SharedResource.Total: <span class="fw-bold">@Model.LoadedCount</span></div></div></div>
                     <div class="col-md-3 col-6"><div class="card text-center"><div class="fs-6 text-white d-flex">@SharedResource.Invalid: <span class="fw-bold">@Model.InvalidCount</span></div></div></div>
                 </div>
 
-                <div class="row g-3 mb-1">
+                <div class="row g-3 mb-1 d-flex justify-content-around">
                     <div class="col-md-3 col-6"><div class="card text-center"><div class="fs-6 text-white d-flex">@SharedResource.Processed: <span class="fw-bold">@Model.DeliveredCount</span></div></div></div>
                     <div class="col-md-3 col-6"><div class="card text-center"><div class="fs-6 text-white d-flex">@SharedResource.Undelivered: <span class="fw-bold">@visibleUndelivered</span></div></div></div>
                     @if (showExpired && Model.ExpiredCount > 0)

@@ -18,5 +18,6 @@
         public string? SelectedNumberColumnKey { get; set; }
         public IFormFile[] files { get; set; }
         public string RecipientsJson { get; set; } = string.Empty;
+        public string TempUploadId { get; set; }
     }
 }

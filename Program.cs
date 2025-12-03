@@ -10,7 +10,7 @@ using Microsoft.Extensions.Options;
 using Serilog;
 using System.Globalization;
 using Telegram.Bot;
-
+using Microsoft.AspNetCore.Http.Features;
 var builder = WebApplication.CreateBuilder(args);
 var logPath = Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? AppContext.BaseDirectory, "LogFiles", "GittBilSms", "sms-report-.txt");
 
@@ -29,6 +29,21 @@ Log.Logger = new LoggerConfiguration()
     )
    ).CreateLogger();
 builder.Host.UseSerilog();
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.ValueLengthLimit = int.MaxValue;           // No limit on value length
+    options.MultipartBodyLengthLimit = 209715200;      // 200 MB
+    options.ValueCountLimit = int.MaxValue;            // No limit on value count
+    options.KeyLengthLimit = int.MaxValue;             // No limit on key length
+    options.MultipartHeadersLengthLimit = int.MaxValue;
+});
+
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 209715200; // 200 MB
+    serverOptions.Limits.RequestHeadersTimeout = TimeSpan.FromMinutes(5);
+    serverOptions.Limits.KeepAliveTimeout = TimeSpan.FromMinutes(10);
+});
 //builder.Logging.AddConsole();
 builder.Services.AddDbContext<GittBilSmsDbContext>(options =>
 {

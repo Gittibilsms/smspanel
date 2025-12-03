@@ -235,10 +235,50 @@ namespace GittBilSmsCore.Controllers
         }
 
         [HttpPost]
+        [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = 209715200)]
+        [RequestSizeLimit(209715200)]
         public async Task<IActionResult> SendSms(SendSmsViewModel model)
         {
             try
             {
+                // === DEBUG LOGGING START ===
+                Console.WriteLine("=== SendSms Called ===");
+                Console.WriteLine($"Timestamp: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}");
+                Console.WriteLine($"Request.ContentLength: {Request.ContentLength}");
+                Console.WriteLine($"Request.ContentType: {Request.ContentType}");
+
+                if (model == null)
+                {
+                    Console.WriteLine("ERROR: Model is NULL!");
+                    try
+                    {
+                        var form = await Request.ReadFormAsync();
+                        Console.WriteLine($"Form keys count: {form.Keys.Count}");
+                        foreach (var key in form.Keys)
+                        {
+                            var val = form[key].ToString();
+                            Console.WriteLine($"  {key}: length={val.Length}");
+                        }
+                    }
+                    catch (Exception formEx)
+                    {
+                        Console.WriteLine($"Cannot read form: {formEx.Message}");
+                    }
+                    return BadRequest(new { error = "Model binding failed", message = "Model is null" });
+                }
+
+                Console.WriteLine($"Model bound successfully!");
+                Console.WriteLine($"  CompanyId: {model.CompanyId}");
+                Console.WriteLine($"  FileMode: {model.FileMode}");
+                Console.WriteLine($"  TempUploadId: {model.TempUploadId}");
+                Console.WriteLine($"  PhoneNumbers length: {model.PhoneNumbers?.Length ?? 0}");
+                Console.WriteLine($"  RecipientsJson length: {model.RecipientsJson?.Length ?? 0}");
+                Console.WriteLine($"  Message: {model.Message?.Substring(0, Math.Min(model.Message?.Length ?? 0, 100))}");
+                Console.WriteLine($"  SelectedApiId: {model.SelectedApiId}");
+                Console.WriteLine($"  Files count: {model.files?.Length ?? 0}");
+                Console.WriteLine($"  TotalSmsCount: {model.TotalSmsCount}");
+                // === DEBUG LOGGING END ===
+
                 Console.WriteLine($"SelectedApiId (Before Default): {model.SelectedApiId}");
 
                 // Fallback to Yurtici API if not selected
@@ -253,71 +293,298 @@ namespace GittBilSmsCore.Controllers
                         return BadRequest("Hiçbir API seçilmedi.");
                 }
 
+                Console.WriteLine($"[LOG] Fetching API with Id: {model.SelectedApiId}");
                 var api = await _context.Apis.FirstOrDefaultAsync(a => a.ApiId == model.SelectedApiId);
                 if (api == null)
                     return BadRequest("Geçersiz API seçildi.");
+                Console.WriteLine($"[LOG] API found: {api.ServiceName}");
 
+                Console.WriteLine($"[LOG] Fetching Company with Id: {model.CompanyId}");
                 var company = await _context.Companies.FirstOrDefaultAsync(c => c.CompanyId == model.CompanyId);
                 if (company == null)
                     return BadRequest("Geçersiz şirket.");
+                Console.WriteLine($"[LOG] Company found: {company.CompanyName}");
 
                 var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+                Console.WriteLine($"[LOG] UserId from session: {userId}");
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
 
                 if (user == null)
                     return BadRequest("Geçersiz kullanıcı.");
+                Console.WriteLine($"[LOG] User found: {user.UserName}");
 
-                List<(string Name, string Number)> recipients;
+                // ============================================
+                // VARIABLES FOR ALL PATHS
+                // ============================================
+                List<(string Name, string Number)> recipients = new List<(string Name, string Number)>();
+                List<(string Name, string Number)> validRecipients = new List<(string Name, string Number)>();
+                List<string> validNumbers = new List<string>();
+                List<string> numbersList = new List<string>();
+                List<string> invalidNumbers = new List<string>();
+                List<string> blacklistedNumbers = new List<string>();
+                List<string> repeatedNumbers = new List<string>();
+                List<string> bannedNumbers = new List<string>();
 
-                // 1) STANDARD‐TEXTAREA PATH
-                if (model.FileMode == "standard"
+                string usedPath = "";
+                TempUpload tempUploadRecord = null;
+                bool skipValidation = false; // ⚡ Key flag for optimization
+
+                Console.WriteLine($"[LOG] Processing recipients - FileMode: {model.FileMode}, TempUploadId: {model.TempUploadId}");
+
+                // ============================================
+                // PATH 1: TEMP UPLOAD (Large files - PRIORITY)
+                // ⚡ ALREADY VALIDATED in UploadNumbersTemp - SKIP RE-VALIDATION
+                // ============================================
+                if (!string.IsNullOrWhiteSpace(model.TempUploadId))
+                {
+                    Console.WriteLine($"[LOG] Using TEMP-UPLOAD path - TempId: {model.TempUploadId}");
+                    usedPath = "TempUpload";
+                    skipValidation = true; // ⚡ Numbers already validated during upload
+
+                    // Find the temp upload record
+                    tempUploadRecord = await _context.TempUploads
+                        .FirstOrDefaultAsync(t => t.TempId == model.TempUploadId);
+
+                    if (tempUploadRecord == null)
+                    {
+                        Console.WriteLine($"[LOG] ERROR: TempUpload not found for TempId: {model.TempUploadId}");
+                        return BadRequest(new { error = "Upload expired or not found. Please re-upload the file." });
+                    }
+
+                    if (string.IsNullOrEmpty(tempUploadRecord.FilePath) || !System.IO.File.Exists(tempUploadRecord.FilePath))
+                    {
+                        Console.WriteLine($"[LOG] ERROR: File not found: {tempUploadRecord.FilePath}");
+                        return BadRequest(new { error = "Upload file not found. Please re-upload the file." });
+                    }
+
+                    Console.WriteLine($"[LOG] TempUpload found - RecipientCount: {tempUploadRecord.RecipientCount}, HasCustomColumns: {tempUploadRecord.HasCustomColumns}");
+
+                    // ⚡ OPTIMIZED: Use streaming to read file (memory efficient for large files)
+                    var expectedCount = tempUploadRecord.RecipientCount;
+                    validNumbers = new List<string>(expectedCount);
+                    validRecipients = new List<(string Name, string Number)>(expectedCount);
+
+                    Console.WriteLine($"[LOG] Reading pre-validated numbers from file...");
+
+                    using (var reader = new StreamReader(tempUploadRecord.FilePath))
+                    {
+                        string line;
+                        while ((line = await reader.ReadLineAsync()) != null)
+                        {
+                            if (string.IsNullOrWhiteSpace(line)) continue;
+
+                            // Format: "name|number" or just "number"
+                            if (line.Contains('|'))
+                            {
+                                var parts = line.Split('|');
+                                var name = parts[0].Trim();
+                                var number = parts[1].Trim();
+                                validRecipients.Add((name, number));
+                                validNumbers.Add(number);
+                            }
+                            else
+                            {
+                                var number = line.Trim();
+                                validRecipients.Add(("", number));
+                                validNumbers.Add(number);
+                            }
+                        }
+                    }
+
+                    // Also set numbersList for compatibility
+                    numbersList = validNumbers;
+                    recipients = validRecipients;
+
+                    Console.WriteLine($"[LOG] Loaded {validNumbers.Count} pre-validated numbers from temp file");
+
+                    // Mark as used
+                    tempUploadRecord.IsUsed = true;
+                    _context.TempUploads.Update(tempUploadRecord);
+                }
+                // ============================================
+                // PATH 2: STANDARD TEXTAREA (Small lists)
+                // ============================================
+                else if (model.FileMode == "standard"
                     && !string.IsNullOrWhiteSpace(model.PhoneNumbers))
                 {
+                    Console.WriteLine($"[LOG] Using STANDARD path - PhoneNumbers");
+                    usedPath = "Standard";
+
                     recipients = model.PhoneNumbers
                        .Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
                        .Select(n => ("", n.Trim()))
                        .ToList();
+                    numbersList = recipients.Select(r => r.Number).ToList();
+                    Console.WriteLine($"[LOG] Parsed {recipients.Count} recipients from PhoneNumbers");
                 }
-                // 2) CUSTOM‐FILE PATH
+                // ============================================
+                // PATH 3: CUSTOM FILE (uploaded with form)
+                // ============================================
                 else if (model.FileMode == "custom"
                          && model.files?.Length > 0)
                 {
+                    Console.WriteLine($"[LOG] Using CUSTOM-FILE path - parsing file: {model.files[0].FileName}");
+                    usedPath = "CustomFile";
+
                     recipients = ParseRecipientsFromFile(
                         model.files[0],
                         model.HasName,
                         model.SelectedCustomColumnKey,
                         model.SelectedNumberColumnKey
                     );
+                    numbersList = recipients.Select(r => r.Number).ToList();
+                    Console.WriteLine($"[LOG] Parsed {recipients.Count} recipients from file");
                 }
-                // 3) PERSONALIZED JSON PATH
+                // ============================================
+                // PATH 4: RECIPIENTS JSON (Medium lists)
+                // ============================================
                 else if (model.FileMode == "custom"
                          && !string.IsNullOrWhiteSpace(model.RecipientsJson))
                 {
+                    Console.WriteLine($"[LOG] Using CUSTOM-JSON path - RecipientsJson length: {model.RecipientsJson.Length}");
+                    usedPath = "CustomJson";
+
                     var list = JsonConvert
                                  .DeserializeObject<List<RecipientDto>>(model.RecipientsJson);
                     recipients = list.Select(r => (r.Name, r.Number)).ToList();
+                    numbersList = recipients.Select(r => r.Number).ToList();
+                    Console.WriteLine($"[LOG] Parsed {recipients.Count} recipients from RecipientsJson");
+                }
+                // ============================================
+                // NO RECIPIENTS PROVIDED
+                // ============================================
+                else
+                {
+                    Console.WriteLine($"[LOG] ERROR: No recipients path matched!");
+                    Console.WriteLine($"[LOG]   FileMode: {model.FileMode}");
+                    Console.WriteLine($"[LOG]   TempUploadId: {model.TempUploadId}");
+                    Console.WriteLine($"[LOG]   PhoneNumbers empty: {string.IsNullOrWhiteSpace(model.PhoneNumbers)}");
+                    Console.WriteLine($"[LOG]   Files: {model.files?.Length ?? 0}");
+                    Console.WriteLine($"[LOG]   RecipientsJson empty: {string.IsNullOrWhiteSpace(model.RecipientsJson)}");
+                    return BadRequest(new { error = "No recipients provided." });
+                }
+
+                Console.WriteLine($"[LOG] Total recipients loaded: {(skipValidation ? validNumbers.Count : recipients.Count)} via {usedPath}");
+
+                // ============================================
+                // ⚡ VALIDATION - SKIP FOR TEMPUPLOAD PATH
+                // ============================================
+                if (!skipValidation)
+                {
+                    Console.WriteLine($"[LOG] Processing blacklist and banned numbers (non-TempUpload path)");
+
+                    // Blacklist + banned check
+                    var blacklist = _context.BlacklistNumbers.Select(x => x.Number).ToHashSet();
+                    var banned = _context.BannedNumbers.Select(x => x.Number).ToHashSet();
+                    Console.WriteLine($"[LOG] Blacklist count: {blacklist.Count}, Banned count: {banned.Count}");
+
+                    var seenNumbers = new HashSet<string>();
+
+                    bool IsValidPhone(string num)
+                    {
+                        num = Regex.Replace(num, @"\D", ""); // keep only digits
+
+                        if (num.StartsWith("90") && num.Length == 12) return true;   // 905xxxxxxxxx
+                        if (num.StartsWith("0") && num.Length == 11) return true;    // 05xxxxxxxxx
+                        if (num.StartsWith("5") && num.Length == 10) return true;    // 5xxxxxxxxx
+
+                        return false;
+                    }
+
+                    string NormalizePhone(string num)
+                    {
+                        num = Regex.Replace(num, @"\D", ""); // digits only
+
+                        if (num.StartsWith("90") && num.Length == 12) return num;
+                        if (num.StartsWith("0") && num.Length == 11) return "90" + num.Substring(1); // convert 05 → 905
+                        if (num.StartsWith("5") && num.Length == 10) return "90" + num;              // convert 5 → 905
+                        return num; // fallback (shouldn't hit if validated)
+                    }
+
+                    Console.WriteLine($"[LOG] Validating {numbersList.Count} numbers...");
+                    foreach (var number in numbersList)
+                    {
+                        var digitsOnly = Regex.Replace(number, @"\D", "");
+
+                        if (!IsValidPhone(digitsOnly))
+                        {
+                            invalidNumbers.Add(number); // keep original for invalid.txt
+                            continue;
+                        }
+
+                        var normalized = NormalizePhone(digitsOnly); // always unify to 905xxxxxxxxx
+
+                        if (blacklist.Contains(normalized))
+                        {
+                            blacklistedNumbers.Add(normalized);
+                            continue;
+                        }
+
+                        if (banned.Contains(normalized))
+                        {
+                            bannedNumbers.Add(normalized);
+                            continue;
+                        }
+
+                        if (seenNumbers.Contains(normalized))
+                        {
+                            repeatedNumbers.Add(normalized);
+                            continue;
+                        }
+
+                        validNumbers.Add(normalized);
+                        seenNumbers.Add(normalized);
+                    }
+
+                    Console.WriteLine($"[LOG] Validation complete:");
+                    Console.WriteLine($"[LOG]   Valid: {validNumbers.Count}");
+                    Console.WriteLine($"[LOG]   Invalid: {invalidNumbers.Count}");
+                    Console.WriteLine($"[LOG]   Blacklisted: {blacklistedNumbers.Count}");
+                    Console.WriteLine($"[LOG]   Banned: {bannedNumbers.Count}");
+                    Console.WriteLine($"[LOG]   Repeated: {repeatedNumbers.Count}");
+
+                    // Build validRecipients with normalized numbers
+                    string NormalizePhoneForLookup(string num)
+                    {
+                        num = Regex.Replace(num, @"\D", "");
+                        if (num.StartsWith("90") && num.Length == 12) return num;
+                        if (num.StartsWith("0") && num.Length == 11) return "90" + num.Substring(1);
+                        if (num.StartsWith("5") && num.Length == 10) return "90" + num;
+                        return num;
+                    }
+
+                    var validNumbersSet = validNumbers.ToHashSet();
+                    validRecipients = recipients
+                        .Where(r => validNumbersSet.Contains(NormalizePhoneForLookup(r.Number)))
+                        .Select(r => (r.Name, NormalizePhoneForLookup(r.Number)))
+                        .ToList();
+
+                    Console.WriteLine($"[LOG] Valid recipients after filtering: {validRecipients.Count}");
                 }
                 else
                 {
-                    return BadRequest("No recipients provided.");
+                    // ⚡ TempUpload path - validation already done
+                    Console.WriteLine($"[LOG] SKIPPING validation - already done in UploadNumbersTemp");
+                    Console.WriteLine($"[LOG] Using {validNumbers.Count} pre-validated numbers");
+                    // validNumbers and validRecipients are already set from temp file reading
+                    // invalidNumbers, blacklistedNumbers, etc. are empty (filtered during upload)
                 }
 
-                // 3️⃣ Build payload
+                if (!validRecipients.Any() && !validNumbers.Any())
+                {
+                    return BadRequest(new { error = "No valid recipients." });
+                }
+
+                // ============================================
+                // BUILD PAYLOAD & CREATE ORDER
+                // ============================================
                 bool isPersonalized =
-                   !string.IsNullOrWhiteSpace(model.RecipientsJson)
-                   && model.RecipientsJson.Length > 1;
+                   (!string.IsNullOrWhiteSpace(model.RecipientsJson) && model.RecipientsJson.Length > 1)
+                   || (tempUploadRecord != null && tempUploadRecord.HasCustomColumns);
 
-                object payload;
-
-                var rawNumbers = model.PhoneNumbers ?? "";
-                //var numbersList = rawNumbers
-                //    .Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
-                //    .Select(n => n.Trim())
-                //    .Where(n => !string.IsNullOrWhiteSpace(n))
-                //    .ToList();
-                var numbersList = recipients.Select(r => r.Number).ToList();
                 int segmentsPerMessage = model.TotalSmsCount ?? 0;
 
+                Console.WriteLine($"[LOG] Creating order - validNumbers count: {validNumbers.Count}, segments: {segmentsPerMessage}");
 
                 // Create order
                 var order = new Order
@@ -329,7 +596,7 @@ namespace GittBilSmsCore.Controllers
                     SubmissionType = "Manual",
                     ScheduledSendDate = model.ScheduledSendDate ?? TimeHelper.NowInTurkey(),
                     MessageText = model.Message,
-                    LoadedCount = numbersList.Count,
+                    LoadedCount = skipValidation ? validNumbers.Count : numbersList.Count,
                     ProcessedCount = 0,
                     UnsuccessfulCount = 0,
                     Refundable = false,
@@ -338,7 +605,6 @@ namespace GittBilSmsCore.Controllers
                     SmsCount = segmentsPerMessage,
                     CreatedAt = TimeHelper.NowInTurkey()
                 };
-                order.LoadedCount = recipients.Count;
 
                 if (!company.IsTrustedSender)
                 {
@@ -350,7 +616,6 @@ namespace GittBilSmsCore.Controllers
                         ActionName = "Awaiting approval",
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
-
                 }
                 else if (model.ScheduledSendDate.HasValue && model.ScheduledSendDate.Value > TimeHelper.NowInTurkey())
                 {
@@ -376,9 +641,22 @@ namespace GittBilSmsCore.Controllers
                     });
                 }
 
+                Console.WriteLine($"[LOG] Saving order to database - Status: {order.CurrentStatus}");
                 _context.Orders.Add(order);
                 await _context.SaveChangesAsync();
+                Console.WriteLine($"[LOG] Order saved - OrderId: {order.OrderId}");
 
+                // Link TempUpload to Order if used
+                if (tempUploadRecord != null)
+                {
+                    tempUploadRecord.OrderId = order.OrderId;
+                    _context.TempUploads.Update(tempUploadRecord);
+                    await _context.SaveChangesAsync();
+                }
+
+                // ============================================
+                // SIGNALR NOTIFICATIONS
+                // ============================================
                 var payloadsignalrOrder = new
                 {
                     orderId = order.OrderId,
@@ -399,35 +677,24 @@ namespace GittBilSmsCore.Controllers
                     returnDate = order.ReturnDate?.ToString("yyyy-MM-dd HH:mm")
                 };
                 var httpUser = HttpContext.User;
-                // 1) Always notify all Admins
-                await _hubContext.Clients
-                    .Group("Admins")
-                    .SendAsync("ReceiveNewOrder", payloadsignalrOrder);
 
-                await _hubContext.Clients
-                  .Group("PanelUsers")
-                  .SendAsync("ReceiveNewOrder", payloadsignalrOrder);
+                Console.WriteLine($"[LOG] Sending SignalR notifications");
+                await _hubContext.Clients.Group("Admins").SendAsync("ReceiveNewOrder", payloadsignalrOrder);
+                await _hubContext.Clients.Group("PanelUsers").SendAsync("ReceiveNewOrder", payloadsignalrOrder);
 
-                // 2) Company‐level users
                 if (httpUser.IsInRole("CompanyUser"))
                 {
                     var MainUser = (HttpContext.Session.GetInt32("IsMainUser") ?? 0) == 1;
-
                     if (MainUser)
                     {
-                        // main user = sees all company orders
-                        await _hubContext.Clients
-                            .Group($"company_{order.CompanyId}")
-                            .SendAsync("ReceiveNewOrder", payloadsignalrOrder);
+                        await _hubContext.Clients.Group($"company_{order.CompanyId}").SendAsync("ReceiveNewOrder", payloadsignalrOrder);
                     }
                     else
                     {
-                        // sub‐user = only their own
-                        await _hubContext.Clients
-                            .Group($"user_{order.CreatedByUserId}")
-                            .SendAsync("ReceiveNewOrder", payloadsignalrOrder);
+                        await _hubContext.Clients.Group($"user_{order.CreatedByUserId}").SendAsync("ReceiveNewOrder", payloadsignalrOrder);
                     }
                 }
+
                 if (!company.IsTrustedSender)
                 {
                     var notif = new Notifications
@@ -442,10 +709,10 @@ namespace GittBilSmsCore.Controllers
                         UserId = user.Id
                     };
                     await _notificationService.AddNotificationAsync(notif);
-                    var newNotificationId = notif.NotificationId;
+
                     var signalRpayload = new
                     {
-                        notificationId = newNotificationId,
+                        notificationId = notif.NotificationId,
                         title = _sharedLocalizer["NewOrderAwaitingApproval"],
                         description = string.Format(_sharedLocalizer["OrderAwaitingAdminApprovalDesc"], order.OrderId),
                         type = (int)NotificationType.SmsAwaitingApproval,
@@ -455,108 +722,45 @@ namespace GittBilSmsCore.Controllers
                         userId = user.Id
                     };
 
-                    await _hubContext.Clients.Group("Admins")
-                        .SendAsync("ReceiveNotification", signalRpayload);
-
-                    await _hubContext.Clients
-                         .Group("PanelUsers")
-                         .SendAsync("ReceiveNotification", signalRpayload);
+                    await _hubContext.Clients.Group("Admins").SendAsync("ReceiveNotification", signalRpayload);
+                    await _hubContext.Clients.Group("PanelUsers").SendAsync("ReceiveNotification", signalRpayload);
                 }
 
-                // Blacklist + banned check
-                var blacklist = _context.BlacklistNumbers.Select(x => x.Number).ToHashSet();
-                var banned = _context.BannedNumbers.Select(x => x.Number).ToHashSet();
+                // ============================================
+                // SAVE TO OrderRecipients FOR REPORTS (if custom data)
+                // ============================================
+                bool hasCustomData = !string.IsNullOrWhiteSpace(model.RecipientsJson)
+                    || (tempUploadRecord != null && tempUploadRecord.HasCustomColumns);
 
-                var validNumbers = new List<string>();
-                var invalidNumbers = new List<string>();
-                var blacklistedNumbers = new List<string>();
-                var repeatedNumbers = new List<string>();
-                var bannedNumbers = new List<string>();
-                var seenNumbers = new HashSet<string>();
-
-                bool IsValidPhone(string num)
+                if (hasCustomData && validRecipients.Any())
                 {
-                    num = Regex.Replace(num, @"\D", ""); // keep only digits
-
-                    if (num.StartsWith("90") && num.Length == 12) return true;   // 905xxxxxxxxx
-                    if (num.StartsWith("0") && num.Length == 11) return true;    // 05xxxxxxxxx
-                    if (num.StartsWith("5") && num.Length == 10) return true;    // 5xxxxxxxxx
-
-                    return false;
-                }
-
-                string NormalizePhone(string num)
-                {
-                    num = Regex.Replace(num, @"\D", ""); // digits only
-
-                    if (num.StartsWith("90") && num.Length == 12) return num;
-                    if (num.StartsWith("0") && num.Length == 11) return "90" + num.Substring(1); // convert 05 → 905
-                    if (num.StartsWith("5") && num.Length == 10) return "90" + num;              // convert 5 → 905
-                    return num; // fallback (shouldn't hit if validated)
-                }
-
-                foreach (var number in numbersList)
-                {
-                    var digitsOnly = Regex.Replace(number, @"\D", "");
-
-                    if (!IsValidPhone(digitsOnly))
-                    {
-                        invalidNumbers.Add(number); // keep original for invalid.txt
-                        continue;
-                    }
-
-                    var normalized = NormalizePhone(digitsOnly); // always unify to 905xxxxxxxxx
-
-                    if (blacklist.Contains(normalized))
-                    {
-                        blacklistedNumbers.Add(normalized);
-                        continue;
-                    }
-
-                    if (banned.Contains(normalized))
-                    {
-                        bannedNumbers.Add(normalized);
-                        continue;
-                    }
-
-                    if (seenNumbers.Contains(normalized))
-                    {
-                        repeatedNumbers.Add(normalized);
-                        continue;
-                    }
-
-                    validNumbers.Add(normalized);
-                    seenNumbers.Add(normalized);
-                }
-
-                // Now recipients need to be checked with normalized numbers
-                var validRecipients = recipients
-                    .Where(r => validNumbers.Contains(NormalizePhone(r.Number)))
-                    .ToList();
-
-                if (!validRecipients.Any())
-                    return BadRequest("No valid recipients.");
-                if (!string.IsNullOrWhiteSpace(model.RecipientsJson))
-                {
+                    Console.WriteLine($"[LOG] Saving OrderRecipients to database (hasCustomData: {hasCustomData})");
                     var orderRecipientEntities = validRecipients
                       .Select(r => new OrderRecipient
                       {
                           OrderId = order.OrderId,
                           RecipientName = r.Name,
-                          RecipientNumber = r.Number
+                          RecipientNumber = r.Number // Already normalized for TempUpload path
                       })
                       .ToList();
                     _context.OrderRecipients.AddRange(orderRecipientEntities);
                     await _context.SaveChangesAsync();
+                    Console.WriteLine($"[LOG] Saved {orderRecipientEntities.Count} OrderRecipients");
                 }
+
+                // ============================================
+                // QUOTA CHECK
+                // ============================================
                 order.PlaceholderColumn = model.SelectedCustomColumn;
                 int totalSmsCredits = validNumbers.Count * segmentsPerMessage;
+                Console.WriteLine($"[LOG] Total SMS credits needed: {totalSmsCredits}");
 
                 bool isMainUser = user.IsMainUser ?? false;
 
                 if (!isMainUser && user.QuotaType == "Variable Quota")
                 {
                     int allowedQuota = user.Quota ?? 0;
+                    Console.WriteLine($"[LOG] User quota check - Allowed: {allowedQuota}, Needed: {totalSmsCredits}");
 
                     if (allowedQuota <= 0 || totalSmsCredits > allowedQuota)
                     {
@@ -575,39 +779,78 @@ namespace GittBilSmsCore.Controllers
                         return BadRequest(new { value = _sharedLocalizer["quotanotavailable"] });
                     }
 
-                    // ✅ Deduct later only if actually sent/scheduled
                     user.Quota = allowedQuota - totalSmsCredits;
                 }
-                // Save files
-                var isAzure = Environment.GetEnvironmentVariable("HOME") != null;
 
-                // Set base path depending on environment
+                // ============================================
+                // SAVE FILES TO ORDER FOLDER
+                // ============================================
+                var isAzure = Environment.GetEnvironmentVariable("HOME") != null;
+                Console.WriteLine($"[LOG] Environment: {(isAzure ? "Azure" : "Local")}");
+
                 var baseFolderPath = isAzure
                     ? Path.Combine("D:\\home\\data", "orders")
                     : Path.Combine(System.IO.Directory.GetCurrentDirectory(), "App_Data", "orders");
                 var folderPath = Path.Combine(baseFolderPath, order.OrderId.ToString());
+
+                Console.WriteLine($"[LOG] Creating folder: {folderPath}");
                 System.IO.Directory.CreateDirectory(folderPath);
 
-                await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "original.txt"), numbersList);
-                await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "recipients.txt"), validNumbers);
-                await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "filtered.txt"), validNumbers);
-                await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "invalid.txt"), invalidNumbers);
-                await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "blacklisted.txt"), blacklistedNumbers);
-                await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "repeated.txt"), repeatedNumbers);
-                await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "banned.txt"), bannedNumbers);
+                Console.WriteLine($"[LOG] Writing files...");
 
-                order.LoadedCount = numbersList.Count;
+                if (skipValidation && tempUploadRecord != null)
+                {
+                    // ⚡ OPTIMIZED: Copy file instead of re-writing for TempUpload path
+                    Console.WriteLine($"[LOG] Copying pre-validated file from TempUpload...");
+
+                    // Copy the temp file to recipients.txt and filtered.txt
+                    System.IO.File.Copy(tempUploadRecord.FilePath, Path.Combine(folderPath, "recipients.txt"), overwrite: true);
+                    System.IO.File.Copy(tempUploadRecord.FilePath, Path.Combine(folderPath, "filtered.txt"), overwrite: true);
+
+                    // Write original.txt (same as recipients for TempUpload)
+                    System.IO.File.Copy(tempUploadRecord.FilePath, Path.Combine(folderPath, "original.txt"), overwrite: true);
+
+                    // Create empty files for filtered-out categories (already filtered during upload)
+                    await System.IO.File.WriteAllTextAsync(Path.Combine(folderPath, "invalid.txt"), "");
+                    await System.IO.File.WriteAllTextAsync(Path.Combine(folderPath, "blacklisted.txt"), "");
+                    await System.IO.File.WriteAllTextAsync(Path.Combine(folderPath, "repeated.txt"), "");
+                    await System.IO.File.WriteAllTextAsync(Path.Combine(folderPath, "banned.txt"), "");
+
+                    Console.WriteLine($"[LOG] Files copied from TempUpload");
+                }
+                else
+                {
+                    // Standard path - write all files
+                    await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "original.txt"), numbersList);
+                    await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "recipients.txt"), validNumbers);
+                    await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "filtered.txt"), validNumbers);
+                    await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "invalid.txt"), invalidNumbers);
+                    await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "blacklisted.txt"), blacklistedNumbers);
+                    await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "repeated.txt"), repeatedNumbers);
+                    await System.IO.File.WriteAllLinesAsync(Path.Combine(folderPath, "banned.txt"), bannedNumbers);
+                }
+
+                Console.WriteLine($"[LOG] Files written successfully");
+
+                // Update order counts
+                order.LoadedCount = skipValidation ? validNumbers.Count : numbersList.Count;
                 order.InvalidCount = invalidNumbers.Count;
                 order.BlacklistedCount = blacklistedNumbers.Count;
                 order.RepeatedCount = repeatedNumbers.Count;
                 order.BannedCount = bannedNumbers.Count;
 
                 await _context.SaveChangesAsync();
+
+                // ============================================
+                // PRICING
+                // ============================================
+                Console.WriteLine($"[LOG] Fetching pricing");
                 var globalPricing = await _context.Pricing.FirstOrDefaultAsync();
                 if (globalPricing == null)
                 {
                     return BadRequest("Global pricing configuration is missing.");
                 }
+
                 decimal low = company.LowPrice ?? globalPricing.Low;
                 decimal medium = company.MediumPrice ?? globalPricing.Middle;
                 decimal high = company.HighPrice ?? globalPricing.High;
@@ -620,13 +863,16 @@ namespace GittBilSmsCore.Controllers
                 else
                     pricePerSms = high;
 
+                Console.WriteLine($"[LOG] Price per SMS: {pricePerSms}");
 
                 var totalCost = totalSmsCredits * pricePerSms;
                 var availableBalance = company.CreditLimit;
+                Console.WriteLine($"[LOG] Total cost: {totalCost}, Available balance: {availableBalance}");
 
                 // Check balance
                 if (availableBalance < totalSmsCredits)
                 {
+                    Console.WriteLine($"[LOG] Insufficient balance!");
                     order.CurrentStatus = "Failed";
                     order.ApiErrorResponse = _sharedLocalizer["insufficientbal"];
                     order.Actions.Add(new OrderAction
@@ -640,8 +886,12 @@ namespace GittBilSmsCore.Controllers
                     return BadRequest(_sharedLocalizer["insufficientbal"]);
                 }
 
+                // ============================================
+                // SCHEDULED ORDER - RETURN EARLY
+                // ============================================
                 if (order.CurrentStatus == "Scheduled")
                 {
+                    Console.WriteLine($"[LOG] Order is scheduled - deducting balance and returning");
                     company.CreditLimit -= totalSmsCredits;
                     order.PricePerSms = pricePerSms;
                     order.TotalPrice = totalSmsCredits;
@@ -654,6 +904,7 @@ namespace GittBilSmsCore.Controllers
                         CreatedAt = TimeHelper.NowInTurkey(),
                         CreatedByUserId = userId
                     });
+
                     if (!isMainUser && user.QuotaType == "Variable Quota")
                     {
                         _context.Users.Update(user);
@@ -662,13 +913,14 @@ namespace GittBilSmsCore.Controllers
 
                     return Ok(new
                     {
-
                         message = _sharedLocalizer["smssuccess", order.ScheduledSendDate.GetValueOrDefault().ToString("yyyy-MM-dd HH:mm")],
                         orderId = order.OrderId
                     });
                 }
+
                 if (validNumbers.Count == 0)
                 {
+                    Console.WriteLine($"[LOG] No valid numbers!");
                     order.CurrentStatus = "Failed";
                     order.ApiErrorResponse = _sharedLocalizer["novalidreceipents"];
 
@@ -684,10 +936,12 @@ namespace GittBilSmsCore.Controllers
                     return BadRequest("Geçerli alıcı bulunamadı. SMS gönderilemiyor.");
                 }
 
-
-                // If not trusted → do not send now
+                // ============================================
+                // AWAITING APPROVAL - RETURN EARLY
+                // ============================================
                 if (!company.IsTrustedSender)
                 {
+                    Console.WriteLine($"[LOG] Company not trusted - awaiting approval");
                     return Ok(new
                     {
                         message = _sharedLocalizer["ordercreeatedadminapproval"],
@@ -695,14 +949,14 @@ namespace GittBilSmsCore.Controllers
                     });
                 }
 
-                // Deduct balance
+                // ============================================
+                // DEDUCT BALANCE & SEND SMS
+                // ============================================
+                Console.WriteLine($"[LOG] Deducting balance");
                 company.CreditLimit -= totalSmsCredits;
-
-                // Save in order
                 order.PricePerSms = pricePerSms;
                 order.TotalPrice = totalSmsCredits;
 
-                // Add to BalanceHistory
                 _context.BalanceHistory.Add(new BalanceHistory
                 {
                     CompanyId = company.CompanyId,
@@ -714,9 +968,15 @@ namespace GittBilSmsCore.Controllers
 
                 _context.Companies.Update(company);
                 await _context.SaveChangesAsync();
+
+                // ============================================
+                // BUILD API REQUEST
+                // ============================================
                 bool hasPlaceholder =
                      !string.IsNullOrWhiteSpace(model.SelectedCustomColumn)
                   && model.Message.Contains($"{{{model.SelectedCustomColumn}}}");
+
+                Console.WriteLine($"[LOG] Has placeholder: {hasPlaceholder}");
 
                 if (hasPlaceholder)
                 {
@@ -730,21 +990,13 @@ namespace GittBilSmsCore.Controllers
                     model.PhoneNumbers = string.Join(",", validNumbers);
                 }
 
-                var originalText = model.Message;
-                var originalPhones = model.PhoneNumbers;
                 using var httpClient = new HttpClient();
+                httpClient.Timeout = TimeSpan.FromMinutes(10);
 
-
-                //// 1) build the personalized message
-                //var template = model.Message;
-                //var placeholder = $"{{{model.SelectedCustomColumn}}}";
-                //var personalized = originalText.Replace(placeholder, rec.Name);
-                //var text = template.Replace(placeholder, rec.Name);
-                //model.Message = personalized;
-                //model.PhoneNumbers = rec.Number;
-                // 2) build the request body
+                Console.WriteLine($"[LOG] Building request body for API");
                 var body = BuildRequestBody(model, api);
-                // 3) time the call
+
+                Console.WriteLine($"[LOG] Sending to API: {api.ApiUrl}");
                 var stopwatch = Stopwatch.StartNew();
 
                 var response = await httpClient.SendAsync(
@@ -756,8 +1008,11 @@ namespace GittBilSmsCore.Controllers
                 stopwatch.Stop();
 
                 var result = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"[LOG] API response received in {stopwatch.ElapsedMilliseconds}ms");
+                Console.WriteLine($"[LOG] API status: {response.StatusCode}");
+                Console.WriteLine($"[LOG] API response: {result.Substring(0, Math.Min(result.Length, 500))}");
 
-                // 4) sanitize & log the raw request/response
+                // Sanitize & log
                 var sanitizedBody = Regex.Replace(body, @"\d{10,15}", "[NUMBER]");
 
                 _context.ApiCallLogs.Add(new ApiCallLog
@@ -773,9 +1028,12 @@ namespace GittBilSmsCore.Controllers
                 });
                 await _context.SaveChangesAsync();
 
-                // 5) if this single‐number call failed, mark the order failed & refund
+                // ============================================
+                // HANDLE API RESPONSE
+                // ============================================
                 if (!response.IsSuccessStatusCode)
                 {
+                    Console.WriteLine($"[LOG] API call failed with status: {response.StatusCode}");
                     var errorMessage = $"HTTP {(int)response.StatusCode} - {result}";
                     order.ApiErrorResponse = errorMessage;
                     order.CurrentStatus = "Failed";
@@ -786,7 +1044,7 @@ namespace GittBilSmsCore.Controllers
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
 
-                    // refund
+                    // Refund
                     if (order.TotalPrice > 0 && !order.Returned)
                     {
                         company.CreditLimit += order.TotalPrice.Value;
@@ -808,16 +1066,15 @@ namespace GittBilSmsCore.Controllers
                     return StatusCode((int)response.StatusCode, "SMS API call failed.");
                 }
 
-                // 6) if OK, pull out MessageId (if your API returns one per call)
                 var json = JsonConvert.DeserializeObject<dynamic>(result);
                 if (json.Status == "OK")
                 {
-                    // you might collect multiple MessageId values, but at minimum store the last one:
+                    Console.WriteLine($"[LOG] API returned OK - MessageId: {json.MessageId}");
                     order.SmsOrderId = json.MessageId;
                 }
                 else
                 {
-                    // treat non‑OK as failure
+                    Console.WriteLine($"[LOG] API returned non-OK status: {json.Status}");
                     var errorMessage = $"Status: {json.Status}, Full Response: {result}";
                     order.ApiErrorResponse = errorMessage;
                     order.CurrentStatus = "Failed";
@@ -831,10 +1088,11 @@ namespace GittBilSmsCore.Controllers
                     return BadRequest($"SMS API bir hata döndürdü: {json.Status}");
                 }
 
+                // ============================================
+                // FINALIZE ORDER
+                // ============================================
+                Console.WriteLine($"[LOG] All calls succeeded - finalizing order");
 
-                // ─── all calls succeeded ───
-
-                // finalize order
                 order.StartedAt = TimeHelper.NowInTurkey();
                 order.CompletedAt = TimeHelper.NowInTurkey();
                 order.ReportLock = true;
@@ -846,57 +1104,501 @@ namespace GittBilSmsCore.Controllers
                 });
                 order.ProcessedCount = validNumbers.Count;
 
-                // write the "processed.txt" file
+                // Write processed.txt
                 await System.IO.File.WriteAllLinesAsync(
                     Path.Combine(folderPath, "processed.txt"),
                     validNumbers
                 );
 
-                // update quota & balance history if needed
                 if (!isMainUser && user.QuotaType == "Variable Quota")
                     _context.Users.Update(user);
 
                 await _context.SaveChangesAsync();
+
+                // Final SignalR notifications
+                Console.WriteLine($"[LOG] Sending final SignalR notifications");
                 var payloadstatus = new
                 {
                     orderId = order.OrderId,
                     newStatus = order.CurrentStatus
                 };
 
-                // 1) Company-wide (for main users)
-                await _hubContext.Clients
-                    .Group($"company_{order.CompanyId}")
-                    .SendAsync("OrderStatusChanged", payloadstatus);
+                await _hubContext.Clients.Group($"company_{order.CompanyId}").SendAsync("OrderStatusChanged", payloadstatus);
+                await _hubContext.Clients.Group("PanelUsers").SendAsync("OrderStatusChanged", payloadstatus);
+                await _hubContext.Clients.Group($"user_{order.CreatedByUserId}").SendAsync("OrderStatusChanged", payloadstatus);
+                await _hubContext.Clients.Group("Admins").SendAsync("OrderStatusChanged", payloadstatus);
 
-                await _hubContext.Clients
-                .Group("PanelUsers")
-                .SendAsync("OrderStatusChanged", payloadstatus);
+                Console.WriteLine($"[LOG] === SendSms completed successfully - OrderId: {order.OrderId} ===");
 
-                // 2) Personal (for sub-users)
-                await _hubContext.Clients
-                    .Group($"user_{order.CreatedByUserId}")
-                    .SendAsync("OrderStatusChanged", payloadstatus);
-
-                // 3) Optionally Admins
-                await _hubContext.Clients
-                    .Group("Admins")
-                    .SendAsync("OrderStatusChanged", payloadstatus);
-                // return success to caller
                 return Ok(new
                 {
                     message = _sharedLocalizer["smssent"],
                     orderId = order.OrderId,
-                    // optionally return MessageIds or count here
                 });
-                model.Message = originalText;
-                model.PhoneNumbers = originalPhones;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Exception occurred: {ex.Message}");
-                return StatusCode(500, _sharedLocalizer["erroroccuredsendingsms"]);
+                Console.WriteLine($"=== SendSms EXCEPTION ===");
+                Console.WriteLine($"Message: {ex.Message}");
+                Console.WriteLine($"StackTrace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"InnerException: {ex.InnerException.Message}");
+                    Console.WriteLine($"InnerStackTrace: {ex.InnerException.StackTrace}");
+                }
+
+                return StatusCode(500, new
+                {
+                    error = "Server error",
+                    message = ex.Message,
+                    inner = ex.InnerException?.Message,
+                    stack = ex.StackTrace
+                });
             }
         }
+
+        [HttpPost]
+        [RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = 209715200)] // 200 MB
+        [RequestSizeLimit(209715200)]
+        public async Task<IActionResult> UploadNumbersTemp(
+    IFormFile[] files,
+    string nameColumn = null,
+    string numberColumn = null,
+    bool hasName = false)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+            try
+            {
+                if (files == null || files.Length == 0)
+                    return BadRequest(new { success = false, message = "No file uploaded." });
+
+                var file = files[0];
+                var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+                var companyId = HttpContext.Session.GetInt32("CompanyId") ?? 0;
+
+                Console.WriteLine($"[TempUpload] Starting upload: {file.FileName}, Size: {file.Length / 1024}KB, User: {userId}");
+
+                // Generate unique ID for this upload
+                var tempId = Guid.NewGuid().ToString("N");
+
+                // Determine storage path
+                var isAzure = Environment.GetEnvironmentVariable("HOME") != null;
+                var baseFolderPath = isAzure
+                    ? Path.Combine("D:\\home\\data", "temp-uploads")
+                    : Path.Combine(Directory.GetCurrentDirectory(), "App_Data", "temp-uploads");
+
+                var folderPath = Path.Combine(baseFolderPath, tempId);
+                Directory.CreateDirectory(folderPath);
+
+                Console.WriteLine($"[TempUpload] Created folder: {folderPath}");
+
+                // Parse the file and extract recipients
+                var recipients = new List<(string Name, string Number)>();
+                var ext = Path.GetExtension(file.FileName).ToLower();
+
+                using (var stream = file.OpenReadStream())
+                {
+                    if (ext == ".csv" || ext == ".txt")
+                    {
+                        recipients = await ParseTextFileAsync(stream, nameColumn, numberColumn, hasName);
+                    }
+                    else if (ext == ".xlsx" || ext == ".xls")
+                    {
+                        recipients = ParseExcelFile(stream, nameColumn, numberColumn, hasName);
+                    }
+                    else
+                    {
+                        return BadRequest(new { success = false, message = $"Unsupported file type: {ext}" });
+                    }
+                }
+
+                Console.WriteLine($"[TempUpload] Parsed {recipients.Count} recipients in {stopwatch.ElapsedMilliseconds}ms");
+
+                if (!recipients.Any())
+                {
+                    return BadRequest(new { success = false, message = "No valid recipients found in file." });
+                }
+
+                // Normalize and validate numbers
+                var validRecipients = new List<(string Name, string Number)>();
+                var blacklist = await _context.BlacklistNumbers.Select(x => x.Number).ToListAsync();
+                var blacklistSet = new HashSet<string>(blacklist);
+                var banned = await _context.BannedNumbers.Select(x => x.Number).ToListAsync();
+                var bannedSet = new HashSet<string>(banned);
+                var seenNumbers = new HashSet<string>();
+
+                int invalidCount = 0;
+                int blacklistCount = 0;
+                int bannedCount = 0;
+                int duplicateCount = 0;
+
+                foreach (var (name, number) in recipients)
+                {
+                    var normalized = NormalizePhoneNumber(number);
+
+                    if (string.IsNullOrEmpty(normalized) || !IsValidTurkishPhone(normalized))
+                    {
+                        invalidCount++;
+                        continue;
+                    }
+
+                    if (blacklistSet.Contains(normalized))
+                    {
+                        blacklistCount++;
+                        continue;
+                    }
+
+                    if (bannedSet.Contains(normalized))
+                    {
+                        bannedCount++;
+                        continue;
+                    }
+
+                    if (seenNumbers.Contains(normalized))
+                    {
+                        duplicateCount++;
+                        continue;
+                    }
+
+                    seenNumbers.Add(normalized);
+                    validRecipients.Add((name?.Trim() ?? "", normalized));
+                }
+
+                Console.WriteLine($"[TempUpload] Validation complete: {validRecipients.Count} valid, {invalidCount} invalid, {blacklistCount} blacklisted, {bannedCount} banned, {duplicateCount} duplicates");
+
+                if (!validRecipients.Any())
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "No valid recipients after filtering.",
+                        stats = new { invalidCount, blacklistCount, bannedCount, duplicateCount }
+                    });
+                }
+
+                // Save recipients to file (one per line, format: number or name|number)
+                var recipientsFilePath = Path.Combine(folderPath, "recipients.txt");
+                var hasCustomData = hasName || !string.IsNullOrEmpty(nameColumn);
+
+                using (var writer = new StreamWriter(recipientsFilePath))
+                {
+                    foreach (var (name, number) in validRecipients)
+                    {
+                        if (hasCustomData && !string.IsNullOrEmpty(name))
+                        {
+                            await writer.WriteLineAsync($"{name}|{number}");
+                        }
+                        else
+                        {
+                            await writer.WriteLineAsync(number);
+                        }
+                    }
+                }
+
+                Console.WriteLine($"[TempUpload] Saved recipients to: {recipientsFilePath}");
+
+                // Save to database for tracking
+                var tempUpload = new TempUpload
+                {
+                    TempId = tempId,
+                    OriginalFileName = file.FileName,
+                    RecipientCount = validRecipients.Count,
+                    UserId = userId,
+                    CompanyId = companyId,
+                    HasCustomColumns = hasCustomData,
+                    NameColumnKey = nameColumn,
+                    NumberColumnKey = numberColumn,
+                    FilePath = recipientsFilePath,
+                    CreatedAt = TimeHelper.NowInTurkey(),
+                    ExpiresAt = TimeHelper.NowInTurkey().AddHours(2)
+                };
+
+                _context.TempUploads.Add(tempUpload);
+                await _context.SaveChangesAsync();
+
+                stopwatch.Stop();
+                Console.WriteLine($"[TempUpload] Complete in {stopwatch.ElapsedMilliseconds}ms - TempId: {tempId}, Count: {validRecipients.Count}");
+
+                return Ok(new
+                {
+                    success = true,
+                    tempId = tempId,
+                    count = validRecipients.Count,
+                    hasCustomData = hasCustomData,
+                    stats = new
+                    {
+                        total = recipients.Count,
+                        valid = validRecipients.Count,
+                        invalid = invalidCount,
+                        blacklisted = blacklistCount,
+                        banned = bannedCount,
+                        duplicates = duplicateCount
+                    },
+                    preview = validRecipients.Take(5).Select(r => new { name = r.Name, number = r.Number }),
+                    processingTimeMs = stopwatch.ElapsedMilliseconds
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[TempUpload] ERROR: {ex.Message}");
+                Console.WriteLine($"[TempUpload] Stack: {ex.StackTrace}");
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+
+        private async Task<List<(string Name, string Number)>> ParseTextFileAsync(
+    Stream stream,
+    string nameColumn,
+    string numberColumn,
+    bool hasName)
+        {
+            var recipients = new List<(string Name, string Number)>();
+
+            using var reader = new StreamReader(stream);
+            string line;
+            int lineNumber = 0;
+            bool isFirstLine = true;
+            int nameColIndex = -1;
+            int numberColIndex = -1;
+            char delimiter = ',';
+
+            while ((line = await reader.ReadLineAsync()) != null)
+            {
+                lineNumber++;
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                // Detect delimiter from first line
+                if (isFirstLine)
+                {
+                    if (line.Contains('\t')) delimiter = '\t';
+                    else if (line.Contains(';')) delimiter = ';';
+                    else if (line.Contains(',')) delimiter = ',';
+
+                    // Check if first line is header
+                    var firstParts = line.Split(delimiter);
+                    bool isHeader = firstParts.Any(p =>
+                        p.Trim().ToLower().Contains("phone") ||
+                        p.Trim().ToLower().Contains("number") ||
+                        p.Trim().ToLower().Contains("numara") ||
+                        p.Trim().ToLower().Contains("telefon") ||
+                        p.Trim().ToLower().Contains("name") ||
+                        p.Trim().ToLower().Contains("isim") ||
+                        p.Trim().ToLower().Contains("ad"));
+
+                    if (isHeader)
+                    {
+                        // Find column indices
+                        for (int i = 0; i < firstParts.Length; i++)
+                        {
+                            var col = firstParts[i].Trim().ToLower();
+                            if (!string.IsNullOrEmpty(nameColumn) && col.Contains(nameColumn.ToLower()))
+                                nameColIndex = i;
+                            if (!string.IsNullOrEmpty(numberColumn) && col.Contains(numberColumn.ToLower()))
+                                numberColIndex = i;
+                        }
+                        isFirstLine = false;
+                        continue;
+                    }
+
+                    isFirstLine = false;
+                }
+
+                var parts = line.Split(delimiter);
+
+                // If columns specified, use them
+                if (nameColIndex >= 0 || numberColIndex >= 0)
+                {
+                    string name = nameColIndex >= 0 && nameColIndex < parts.Length ? parts[nameColIndex].Trim() : "";
+                    string number = numberColIndex >= 0 && numberColIndex < parts.Length ? parts[numberColIndex].Trim() : parts[0].Trim();
+
+                    if (!string.IsNullOrWhiteSpace(number))
+                        recipients.Add((name, number));
+                }
+                // If hasName and 2+ columns, first is name, second is number
+                else if (hasName && parts.Length >= 2)
+                {
+                    string name = parts[0].Trim();
+                    string number = parts[1].Trim();
+
+                    if (!string.IsNullOrWhiteSpace(number))
+                        recipients.Add((name, number));
+                }
+                // Otherwise, each value is a number
+                else
+                {
+                    foreach (var part in parts)
+                    {
+                        var trimmed = part.Trim();
+                        if (!string.IsNullOrWhiteSpace(trimmed))
+                            recipients.Add(("", trimmed));
+                    }
+                }
+            }
+
+            return recipients;
+        }
+
+        private List<(string Name, string Number)> ParseExcelFile(
+    Stream stream,
+    string nameColumn,
+    string numberColumn,
+    bool hasName)
+        {
+            var recipients = new List<(string Name, string Number)>();
+
+            using var workbook = new ClosedXML.Excel.XLWorkbook(stream);
+            var worksheet = workbook.Worksheets.First();
+
+            int nameColIndex = -1;
+            int numberColIndex = 1; // Default to first column
+
+            // Parse column keys (format: "Column_A", "Column_B", etc.)
+            if (!string.IsNullOrEmpty(nameColumn))
+            {
+                nameColIndex = GetColumnIndexFromKey(nameColumn);
+            }
+            if (!string.IsNullOrEmpty(numberColumn))
+            {
+                numberColIndex = GetColumnIndexFromKey(numberColumn);
+            }
+
+            // If no specific columns, try to detect from header
+            var firstRow = worksheet.Row(1);
+            bool hasHeader = false;
+
+            var lastCol = worksheet.LastColumnUsed()?.ColumnNumber() ?? 1;
+            for (int col = 1; col <= lastCol; col++)
+            {
+                var cellValue = firstRow.Cell(col).GetString();
+                if (cellValue.Contains("phone") || cellValue.Contains("number") ||
+                    cellValue.Contains("numara") || cellValue.Contains("telefon"))
+                {
+                    if (numberColIndex == 1) numberColIndex = col;
+                    hasHeader = true;
+                }
+                if (cellValue.Contains("name") || cellValue.Contains("isim") || cellValue.Contains("ad"))
+                {
+                    nameColIndex = col;
+                    hasHeader = true;
+                }
+            }
+
+            int startRow = hasHeader ? 2 : 1;
+
+            foreach (var row in worksheet.RowsUsed().Skip(startRow - 1))
+            {
+                string name = "";
+                string number = "";
+
+                if (nameColIndex > 0)
+                    name = row.Cell(nameColIndex).GetString()?.Trim() ?? "";
+
+                if (numberColIndex > 0)
+                    number = row.Cell(numberColIndex).GetString()?.Trim() ?? "";
+
+                // If number column wasn't found, try first column
+                if (string.IsNullOrWhiteSpace(number))
+                    number = row.Cell(1).GetString()?.Trim() ?? "";
+
+                if (!string.IsNullOrWhiteSpace(number))
+                    recipients.Add((name, number));
+            }
+
+            return recipients;
+        }
+
+        private int GetColumnIndexFromKey(string columnKey)
+        {
+            if (string.IsNullOrEmpty(columnKey)) return -1;
+
+            // Format: "Column_A" or "Column_AB"
+            var parts = columnKey.Split('_');
+            if (parts.Length < 2) return -1;
+
+            var letters = parts[1].ToUpper();
+            int index = 0;
+
+            foreach (char c in letters)
+            {
+                index = index * 26 + (c - 'A' + 1);
+            }
+
+            return index;
+        }
+
+        private string NormalizePhoneNumber(string number)
+        {
+            if (string.IsNullOrWhiteSpace(number)) return null;
+
+            // Remove all non-digits
+            var digits = new string(number.Where(char.IsDigit).ToArray());
+
+            if (string.IsNullOrEmpty(digits)) return null;
+
+            // Handle various formats
+            if (digits.StartsWith("90") && digits.Length == 12)
+                return digits; // Already correct format
+
+            if (digits.StartsWith("0") && digits.Length == 11)
+                return "90" + digits.Substring(1); // 05xx -> 905xx
+
+            if (digits.StartsWith("5") && digits.Length == 10)
+                return "90" + digits; // 5xx -> 905xx
+
+            if (digits.StartsWith("905") && digits.Length == 12)
+                return digits; // Already correct
+
+            // Return as-is if we can't normalize (will be filtered as invalid)
+            return digits;
+        }
+
+        private bool IsValidTurkishPhone(string number)
+        {
+            if (string.IsNullOrEmpty(number)) return false;
+
+            // Must be 12 digits starting with 90
+            if (number.Length != 12) return false;
+            if (!number.StartsWith("90")) return false;
+
+            // Third digit must be 5 (mobile)
+            if (number[2] != '5') return false;
+
+            return true;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CleanupExpiredUploads()
+        {
+            try
+            {
+                var expired = await _context.TempUploads
+                    .Where(t => t.ExpiresAt < DateTime.UtcNow && !t.IsUsed)
+                    .ToListAsync();
+
+                foreach (var upload in expired)
+                {
+                    // Delete files
+                    var folderPath = Path.GetDirectoryName(upload.FilePath);
+                    if (Directory.Exists(folderPath))
+                    {
+                        Directory.Delete(folderPath, true);
+                    }
+
+                    _context.TempUploads.Remove(upload);
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new { success = true, deleted = expired.Count });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
         [HttpPost]
         public IActionResult GetColumnValues(IFormFile file, string columnName)
         {
@@ -1458,7 +2160,7 @@ namespace GittBilSmsCore.Controllers
                 .Include(o => o.Actions.OrderBy(a => a.CreatedAt)) // <== ADD THIS!
                 .FirstOrDefaultAsync(o => o.OrderId == orderId);
 
-            if (order == null || order.CurrentStatus != "AwaitingApproval")
+            if (order == null || (order.CurrentStatus != "AwaitingApproval" && order.CurrentStatus != "WaitingToBeSent"))
                 return Json(new { success = false, message = _sharedLocalizer["ordernotfoundmsg"] });
             var customRecipients = await _context.OrderRecipients
             .Where(r => r.OrderId == orderId)
