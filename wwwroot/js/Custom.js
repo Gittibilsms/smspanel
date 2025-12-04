@@ -932,6 +932,7 @@ function initFancyUploader() {
         maxfilesize: 25 * 1024 * 1024,
 
         added(e, data) {
+            showUploadLoader();   // 🔥 SHOW LOADER IMMEDIATELY
             const file = data.files[0];
             const ext = file.name.split('.').pop().toLowerCase();
             const $row = $('.ff_fileupload_row').last();
@@ -1372,8 +1373,20 @@ function doUpload(data, file, uniqueId, nameCol, numberCol) {
         if (typeof toastr !== 'undefined') {
             toastr.error(errorMsg);
         }
-    });
+    })
+        .always(function () {
+            hideUploadLoader();   // 🔥 ALWAYS HIDE AFTER PROCESSING
+        });
 }
+
+function showUploadLoader() {
+    document.getElementById("fileUploadLoader").style.display = "flex";
+}
+
+function hideUploadLoader() {
+    document.getElementById("fileUploadLoader").style.display = "none";
+}
+
 function updateUploadStatus(status, message) {
     const $statusEl = $('#uploadStatus, #validCount, .upload-status');
 
