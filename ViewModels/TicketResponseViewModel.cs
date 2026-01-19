@@ -2,6 +2,7 @@
 {
     public class TicketResponseViewModel
     {
+        public int? ResponderId { get; set; }
         public string ResponderName { get; set; }
         public int Id { get; set; }
 

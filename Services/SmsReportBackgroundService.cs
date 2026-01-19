@@ -144,47 +144,57 @@ public class SmsReportBackgroundService : BackgroundService
                         order.ExpiredCount = list.Count(x => x.State == "Süre Aşımı" || x.State == "Zaman Aşımı" || x.State == "Expired");
 
                         // 48h check
-                        bool isFinal = order.StartedAt.HasValue && (DateTime.UtcNow.AddHours(3) - order.StartedAt.Value).TotalHours >= 48;
-
+                        //  bool isFinal = order.StartedAt.HasValue && (DateTime.UtcNow.AddHours(3) - order.StartedAt.Value).TotalHours >= 48;
+                        //Changed to 24hour on 11Dec2025
+                        bool isFinal = order.StartedAt.HasValue && (DateTime.UtcNow.AddHours(3) - order.StartedAt.Value).TotalHours >= 24;
                         if (isFinal)
                         {
                             order.ReportLock = false;
                             order.ReportedAt = DateTime.UtcNow.AddHours(3);
-                            _logger.LogInformation($"48h passed → FINAL report for OrderId={order.OrderId}");
+                            _logger.LogInformation($"24h passed → FINAL report for OrderId={order.OrderId}");
 
                             // 🚀 REFUND LOGIC → SAME AS CADDESMS:
 
-                            if (order.Refundable && order.UnsuccessfulCount > 0 && !order.Returned)
+                            if (order.Company.IsRefundable && order.Refundable && !order.Returned)
                             {
-                                // 🚩 1️⃣ Determine unit price based on LoadedCount
-                                decimal unitPrice = 0;
+                                var segmentsPerMessage = order.SmsCount > 0 ? order.SmsCount : 1;
+                                var refundableCount = (order.ExpiredCount ?? 0) + (order.UndeliveredCount ?? 0);
 
-                                if (order.LoadedCount <= 500_000)
+                                if (refundableCount > 0)
                                 {
-                                    unitPrice = order.Company.LowPrice.GetValueOrDefault();
+                                    var refundAmount = refundableCount * segmentsPerMessage;
+
+                                    // 1️⃣ Add to Company CreditLimit
+                                    order.Company.CreditLimit += refundAmount;
+                                    order.RefundAmount = refundAmount;
+
+                                    // 2️⃣ Create BalanceHistory entry
+                                    dbContext.BalanceHistory.Add(new BalanceHistory
+                                    {
+                                        CompanyId = order.CompanyId,
+                                        Amount = (decimal)refundAmount,
+                                        Action = "Refund on Report",
+                                        OrderId = order.OrderId,
+                                        CreatedAt = DateTime.UtcNow.AddHours(3),
+                                        CreatedByUserId = null
+                                    });
+
+                              
+                                    dbContext.CreditTransactions.Add(new CreditTransaction
+                                    {
+                                        CompanyId = order.CompanyId,
+                                        Credit = (decimal)refundAmount,
+                                        TransactionDate = DateTime.UtcNow.AddHours(3),
+                                        Note = $"Sipariş iadesi - Order #{order.OrderId}",
+                                        UnitPrice = 0,
+                                        TotalPrice = 0
+                                    });
+
+                                    order.Returned = true;
+                                    order.ReturnDate = DateTime.UtcNow.AddHours(3);
+
+                                    _logger.LogInformation($"Refunded {refundAmount} credits to CompanyId={order.CompanyId} for OrderId={order.OrderId}");
                                 }
-                                else if (order.LoadedCount <= 1_000_000)
-                                {
-                                    unitPrice = order.Company.MediumPrice.GetValueOrDefault();
-                                }
-                                else
-                                {
-                                    unitPrice = order.Company.HighPrice.GetValueOrDefault();
-                                }
-
-                                // 🚩 2️⃣ Calculate refund amount
-                                var refundAmount = order.UnsuccessfulCount * unitPrice;
-
-                                order.RefundAmount = refundAmount;
-
-                                // 🚩 3️⃣ Refund to company credit
-                                order.Company.CreditLimit += refundAmount;
-
-                                // 🚩 4️⃣ Mark order as returned
-                                order.Returned = true;
-                                order.ReturnDate = DateTime.UtcNow.AddHours(3);
-
-                                _logger.LogInformation($"Refunded {refundAmount} to CompanyId={order.CompanyId} for OrderId={order.OrderId} (UnsuccessfulCount={order.UnsuccessfulCount}, UnitPrice={unitPrice})");
                             }
                         }
                         else

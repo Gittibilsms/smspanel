@@ -100,6 +100,101 @@ namespace GittBilSmsCore.Controllers
             // finally call the action
             await next();
         }
+        protected async Task<(bool IsAuthorized, Order? Order, string? ErrorMessage)> CanAccessOrderAsync(int orderId)
+        {
+            var order = await _context.Orders.FindAsync(orderId);
+
+            if (order == null)
+                return (false, null, "Sipariş bulunamadı.");
+
+            var roleId = HttpContext.Session.GetInt32("RoleId") ?? 0;
+            var userType = HttpContext.Session.GetString("UserType") ?? "";
+            var isMainUser = HttpContext.Session.GetInt32("IsMainUser") == 1;
+            var companyId = HttpContext.Session.GetInt32("CompanyId");
+            var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+
+            bool isAuthorized = false;
+
+            // Admin - full access
+            if (roleId == 1)
+            {
+                isAuthorized = true;
+            }
+            // Company user
+            else if (string.Equals(userType, "CompanyUser", StringComparison.OrdinalIgnoreCase))
+            {
+                if (isMainUser && companyId.HasValue)
+                {
+                    // Main company user: can access all orders for their company
+                    isAuthorized = order.CompanyId == companyId.Value;
+                }
+                else
+                {
+                    // Sub-user: only their own orders
+                    isAuthorized = order.CreatedByUserId == userId;
+                }
+            }
+            // Panel user or other types
+            else
+            {
+                // ✅ Panel user: their own orders OR if they have Edit permission
+                isAuthorized = order.CreatedByUserId == userId || HasAccessRoles("Order", "Edit");
+            }
+
+            if (!isAuthorized)
+                return (false, order, "Bu siparişe erişim yetkiniz yok.");
+
+            return (true, order, null);
+        }
+        protected async Task<(bool IsAuthorized, PhoneDirectory? Directory, string? ErrorMessage)> CanAccessDirectoryAsync(int directoryId)
+        {
+            var directory = await _context.Directories.FindAsync(directoryId);
+
+            if (directory == null)
+                return (false, null, "Rehber bulunamadı.");
+
+            var roleId = HttpContext.Session.GetInt32("RoleId") ?? 0;
+            var userType = HttpContext.Session.GetString("UserType") ?? "";
+            var isMainUser = HttpContext.Session.GetInt32("IsMainUser") == 1;
+            var companyId = HttpContext.Session.GetInt32("CompanyId");
+            var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+
+            bool isAuthorized = false;
+
+            // Admin - full access
+            if (roleId == 1)
+            {
+                isAuthorized = true;
+            }
+            // Company user
+            else if (string.Equals(userType, "CompanyUser", StringComparison.OrdinalIgnoreCase))
+            {
+                if (directory.CompanyId != companyId)
+                {
+                    isAuthorized = false;
+                }
+                else if (isMainUser && companyId.HasValue)
+                {
+                    // Main company user: can access all directories for their company
+                    isAuthorized = true;
+                }
+                else
+                {
+                    // Sub-user: only their own directories
+                    isAuthorized = directory.CreatedByUserId == userId;
+                }
+            }
+            // Panel user or other types
+            else
+            {
+                isAuthorized = directory.CreatedByUserId == userId;
+            }
+
+            if (!isAuthorized)
+                return (false, directory, "Bu rehbere erişim yetkiniz yok.");
+
+            return (true, directory, null);
+        }
         protected bool HasAccessRoles(string module, string action)
         {
             var permissionsJson = HttpContext.Session.GetString("UserPermissions") ?? "[]";

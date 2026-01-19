@@ -11,5 +11,7 @@
 
         // Optional → for FK navigation
         public Company Company { get; set; }
+
+        public int? OrderId { get; set; }
     }
 }

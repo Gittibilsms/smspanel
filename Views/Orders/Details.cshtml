@@ -305,7 +305,7 @@
                 <!-- REPORT Section -->
                 @if (Model.StartedAt.HasValue && Model.ReportLock == false)
                 {
-                    var reportReady = Model.StartedAt.Value.AddHours(48) <= DateTime.UtcNow.AddHours(3);
+                    var reportReady = Model.StartedAt.Value.AddHours(24) <= DateTime.UtcNow.AddHours(3);
                     if (reportReady)
                     {
                                 <hr class="my-4" />

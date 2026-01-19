@@ -1942,6 +1942,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to En düşük görünüm.
+        /// </summary>
+        public static string lowest_view {
+            get {
+                return ResourceManager.GetString("lowest_view", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Varsayılan Yap.
         /// </summary>
         public static string Make_Default {
@@ -2941,7 +2950,7 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Rapor 48 saat sonra hazır olacaktır..
+        ///   Looks up a localized string similar to Rapor 24 saat sonra hazır olacaktır..
         /// </summary>
         public static string Report_will_be_available_after_48_hours_ {
             get {
@@ -3720,6 +3729,15 @@ namespace GittBilSmsCore.Resources {
         public static string uploadphonenumber {
             get {
                 return ResourceManager.GetString("uploadphonenumber", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Dosya yükleniyor... Lütfen bekleyin..
+        /// </summary>
+        public static string uploding {
+            get {
+                return ResourceManager.GetString("uploding", resourceCulture);
             }
         }
         

@@ -601,7 +601,7 @@
     <value>Yaratmak</value>
   </data>
   <data name="Report will be available after 48 hours." xml:space="preserve">
-    <value>Rapor 48 saat sonra hazır olacaktır.</value>
+    <value>Rapor 24 saat sonra hazır olacaktır.</value>
   </data>
   <data name="Report not yet generated." xml:space="preserve">
     <value>Rapor henüz oluşturulmadı.</value>
@@ -1430,5 +1430,11 @@
   </data>
   <data name="newOrder" xml:space="preserve">
     <value>Yeni Sipariş</value>
+  </data>
+  <data name="lowest_view" xml:space="preserve">
+    <value>En düşük görünüm</value>
+  </data>
+  <data name="uploding" xml:space="preserve">
+    <value>Dosya yükleniyor... Lütfen bekleyin.</value>
   </data>
 </root>

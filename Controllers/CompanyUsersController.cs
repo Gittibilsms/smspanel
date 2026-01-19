@@ -28,6 +28,121 @@ namespace GittBilSmsCore.Controllers
             _svc = svc;
         }
 
+        #region Authorization Helpers
+
+        /// <summary>
+        /// Gets the current logged-in user from session
+        /// </summary>
+        private async Task<User?> GetCurrentUser()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null) return null;
+            return await _context.Users.FindAsync(userId);
+        }
+
+        /// <summary>
+        /// Checks if the current user is an admin
+        /// </summary>
+        private async Task<bool> IsAdmin()
+        {
+            var user = await GetCurrentUser();
+            return user?.UserType == "Admin" || user?.UserType == "SuperAdmin";
+        }
+        private bool IsCompanyBoundUser(User user)
+        {
+            return user.CompanyId != null && user.CompanyId > 0;
+        }
+        /// <summary>
+        /// Checks if the current user can access the specified company's data
+        /// </summary>
+        private async Task<bool> CanAccessCompany(int? companyId)
+        {
+            if (companyId == null || companyId <= 0) return false;
+
+            var currentUser = await GetCurrentUser();
+            if (currentUser == null) return false;
+
+            // ✅ User has CompanyId → Can only access their own company
+            if (IsCompanyBoundUser(currentUser))
+            {
+                return currentUser.CompanyId == companyId;
+            }
+
+            // ✅ User has NO CompanyId → Admin/PanelUser, check permissions
+            return HasAccessRoles("Firm", "Read") || HasAccessRoles("Firm", "Edit");
+        }
+
+        /// <summary>
+        /// Checks if the current user can access/modify the specified user
+        /// </summary>
+        private async Task<bool> CanAccessUser(int targetUserId)
+        {
+            var currentUser = await GetCurrentUser();
+            if (currentUser == null) return false;
+
+            // ✅ User has NO CompanyId → Admin/PanelUser
+            if (!IsCompanyBoundUser(currentUser))
+            {
+                // If they have permission, they can access all users
+                return HasAccessRoles("Company_User", "Read") || HasAccessRoles("Company_User", "Edit");
+            }
+
+            // ✅ User HAS CompanyId → Company-bound user
+            var targetUser = await _context.Users.FindAsync(targetUserId);
+            if (targetUser == null) return false;
+
+            // Must be in the same company
+            if (currentUser.CompanyId != targetUser.CompanyId)
+                return false;
+
+            // Main users can access all users in their company
+            if (currentUser.IsMainUser == true)
+                return true;
+
+            // Users with permission can access all users in their company
+            if (HasAccessRoles("Company_User", "Read") || HasAccessRoles("Company_User", "Edit"))
+                return true;
+
+            // Fallback: only self + users they created
+            return targetUser.CreatedByUserId == currentUser.Id || targetUser.Id == currentUser.Id;
+        }
+
+
+        /// <summary>
+        /// Checks if the current user can edit/modify the specified user
+        /// </summary>
+        private async Task<bool> CanEditUser(int targetUserId)
+        {
+            var currentUser = await GetCurrentUser();
+            if (currentUser == null) return false;
+
+            // Must have edit permission
+            if (!HasAccessRoles("Company_User", "Edit"))
+                return false;
+
+            // ✅ User has NO CompanyId → Admin/PanelUser with edit permission
+            if (!IsCompanyBoundUser(currentUser))
+            {
+                return true; // Already checked permission above
+            }
+
+            // ✅ User HAS CompanyId → Company-bound user
+            var targetUser = await _context.Users.FindAsync(targetUserId);
+            if (targetUser == null) return false;
+
+            // Must be in the same company
+            if (currentUser.CompanyId != targetUser.CompanyId)
+                return false;
+
+            // Main users can edit all in their company
+            if (currentUser.IsMainUser == true)
+                return true;
+
+            // Others can only edit users they created
+            return targetUser.CreatedByUserId == currentUser.Id;
+        }
+        #endregion
+
         // GET: /CompanyUsers
         public IActionResult Index()
         {
@@ -41,6 +156,11 @@ namespace GittBilSmsCore.Controllers
         // GET: /CompanyUsers/Create
         public IActionResult Create()
         {
+            // Check edit permission
+            if (!HasAccessRoles("Company_User", "Create"))
+            {
+                return Forbid();
+            }
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null) return RedirectToAction("Login", "Account");
 
@@ -73,6 +193,17 @@ namespace GittBilSmsCore.Controllers
         [HttpPost]
         public async Task<IActionResult> Delete(int id)
         {
+            // Check edit permission
+            if (!HasAccessRoles("Company_User", "Edit"))
+            {
+                return Forbid();
+            }
+
+            // Check if user can access this specific user
+            if (!await CanAccessUser(id))
+            {
+                return Forbid();
+            }
             var user = await _context.Users.FindAsync(id);
 
             if (user == null)
@@ -101,6 +232,18 @@ namespace GittBilSmsCore.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(User model)
         {
+            // Check edit permission
+            if (!HasAccessRoles("Company_User", "Create"))
+            {
+                return Forbid();
+            }
+
+            // Verify user can create users for this company
+            if (!await CanAccessCompany(model.CompanyId))
+            {
+                return Forbid();
+            }
+
             if (model.CompanyId == null || model.CompanyId == 0)
                 return BadRequest(new { success = false, message = "Firma gereklidir." });
 
@@ -178,6 +321,11 @@ namespace GittBilSmsCore.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAllCompanyUsers()
         {
+            // Check read permission
+            if (!HasAccessRoles("Company_User", "Read"))
+            {
+                return Forbid();
+            }
             var companyId = HttpContext.Session.GetInt32("CompanyId");
             var userType = HttpContext.Session.GetString("UserType");
             var currentUserId = HttpContext.Session.GetInt32("UserId");
@@ -238,6 +386,16 @@ namespace GittBilSmsCore.Controllers
         [HttpPost]
         public async Task<IActionResult> AddFromCompany(User user)
         {
+            if (!HasAccessRoles("Company_User", "Edit"))
+            {
+                return Forbid();
+            }
+
+            // Verify user can create users for this company
+            if (!await CanAccessCompany(user.CompanyId))
+            {
+                return Forbid();
+            }
             // 🔍 Check if username already exists
             var existingUser = await _userManager.FindByNameAsync(user.UserName);
             var userId = HttpContext.Session.GetInt32("UserId");
@@ -299,6 +457,15 @@ namespace GittBilSmsCore.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUserById(int id)
         {
+            if (!HasAccessRoles("Company_User", "Read"))
+            {
+                return Forbid();
+            }
+
+            // Check if user can access this specific user
+            if (!await CanAccessUser(id))  
+                return Forbid();
+
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound();
 
@@ -319,6 +486,16 @@ namespace GittBilSmsCore.Controllers
         [HttpPost]
         public async Task<IActionResult> UpdateUser([FromBody] User model)
         {
+            if (!HasAccessRoles("Company_User", "Edit"))
+            {
+                return Forbid();
+            }
+
+            // Check if user can access this specific user
+            if (!await CanEditUser(model.Id))
+            {
+                return Forbid();
+            }
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .FirstOrDefaultAsync(u => u.Id == model.Id);
@@ -398,6 +575,17 @@ namespace GittBilSmsCore.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
+            // Check read permission (or edit for edit page)
+            if (!HasAccessRoles("Company_User", "Edit"))
+            {
+                return Forbid();
+            }
+
+            // Check if user can access this specific user
+            if (!await CanAccessUser(id))
+            {
+                return Forbid();
+            }
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .FirstOrDefaultAsync(u => u.Id == id && u.CompanyId != null);
@@ -486,6 +674,17 @@ namespace GittBilSmsCore.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(UserEditViewModel model)
         {
+            // Check edit permission
+            if (!HasAccessRoles("Company_User", "Edit"))
+            {
+                return Forbid();
+            }
+
+            // Check if user can access this specific user
+            if (!await CanAccessUser(model.Id))
+            {
+                return Forbid();
+            }
             var user = await _context.Users
                 .Include(u => u.UserRoles)
                 .FirstOrDefaultAsync(u => u.Id == model.Id);

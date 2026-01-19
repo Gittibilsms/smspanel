@@ -601,7 +601,7 @@
     <value>Create</value>
   </data>
   <data name="Report will be available after 48 hours." xml:space="preserve">
-    <value>Report will be available after 48 hours.</value>
+    <value>Report will be available after 24 hours.</value>
   </data>
   <data name="Report not yet generated." xml:space="preserve">
     <value>Report not yet generated.</value>
@@ -1430,5 +1430,11 @@
   </data>
   <data name="newOrder" xml:space="preserve">
     <value>New Order</value>
+  </data>
+  <data name="lowest_view" xml:space="preserve">
+    <value>Lowest View</value>
+  </data>
+  <data name="uploding" xml:space="preserve">
+    <value>Uploading file... Please wait.</value>
   </data>
 </root>

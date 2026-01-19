@@ -108,6 +108,7 @@ namespace GittBilSmsCore.Controllers
         [HttpGet]
         public async Task<IActionResult> Chat(int id)
         {
+            var currentUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
             // 1) Load the ticket + all its responses
             var ticket = await _context.Tickets
                 .Include(t => t.TicketResponses)
@@ -122,12 +123,14 @@ namespace GittBilSmsCore.Controllers
             var vm = new TicketChatViewModel
             {
                 TicketId = ticket.Id,
+                CurrentUserId = currentUserId,
                 Responses = new List<TicketResponseViewModel>()
             };
 
             // Initial message comes from the ticket.Message
             vm.Responses.Add(new TicketResponseViewModel
             {
+                ResponderId = ticket.CreatedByUserId,
                 ResponderName = ticket.CreatedByUser?.UserName ?? "System",
                 Message = ticket.Message,
                 CreatedDate = ticket.CreatedAt,
@@ -136,16 +139,17 @@ namespace GittBilSmsCore.Controllers
 
             // 3) Then add any follow‑up TicketResponses
             vm.Responses.AddRange(
-                ticket.TicketResponses
-                      .OrderBy(r => r.CreatedDate)
-                      .Select(r => new TicketResponseViewModel
-                      {
-                          ResponderName = r.Responder?.UserName,
-                          Message = r.ResponseText,
-                          CreatedDate = r.CreatedDate,
-                          IsAdmin = r.Responder?.UserType == "Admin"
-                      })
-            );
+        ticket.TicketResponses
+              .OrderBy(r => r.CreatedDate)
+              .Select(r => new TicketResponseViewModel
+              {
+                  ResponderId = r.ResponderId,
+                  ResponderName = r.Responder?.UserName,
+                  Message = r.ResponseText,
+                  CreatedDate = r.CreatedDate,
+                  IsAdmin = r.Responder?.UserType == "Admin"
+              })
+    );
 
             return PartialView("_ChatPartial", vm);
         }
@@ -189,10 +193,11 @@ namespace GittBilSmsCore.Controllers
             return Json(new { success = true });
         }
         [HttpPost]
-        public async Task<IActionResult> RespondToTicket([FromBody] TicketResponse model)
+        public async Task<IActionResult> RespondToTicket([FromBody] TicketResponseRequest model)
         {
             if (string.IsNullOrWhiteSpace(model.ResponseText))
                 return BadRequest("Message cannot be empty.");
+
             var companyId = HttpContext.Session.GetInt32("CompanyId");
             var userId = HttpContext.Session.GetInt32("UserId");
             var user = await _userManager.Users
@@ -206,7 +211,7 @@ namespace GittBilSmsCore.Controllers
             var ticket = await _context.Tickets.FindAsync(model.TicketId);
             if (ticket == null) return NotFound();
 
-            // 1) Add the response
+            // 1) Add the response - use the ENTITY model here
             var response = new TicketResponse
             {
                 TicketId = model.TicketId,
@@ -217,6 +222,7 @@ namespace GittBilSmsCore.Controllers
                 RespondedByUserId = userId
             };
             _context.TicketResponses.Add(response);
+
             var roleId = HttpContext.Session.GetInt32("RoleId");
             var isAdmin = roleId == 1;
             if (isAdmin)
@@ -225,12 +231,11 @@ namespace GittBilSmsCore.Controllers
                 ticket.UpdatedDate = TimeHelper.NowInTurkey();
             }
 
-
             var isAdminUser = (await _userManager.GetRolesAsync(user))
                                   .Contains("Admin");
             await _context.SaveChangesAsync();
 
-            // 3) Broadcast the new chat message as before
+            // 3) Broadcast to OTHER users only (exclude sender)
             var payload = new
             {
                 name = user.UserName,
@@ -238,10 +243,20 @@ namespace GittBilSmsCore.Controllers
                 time = response.CreatedDate.ToString("dd/MM/yyyy HH:mm"),
                 isAdmin = isAdminUser
             };
-            await _hubContext.Clients.Group($"ticket-{ticket.Id}")
-                             .SendAsync("ReceiveMessage", payload);
 
-            // 4) And _also_ notify everyone (or just admins) that this ticket’s status changed
+            if (!string.IsNullOrEmpty(model.ConnectionId))
+            {
+                // Broadcast to everyone in the group EXCEPT the sender
+                await _hubContext.Clients.GroupExcept($"ticket-{ticket.Id}", model.ConnectionId)
+                                 .SendAsync("ReceiveMessage", payload);
+            }
+            else
+            {
+                await _hubContext.Clients.Group($"ticket-{ticket.Id}")
+                                 .SendAsync("ReceiveMessage", payload);
+            }
+
+            // 4) Notify everyone about status change
             await _hubContext.Clients.All
                              .SendAsync("TicketStatusChanged", new
                              {

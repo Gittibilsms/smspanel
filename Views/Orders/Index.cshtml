@@ -1,9 +1,14 @@
 ﻿@{
     var isAdmin = Context.Session.GetInt32("RoleId") == 1;
+    var roleType = Context.Session.GetString("UserType") ?? "User";
+    var isCompanyuser = roleType == "CompanyUser";
 }
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Orders";
+}
+@{
+    var canCreateOrder = Context.Session.HasPermission("Order", "Create");
 }
 @section Scripts {
     <script>
@@ -35,13 +40,28 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="">All Orders</h4>
-
-    <button class="btn btn-primary d-flex align-items-center m-0 text-teal" id="addnewOrderBtn" onclick="showSmsFormModal()">
-        <i class="material-icons-outlined">add</i>
-        @SharedResource.newOrder
-    </button>
+    @if (canCreateOrder)
+    {
+            <button class="btn btn-primary d-flex align-items-center m-0 text-teal" id="addnewOrderBtn" onclick="showSmsFormModal()">
+                <i class="material-icons-outlined">add</i>
+                @SharedResource.newOrder
+            </button>
+      }
 </div>
-
+<div id="lowestViewWrapper" class="d-none">
+    <div class="d-flex align-items-center gap-2">
+        <label class="text-white small mb-0 text-nowrap">@SharedResource.lowest_view</label>
+        <select class="form-select form-select-sm" id="lowestViewFilter" style="width: 120px;">
+        @*     <option value="0">All</option> *@
+            <option value="1">1+</option>
+            <option value="10">10+</option>
+            <option value="100">100+</option>
+            <option value="1000">1,000+</option>
+            <option value="10000">10,000+</option>
+            <option value="100000">100,000+</option>
+        </select>
+    </div>
+</div>
  
 <!-- Filter dropdown -->
 <div class="row mb-3 d-none">
@@ -85,7 +105,7 @@
                         <i class="fas fa-filter header-filter-icon" data-column="2"></i>
                     </div>
                 </th>
-                @if (isAdmin)
+                @if (isAdmin || !isCompanyuser)
                 {
                     <th>
                         <div class="header-content">
@@ -106,7 +126,7 @@
                         <i class="fas fa-filter header-filter-icon" data-column="14"></i>
                     </div>
                 </th>
-                @if (isAdmin)
+                @if (isAdmin || !isCompanyuser)
                 {
                     <th>
                         <div class="header-content">
@@ -133,7 +153,7 @@
                         <i class="fas fa-filter header-filter-icon" data-column="7"></i>
                     </div>
                 </th>
-                @if (isAdmin)
+                @if (isAdmin || !isCompanyuser)
                 {
                     <th>
                         <div class="header-content">
@@ -148,7 +168,7 @@
                         <i class="fas fa-filter header-filter-icon" data-column="9"></i>
                     </div>
                 </th>
-                @if (isAdmin)
+                @if (isAdmin || !isCompanyuser)
                 {
                     <th>
                         <div class="header-content">
@@ -172,7 +192,7 @@
             </tr>
 
             <!-- FILTER ROW -->
-            @if (isAdmin)
+            @if (isAdmin || !isCompanyuser)
             {
                 <tr class="filter-row">
                     <th></th>

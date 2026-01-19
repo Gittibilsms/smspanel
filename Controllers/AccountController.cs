@@ -242,7 +242,7 @@ namespace GittBilSmsCore.Controllers
             HttpContext.Session.SetInt32("UserId", user.Id);
          //   HttpContext.Session.SetString("UserType", user.UserType ?? "Unknown");
             HttpContext.Session.SetInt32("IsMainUser", (user.IsMainUser ?? false) ? 1 : 0);
-            var roleName = user.UserRoles?
+            var roleName = user.UserRoles? 
     .Select(ur => ur.Role?.RoleName)
     .FirstOrDefault() ?? "User"; // Default fallback
             if (roleName.Equals("Company User", StringComparison.OrdinalIgnoreCase))

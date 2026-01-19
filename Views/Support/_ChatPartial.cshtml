@@ -1,32 +1,45 @@
 ﻿@using GittBilSmsCore.ViewModels
 @model TicketChatViewModel
 
-<div  id="chatBox"   class="chat-content">
+<div id="chatBox" class="chat-content">
     @if (Model.Responses.Any())
     {
         foreach (var r in Model.Responses)
         {
-            if (r.IsAdmin)
+            var isMyMessage = r.ResponderId == Model.CurrentUserId;
+            var avatarFile = r.IsAdmin ? "09.png" : "11.png";
+
+            @if (isMyMessage)
             {
-                    <div class="chat-content-leftside nothere">
-                      <div class="d-flex">
-                        <img src="~/assets/images/avatars/11.png"
+                <!-- MY messages - Right side -->
+                <div class="chat-content-rightside" style="display:flex; justify-content:end">
+                    <div class="d-flex">
+                        <img src="~/assets/images/avatars/09.png"
                              width="42" height="42"
                              class="rounded-circle"
-                             alt=""/>
+                             alt="@r.ResponderName" />
                         <div class="flex-grow-1 ms-2">
-                          <p class="mb-0 chat-time">@r.CreatedDate.ToString("dd/MM/yyyy HH:mm")</p>
-                          <p class="chat-left-msg">@r.Message</p>
+                            <p class="mb-0 chat-time">@r.CreatedDate.ToString("dd/MM/yyyy HH:mm")</p>
+                            <p class="chat-right-msg">@r.Message</p>
                         </div>
-                      </div>
                     </div>
+                </div>
             }
             else
             {
-                    <div class="chat-content-rightside text-end">
-                      <p class="mb-0 chat-time">@r.CreatedDate.ToString("dd/MM/yyyy HH:mm")</p>
-                      <p class="chat-right-msg">@r.Message</p>
+                <!-- OTHER's messages - Left side -->
+                <div class="chat-content-leftside">
+                    <div class="d-flex">
+                        <img src="~/assets/images/avatars/11.png"
+                             width="42" height="42"
+                             class="rounded-circle"
+                             alt="@r.ResponderName" />
+                        <div class="flex-grow-1 ms-2">
+                            <p class="mb-0 chat-time">@r.CreatedDate.ToString("dd/MM/yyyy HH:mm")</p>
+                            <p class="chat-left-msg">@r.Message</p>
+                        </div>
                     </div>
+                </div>
             }
         }
     }
@@ -34,18 +47,16 @@
     {
         <div class="text-center text-muted">No messages yet.</div>
     }
-
-
 </div>
 
-  <!-- chat input footer -->
-  <div class="chat-footer d-flex align-items-center p-2">
+<!-- chat input footer -->
+<div class="chat-footer d-flex align-items-center p-2">
     <form id="chatForm" class="w-100 d-flex">
-      <input type="hidden" id="TicketId" value="@Model.TicketId" />
-      <textarea id="messageInput"
-                class="form-control me-2"
-                maxlength="2000"
-                placeholder="Type your message…"></textarea>
-      <button id="sendBtn" class="btn btn-success">Send</button>
+        <input type="hidden" id="TicketId" value="@Model.TicketId" />
+        <textarea id="messageInput"
+                  class="form-control me-2"
+                  maxlength="2000"
+                  placeholder="Type your message…"></textarea>
+        <button id="sendBtn" class="btn btn-success">Send</button>
     </form>
-  </div>
+</div>

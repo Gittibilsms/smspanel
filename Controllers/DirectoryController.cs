@@ -52,6 +52,7 @@ namespace GittBilSmsCore.Controllers
 
             return View(directories);
         }
+
         [HttpPost]
         public async Task<IActionResult> Create(DirectoryViewModel model)
         {
@@ -136,17 +137,25 @@ namespace GittBilSmsCore.Controllers
             await _context.SaveChangesAsync();
             return Json(new { success = true });
         }
+
         [HttpGet]
         public async Task<IActionResult> Download(int id)
         {
-            var directory = await _context.Directories
-         .Include(d => d.DirectoryNumbers)
-         .FirstOrDefaultAsync(d => d.DirectoryId == id);
+            // ✅ Authorization check
+            var (isAuthorized, directory, errorMessage) = await CanAccessDirectoryAsync(id);
 
-            if (directory == null) return NotFound();
+            if (directory == null)
+                return NotFound(errorMessage);
+
+            if (!isAuthorized)
+                return Forbid();
+
+            // Load numbers
+            await _context.Entry(directory)
+                .Collection(d => d.DirectoryNumbers)
+                .LoadAsync();
 
             var sb = new StringBuilder();
-
             foreach (var number in directory.DirectoryNumbers)
             {
                 sb.AppendLine(number.PhoneNumber);
@@ -155,15 +164,23 @@ namespace GittBilSmsCore.Controllers
             var bytes = Encoding.UTF8.GetBytes(sb.ToString());
             return File(bytes, "text/csv", $"{directory.DirectoryName}_numbers.csv");
         }
+
         [HttpGet]
         public async Task<IActionResult> Get(int id)
         {
-            var directory = await _context.Directories
-                .Include(d => d.DirectoryNumbers)
-                .FirstOrDefaultAsync(d => d.DirectoryId == id);
+            // ✅ Authorization check
+            var (isAuthorized, directory, errorMessage) = await CanAccessDirectoryAsync(id);
 
             if (directory == null)
-                return Json(new { success = false, message = "Directory not found." });
+                return Json(new { success = false, message = errorMessage });
+
+            if (!isAuthorized)
+                return Json(new { success = false, message = "Yetkisiz erişim." });
+
+            // Load numbers
+            await _context.Entry(directory)
+                .Collection(d => d.DirectoryNumbers)
+                .LoadAsync();
 
             var data = new
             {
@@ -177,15 +194,25 @@ namespace GittBilSmsCore.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(DirectoryViewModel model)
         {
-            var companyId = HttpContext.Session.GetInt32("CompanyId");
-            var userId = HttpContext.Session.GetInt32("UserId");
+            // ✅ Check if DirectoryId is provided
+            if (!model.DirectoryId.HasValue)
+                return Json(new { success = false, message = "Rehber ID gerekli." });
 
-            var directory = await _context.Directories
-                .Include(d => d.DirectoryNumbers)
-                .FirstOrDefaultAsync(d => d.DirectoryId == model.DirectoryId && d.CompanyId == companyId);
+            // ✅ Authorization check - use .Value since we checked for null
+            (bool isAuthorized, PhoneDirectory? directory, string? errorMessage) = await CanAccessDirectoryAsync(model.DirectoryId.Value);
 
             if (directory == null)
-                return Json(new { success = false, message = "Directory not found." });
+                return Json(new { success = false, message = errorMessage });
+
+            if (!isAuthorized)
+                return Json(new { success = false, message = "Yetkisiz erişim." });
+
+            var userId = HttpContext.Session.GetInt32("UserId");
+
+            // Load numbers
+            await _context.Entry(directory)
+                .Collection(d => d.DirectoryNumbers)
+                .LoadAsync();
 
             directory.DirectoryName = model.DirectoryName;
 
@@ -245,18 +272,19 @@ namespace GittBilSmsCore.Controllers
         [HttpPost]
         public async Task<IActionResult> Delete(int id)
         {
-            var companyId = HttpContext.Session.GetInt32("CompanyId");
-            var directory = await _context.Directories
-                .FirstOrDefaultAsync(d => d.DirectoryId == id && d.CompanyId == companyId);
+            // ✅ Authorization check
+            var (isAuthorized, directory, errorMessage) = await CanAccessDirectoryAsync(id);
 
             if (directory == null)
-                return Json(new { success = false, message = "Directory not found." });
+                return Json(new { success = false, message = errorMessage });
+
+            if (!isAuthorized)
+                return Json(new { success = false, message = "Yetkisiz erişim." });
 
             _context.Directories.Remove(directory);
             await _context.SaveChangesAsync();
 
-            return Json(new { success = true, message = _sharedLocalizer["directorydeltesuccess"] });
+            return Json(new { success = true, message = "Rehber başarıyla silindi." });
         }
-
     }
 }

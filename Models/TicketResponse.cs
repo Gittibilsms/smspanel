@@ -18,3 +18,10 @@ public class TicketResponse
     public User Responder { get; set; }
     public User RespondedByUser { get; set; } // optional (remove if unused)
 }
+
+public class TicketResponseRequest
+{
+    public int TicketId { get; set; }
+    public string ResponseText { get; set; }
+    public string? ConnectionId { get; set; }  // Not stored in DB
+}

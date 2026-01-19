@@ -54,6 +54,9 @@ window.showToastrFromTempData = function (successMessage, errorMessage) {
 const canEditUsers = $('#permission-flags-users').data('can-edit-users') === true || $('#permission-flags-users').data('can-edit-users') === "true";
 const canEditFirm = $('#permission-flags-firm').data('can-edit-firm') === true || $('#permission-flags-firm').data('can-edit-firm') === "true";
 const isCompanyUser = $('#permission-flags').data('is-company-user') === true || $('#permission-flags').data('is-company-user') === "true";
+const canReadFirm = $('#permission-flags-firm').data('can-read-firm') === true ||
+    $('#permission-flags-firm').data('can-read-firm') === "true";
+
 $("#loginForm").submit(function (e) {
     e.preventDefault(); // ✅ important
     $('#globalSpinnerOverlay').show();
@@ -780,11 +783,19 @@ function sendSmsAjax() {
                 let errorText = 'SMS gönderimi başarısız oldu.';
 
                 if (result.error) {
-                    errorText = result.error;
+                    errorText = typeof result.error === 'object' ? result.error.value : result.error;
                 } else if (result.message) {
-                    errorText = result.message;
+                    errorText = typeof result.message === 'object' ? result.message.value : result.message;
+                } else if (result.value) {
+                    errorText = result.value;
                 } else if (text) {
-                    errorText = text.substring(0, 500);
+                    // Try to parse and extract value from raw text
+                    try {
+                        const parsed = JSON.parse(text);
+                        errorText = parsed.value || parsed.error?.value || parsed.message?.value || text.substring(0, 500);
+                    } catch {
+                        errorText = text.substring(0, 500);
+                    }
                 }
 
                 console.error('Server error:', result);
@@ -932,6 +943,7 @@ function initFancyUploader() {
         maxfilesize: 25 * 1024 * 1024,
 
         added(e, data) {
+            showUploadLoader();
             const file = data.files[0];
             const ext = file.name.split('.').pop().toLowerCase();
             const $row = $('.ff_fileupload_row').last();
@@ -1372,7 +1384,16 @@ function doUpload(data, file, uniqueId, nameCol, numberCol) {
         if (typeof toastr !== 'undefined') {
             toastr.error(errorMsg);
         }
+    }).always(function () {
+        hideUploadLoader();   // 🔥 ALWAYS HIDE AFTER PROCESSING
     });
+}
+function showUploadLoader() {
+    document.getElementById("fileUploadLoader").style.display = "flex";
+}
+
+function hideUploadLoader() {
+    document.getElementById("fileUploadLoader").style.display = "none";
 }
 function updateUploadStatus(status, message) {
     const $statusEl = $('#uploadStatus, #validCount, .upload-status');
@@ -1709,9 +1730,10 @@ $(document).ready(function () {
             }
         });
     });
-
-    // --- Load Companies Table ---
-    loadCompanies();
+    if (canReadFirm) {
+        // --- Load Companies Table ---
+        loadCompanies();
+    }
 
     const $table = $('#usersTable');
     if ($table.length && !$.fn.DataTable.isDataTable($table)) {
@@ -1996,7 +2018,13 @@ $(document).ready(function () {
                         buttonsHtml += `<button class="btn btn-outline-primary confirm-sms-btn mb-1" data-id="${orderId}">${window.localizedTextDT?.confirmsend || 'Confirm Send'}</button>`;
                     }
                     if (status === "Failed") {
-                        buttonsHtml += `<button class="btn btn-outline-warning resend-order-btn" data-order-id="${orderId}">${window.localizedTextDT?.resend || 'Resend'}</button>`;
+                        const isInsufficientBalance = row.failureReason === 'InsufficientBalance' || row.isInsufficientBalanceFailure === true;
+
+                        //buttonsHtml += `<button class="btn btn-outline-warning resend-order-btn" data-order-id="${orderId}">${window.localizedTextDT?.resend || 'Resend'}</button>`;
+
+                        if (isAdminBool || !isInsufficientBalance) {
+                            buttonsHtml += `<button class="btn btn-outline-warning resend-order-btn" data-order-id="${orderId}">${window.localizedTextDT?.resend || 'Resend'}</button>`;
+                        }
                     }
                 }
 
@@ -2203,9 +2231,24 @@ $(document).ready(function () {
                 paginate: { first: '«', last: '»', next: '›', previous: '‹' }
             },
             order: [[1, 'desc']],
-            columns: isAdminBool ? adminColumns : nonAdminColumns,
+            // columns: isAdminBool ? adminColumns : nonAdminColumns,
+            columns: (isAdminBool || (!isCompany && canReadOrders)) ? adminColumns : nonAdminColumns,
             initComplete: function () {
                 this.api().order([1, 'desc']).draw();
+                const $searchWrapper = $('#ordersList_wrapper .dataTables_filter');
+                const $lowestView = $('#lowestViewWrapper');
+
+                if ($searchWrapper.length && $lowestView.length) {
+                    // Create a flex container for search and filter
+                    $searchWrapper.css({
+                        'display': 'flex',
+                        'align-items': 'center',
+                        'gap': '15px'
+                    });
+
+                    // Move and show the dropdown
+                    $lowestView.removeClass('d-none').appendTo($searchWrapper);
+                }
             },
             destroy: true,
             lengthChange: true,
@@ -2266,6 +2309,11 @@ $(document).ready(function () {
             10
         );
         const isAdmin = document.querySelector('meta[name="is-admin"]').content === 'true';
+        const currentUserId = parseInt(
+            document.querySelector('meta[name="user-id"]')?.content || '0',
+            10
+        );
+        const isMainUser = document.querySelector('meta[name="is-main-user"]')?.content === 'true';
 
         // build your SignalR connection
         const orderHub = new signalR.HubConnectionBuilder()
@@ -2274,8 +2322,33 @@ $(document).ready(function () {
 
         // wire up your two handlers (you already have these)
         orderHub.on('ReceiveNewOrder', order => {
+            const orderCompanyId = order.companyId || order.CompanyId || 0;
+            const orderCreatedByUserId = order.createdByUserId || order.CreatedByUserId || 0;
+
+            console.log('=== ReceiveNewOrder ===');
+            console.log('Order companyId:', orderCompanyId, 'My companyId:', companyId);
+            console.log('Order createdByUserId:', orderCreatedByUserId, 'My userId:', currentUserId);
+            console.log('isAdmin:', isAdmin, 'isMainUser:', isMainUser);
+
+            // ✅ FIXED: Only filter for company users (companyId > 0)
+            // Admins and panel users (companyId = 0) see all orders
+            if (!isAdmin && companyId > 0) {
+                // Company users: check company match first
+                if (orderCompanyId !== companyId) {
+                    console.log('SignalR: Ignoring order from different company');
+                    return;
+                }
+
+                // Non-main company users: only see their own orders
+                if (!isMainUser && orderCreatedByUserId !== currentUserId) {
+                    console.log('SignalR: Ignoring order created by different user');
+                    return;
+                }
+            }
+
             const normalized = {
                 orderId: order.orderId || order.OrderId || 0,
+                companyId: orderCompanyId,
                 status: order.status || order.Status || '',
                 companyName: order.companyName || order.CompanyName || '',
                 apiName: order.apiName || order.ApiName || '',
@@ -2289,52 +2362,75 @@ $(document).ready(function () {
                 returned: order.returned ?? order.Returned ?? false,
                 returnDate: order.returnDate || order.ReturnDate || '',
                 createdAt: order.createdAt || order.CreatedAt || ''
-                //,
-                //WaitingCount: order.wa ?? order.WaitingCount ?? 0,
-                //ExpiredCount: order.ExpiredCount ?? order.ExpiredCount ?? 0,
-                //RefundAmount: order.RefundAmount ?? order.RefundAmount ?? 0
             };
             table.row.add(normalized).draw(false);
         });
+
         orderHub.on('OrderStatusChanged', data => {
-            // find the row
-            const idxs = table.rows((idx, rowData) => rowData.orderId === data.orderId).indexes();
-            if (!idxs.length) return;
+            console.log('=== OrderStatusChanged received ===');
+            console.log('data:', data);
+            console.log('Looking for orderId:', data.orderId);
+
+            // find the row - ensure both are same type (number)
+            const targetOrderId = parseInt(data.orderId, 10);
+
+            const idxs = table.rows((idx, rowData) => {
+                const rowOrderId = parseInt(rowData.orderId, 10);
+                console.log('Comparing row orderId:', rowOrderId, 'with target:', targetOrderId);
+                return rowOrderId === targetOrderId;
+            }).indexes();
+
+            if (!idxs.length) {
+                console.log('❌ Row not found for orderId:', targetOrderId);
+                return;
+            }
 
             // mutate the object
             const rowIdx = idxs[0];
             const rowData = table.row(rowIdx).data();
+            console.log('✅ Found row. Old status:', rowData.status, '-> New status:', data.newStatus);
+
             rowData.status = data.newStatus;
 
             // tell DT to re-read & redraw
             table
                 .row(rowIdx)
                 .data(rowData)
-                .invalidate()   // ⇐ important!
+                .invalidate()
                 .draw(false);
+
+            console.log('✅ Row updated and redrawn');
         });
 
         // start + join
         orderHub.start()
             .then(() => {
-                console.log('SignalR connected');
+                console.log('✅ SignalR connected');
 
                 // company users join their company group
                 if (companyId) {
+                    console.log('Attempting to join company group:', companyId);
                     orderHub.invoke('JoinCompanyGroup', companyId)
-                        .catch(console.error);
+                        .then(() => console.log('✅ Joined company group:', companyId))
+                        .catch(err => console.error('❌ Failed to join company group:', err));
                 }
 
                 // admins also join the "Admins" group
                 if (isAdmin) {
+                    console.log('Attempting to join Admin group');
                     orderHub.invoke('JoinAdminGroup')
-                        .catch(console.error);
+                        .then(() => console.log('✅ Joined Admin group'))
+                        .catch(err => console.error('❌ Failed to join Admin group:', err));
                 }
-                if (!isAdmin && canReadOrders) {
-                    orderHub.invoke('JoinPanelGroup').catch(console.error);
+
+                // Only non-company panel users join PanelGroup
+                if (!isAdmin && canReadOrders && !companyId) {
+                    orderHub.invoke('JoinPanelGroup')
+                        .then(() => console.log('✅ Joined Panel group'))
+                        .catch(err => console.error('❌ Failed to join Panel group:', err));
                 }
             })
-            .catch(err => console.error('SignalR error:', err));
+            .catch(err => console.error('❌ SignalR connection error:', err));
         function formatStatus(status) {
             switch (status) {
                 case 'Scheduled':
@@ -2407,8 +2503,6 @@ $(document).ready(function () {
             const selectedStatus = $(this).val();
 
 
-
-            // 🔥 Instead of .search(''), do this:
             // table.clear().draw();
 
             // Then reload fresh:
@@ -2421,7 +2515,7 @@ $(document).ready(function () {
             }, false);
         });
 
-        // ✅ FIXED: Other column filters (excluding status column)
+       
         $('.column-filter').not('select[data-column="2"]').off('keyup change').on('keyup change', function () {
             const columnIndex = $(this).data('column');
             const value = this.value;
@@ -2451,7 +2545,27 @@ $(document).ready(function () {
 
             checkIfAnyFilterApplied();
         });
+   
+        $('#lowestViewFilter').on('change', function () {
+            const minValue = parseInt($(this).val()) || 0;
+            const table = window.ordersDataTable || $('#ordersList').DataTable();
 
+            // Remove any existing lowest view filter
+            $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(fn => !fn.isLowestViewFilter);
+
+            // Add filter only if minValue > 0
+            if (minValue > 0) {
+                const filterFn = function (settings, data, dataIndex, rowData) {
+                    const loadedCount = parseInt(rowData.loadedCount) || 0;
+                    return loadedCount >= minValue;
+                };
+                filterFn.isLowestViewFilter = true;
+                $.fn.dataTable.ext.search.push(filterFn);
+            }
+
+            table.draw();
+            checkIfAnyFilterApplied();
+        });
         // Date range filtering for date columns (10, 13, 14)
         $('.date-filter').on('change', function () {
             const columnIndex = $(this).data('column');
@@ -2485,6 +2599,7 @@ $(document).ready(function () {
 
             // Clear status filter
             $('#ordersList .filter-row select[data-column="2"]').val('').trigger('change');
+            $('#lowestViewFilter').val('1');
 
             // Clear all column searches
             table.columns().search('');
@@ -2642,6 +2757,7 @@ $(document).ready(function () {
 
         $('.date-filter').val('');
         $('.clear-date-filter').hide();
+        $('#lowestViewFilter').val('1');
         if ($('#companyFilter').data('select2')) {
             $('#companyFilter').val(null).trigger('change.select2');
         } else {
@@ -3315,7 +3431,8 @@ function loadCompanies() {
             });
         },
         error: function () {
-            alert('Failed to load companies.');
+            // alert('Failed to load companies.');
+            console.log('No permission to view companies list');
         }
     });
 }

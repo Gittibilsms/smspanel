@@ -16,6 +16,8 @@ using DocumentFormat.OpenXml.ExtendedProperties;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using ClosedXML.Excel;
+using GittBilSmsCore.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 namespace GittBilSmsCore.Controllers
 {
@@ -24,11 +26,14 @@ namespace GittBilSmsCore.Controllers
         private readonly GittBilSmsDbContext _context;
         private readonly IStringLocalizer _sharedLocalizer;
         private readonly IWebHostEnvironment _env;
-        public OrdersController(GittBilSmsDbContext context, IStringLocalizerFactory factory, IWebHostEnvironment env) : base(context)
+        private readonly IHubContext<ChatHub> _hubContext;
+
+        public OrdersController(GittBilSmsDbContext context, IHubContext<ChatHub> hubContext, IStringLocalizerFactory factory, IWebHostEnvironment env) : base(context)
         {
             _context = context;
             _sharedLocalizer = factory.Create("SharedResource", "GittBilSmsCore");
             _env = env;
+            _hubContext = hubContext;
         }
 
         public IActionResult Index()
@@ -37,7 +42,13 @@ namespace GittBilSmsCore.Controllers
             {
                 return Forbid();
             }
-            return View(); // Just loads the Razor view
+            ViewBag.CompanyId = HttpContext.Session.GetInt32("CompanyId") ?? 0;
+            ViewBag.IsAdmin = HttpContext.Session.GetString("UserType") == "Admin"
+                              || HttpContext.Session.GetInt32("RoleId") == 1;
+            ViewBag.UserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+            ViewBag.IsMainUser = HttpContext.Session.GetInt32("IsMainUser") == 1;
+
+            return View();
         }
 
         [HttpGet]
@@ -107,7 +118,11 @@ namespace GittBilSmsCore.Controllers
                    o.InvalidCount,  
                    o.BlacklistedCount,  
                    o.RepeatedCount, 
-                   o.BannedCount
+                   o.BannedCount,
+                   IsInsufficientBalanceFailure = o.ApiErrorResponse != null &&
+            (o.ApiErrorResponse.Contains("insufficientbal") ||
+             o.ApiErrorResponse.Contains("Insufficient balance") ||
+             o.ApiErrorResponse.Contains("Yetersiz bakiye"))
                })//.Where(o => o.OrderId == 49215) // Dummy where to ensure IQueryable 
                 .ToListAsync();
 
@@ -125,42 +140,41 @@ namespace GittBilSmsCore.Controllers
         }
         // Download Report Summary
         [HttpGet]
-        public IActionResult DownloadReportSummary(int orderId)
+        public async Task<IActionResult> DownloadReportSummary(int orderId)
         {
-            return DownloadReportFile(orderId, "report-summary.csv", "Summary");
+            return await DownloadReportFile(orderId, "report-summary.csv", "Summary");
         }
-
         // Download Undelivered
         [HttpGet]
-        public IActionResult DownloadUndelivered(int orderId)
+        public async Task<IActionResult> DownloadUndelivered(int orderId)
         {
-            return DownloadReportFile(orderId, "undelivered.csv", "Undelivered");
+            return await DownloadReportFile(orderId, "undelivered.csv", "Undelivered");
         }
 
         // Download Forwarded
         [HttpGet]
-        public IActionResult DownloadWaiting(int orderId)
+        public async Task<IActionResult> DownloadWaiting(int orderId)
         {
-            return DownloadReportFile(orderId, "waiting.csv", "Waiting");
+            return await DownloadReportFile(orderId, "waiting.csv", "Waiting");
         }
 
         [HttpGet]
-        public IActionResult DownloadAllReport(int orderId)
+        public async Task<IActionResult> DownloadAllReport(int orderId)
         {
-            return DownloadReportFile(orderId, "all.csv", "All");
+            return await DownloadReportFile(orderId, "all.csv", "All");
         }
         // Download Waiting
         [HttpGet]
-        public IActionResult DownloadForwarded(int orderId)
+        public async Task<IActionResult> DownloadForwarded(int orderId)
         {
-            return DownloadReportFile(orderId, "delivered.csv", "Forwarded");
+            return await DownloadReportFile(orderId, "delivered.csv", "Forwarded");
         }
 
         // Download Expired
         [HttpGet]
-        public IActionResult DownloadExpired(int orderId)
+        public async Task<IActionResult> DownloadExpired(int orderId)
         {
-            return DownloadReportFile(orderId, "expired.csv", "Expired");
+            return await DownloadReportFile(orderId, "expired.csv", "Expired");
         }
         private string BuildRequestBody(SendSmsViewModel model, Api api)
         {
@@ -261,20 +275,33 @@ namespace GittBilSmsCore.Controllers
             return View();
         }
         [HttpGet]
-        public IActionResult DownloadReportFile(int orderId, string fileName, string reportName)
+        public async Task<IActionResult> DownloadReportFile(int orderId, string fileName, string reportName)
         {
-            // 1️⃣ Find the Kudu/App_Data path
+            // ✅ 1. Authorization check
+            var (isAuthorized, order, errorMessage) = await CanAccessOrderAsync(orderId);
+
+            if (order == null)
+                return NotFound(errorMessage);
+
+            if (!isAuthorized)
+                return Forbid();
+
+            // ✅ 2. Check if order is older than 1 week
+            var orderAge = TimeHelper.NowInTurkey() - order.CreatedAt;
+            bool isExpired = orderAge.TotalDays > 7;
+
+            // 3️⃣ Find the Kudu/App_Data path
             var home = Environment.GetEnvironmentVariable("HOME")
                              ?? _env.ContentRootPath;
             var ordersRoot = Path.Combine(home, "data", "orders");
             var folder = Path.Combine(ordersRoot, orderId.ToString());
 
-            // 2️⃣ Build both possible source paths (CSV or TXT)
+            // 4️⃣ Build both possible source paths (CSV or TXT)
             var baseName = Path.GetFileNameWithoutExtension(fileName);
             var csvPath = Path.Combine(folder, baseName + ".csv");
             var txtPath = Path.Combine(folder, baseName + ".txt");
 
-            // 3️⃣ Pick whichever exists
+            // 5️⃣ Pick whichever exists
             string source;
             if (System.IO.File.Exists(csvPath))
                 source = csvPath;
@@ -283,21 +310,47 @@ namespace GittBilSmsCore.Controllers
             else
                 return NotFound($"Neither '{baseName}.csv' nor '{baseName}.txt' was found for order {orderId}.");
 
-            // 4️⃣ Final download‑as name
+            // 6️⃣ Final download‑as name
             var downloadName = reportName ?? fileName;
 
-            // 5️⃣ Branch on requested extension
+            // 7️⃣ Branch on requested extension
             var ext = Path.GetExtension(fileName).ToLowerInvariant();
+
+            // ✅ 8. If order is older than 1 week, return empty file
+            if (isExpired)
+            {
+                switch (ext)
+                {
+                    case ".csv":
+                        return File(Array.Empty<byte>(), "text/csv", downloadName);
+                    case ".txt":
+                        return File(Array.Empty<byte>(), "text/plain", downloadName);
+                    case ".xlsx":
+                        using (var wb = new XLWorkbook())
+                        {
+                            wb.Worksheets.Add("Report");
+                            using var ms = new MemoryStream();
+                            wb.SaveAs(ms);
+                            return File(ms.ToArray(),
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                downloadName);
+                        }
+                    default:
+                        return BadRequest("Unsupported format");
+                }
+            }
+
+            // 9️⃣ Return file with data
             switch (ext)
             {
                 case ".csv":
                     {
-                        var data = System.IO.File.ReadAllBytes(source);
+                        var data = await System.IO.File.ReadAllBytesAsync(source);
                         return File(data, "text/csv", downloadName);
                     }
                 case ".txt":
                     {
-                        var data = System.IO.File.ReadAllBytes(source);
+                        var data = await System.IO.File.ReadAllBytesAsync(source);
                         return File(data, "text/plain", downloadName);
                     }
                 case ".xlsx":
@@ -305,7 +358,7 @@ namespace GittBilSmsCore.Controllers
                         // Build an in‑memory XLSX from CSV/TXT
                         using var wb = new XLWorkbook();
                         var ws = wb.Worksheets.Add("Report");
-                        var lines = System.IO.File.ReadAllLines(source);
+                        var lines = await System.IO.File.ReadAllLinesAsync(source);
 
                         for (int r = 0; r < lines.Length; r++)
                         {
@@ -1514,33 +1567,46 @@ namespace GittBilSmsCore.Controllers
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
-            var order = await _context.Orders
-                .Include(o => o.Company)
-                .Include(o => o.Api)
-                .Include(o => o.CreatedByUser)
-                .Include(o => o.Actions.OrderBy(a => a.CreatedAt))
-                .FirstOrDefaultAsync(o => o.OrderId == id);
+            // ✅ Authorization check
+            (bool isAuthorized, Order? order, string? errorMessage) = await CanAccessOrderAsync(id);
 
             if (order == null)
-                return NotFound();
+                return NotFound(errorMessage);
+
+            // ✅ Additional check: Panel users with Edit permission can access
+            if (!isAuthorized && HasAccessRoles("Order", "Edit"))
+            {
+                isAuthorized = true;
+            }
+
+            if (!isAuthorized)
+                return Forbid();
+
+            // Load related data
+            await _context.Entry(order).Reference(o => o.Company).LoadAsync();
+            await _context.Entry(order).Reference(o => o.Api).LoadAsync();
+            await _context.Entry(order).Reference(o => o.CreatedByUser).LoadAsync();
+            await _context.Entry(order).Collection(o => o.Actions).LoadAsync();
 
             return View(order);
         }
-
         [HttpGet]
-        public IActionResult GetOrderDetails(int id)
+        public async Task<IActionResult> GetOrderDetails(int id)
         {
-            var order = _context.Orders
-                .Include(o => o.Company)
-                .Include(o => o.Api)
-                .Include(o => o.CreatedByUser)
-                .Include(o => o.Actions.OrderBy(a => a.CreatedAt))
-                .FirstOrDefault(o => o.OrderId == id);
+            // ✅ Authorization check
+            (bool isAuthorized, Order? order, string? errorMessage) = await CanAccessOrderAsync(id);
 
             if (order == null)
-            {
-                return NotFound();
-            }
+                return NotFound(errorMessage);
+
+            if (!isAuthorized)
+                return Forbid();
+
+            // Load related data
+            await _context.Entry(order).Reference(o => o.Company).LoadAsync();
+            await _context.Entry(order).Reference(o => o.Api).LoadAsync();
+            await _context.Entry(order).Reference(o => o.CreatedByUser).LoadAsync();
+            await _context.Entry(order).Collection(o => o.Actions).LoadAsync();
 
             var model = new OrderDetailsViewModel
             {
@@ -1571,11 +1637,14 @@ namespace GittBilSmsCore.Controllers
 
             return PartialView("_OrderDetailsPartial", order);
         }
-       
         [HttpPost]
         public async Task<IActionResult> CancelOrder(int orderId)
         {
-            var order = await _context.Orders.FindAsync(orderId);
+            var order = await _context.Orders
+                .Include(o => o.Company)
+                .Include(o => o.CreatedByUser)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
             if (order == null)
             {
                 return NotFound(new { messageKey = "OrderNotFound" });
@@ -1586,19 +1655,65 @@ namespace GittBilSmsCore.Controllers
                 return BadRequest(new { messageKey = "OrderCannotBeCancelled" });
             }
 
+            // 1️⃣ Calculate refund amount
+            var refundAmount = order.TotalPrice ?? 0;
+
+            // 2️⃣ Refund to company (if credits were deducted)
+            if (refundAmount > 0)
+            {
+                order.Company.CreditLimit += refundAmount;
+
+                // 3️⃣ Create BalanceHistory entry
+                _context.BalanceHistory.Add(new BalanceHistory
+                {
+                    CompanyId = order.CompanyId,
+                    Amount = refundAmount,
+                    Action = "Refund on Cancel",
+                    OrderId = order.OrderId,
+                    CreatedAt = TimeHelper.NowInTurkey(),
+                    CreatedByUserId = order.CreatedByUserId
+                });
+
+                // 4️⃣ Create CreditTransaction entry
+                _context.CreditTransactions.Add(new CreditTransaction
+                {
+                    CompanyId = order.CompanyId,
+                    Credit = refundAmount,
+                    TransactionDate = TimeHelper.NowInTurkey(),
+                    Note = $"Sipariş iptali - Order #{order.OrderId}",
+                    UnitPrice = 0,
+                    TotalPrice = 0
+                });
+
+                // 5️⃣ Restore user quota (if variable)
+                if (order.CreatedByUser != null && order.CreatedByUser.QuotaType == "Variable Quota")
+                {
+                    order.CreatedByUser.Quota = (order.CreatedByUser.Quota ?? 0) + (int)refundAmount;
+                }
+            }
+
+            // 6️⃣ Update order status
             order.CurrentStatus = "Cancelled";
             order.UpdatedAt = TimeHelper.NowInTurkey();
+
             order.Actions.Add(new OrderAction
             {
                 ActionName = "Cancelled",
-                Message = "OrderWasCancelled", // Store key or localized text as you prefer
+                Message = refundAmount > 0
+                    ? $"Order cancelled. {refundAmount} credits refunded."
+                    : "Order cancelled.",
                 CreatedAt = TimeHelper.NowInTurkey()
             });
 
-            _context.Orders.Update(order);
             await _context.SaveChangesAsync();
 
-            return Ok(new { messageKey = "OrderCancelledSuccessfully" });
+            // 7️⃣ SignalR notifications
+            await _hubContext.Clients.Group("Admins").SendAsync("OrderStatusChanged", new { orderId = order.OrderId, newStatus = "Cancelled" });
+            await _hubContext.Clients.Group("PanelUsers").SendAsync("OrderStatusChanged", new { orderId = order.OrderId, newStatus = "Cancelled" });
+            await _hubContext.Clients.Group($"company_{order.CompanyId}").SendAsync("OrderStatusChanged", new { orderId = order.OrderId, newStatus = "Cancelled" });
+            await _hubContext.Clients.Group($"user_{order.CreatedByUserId}").SendAsync("OrderStatusChanged", new { orderId = order.OrderId, newStatus = "Cancelled" });
+
+            return Ok(new { messageKey = "OrderCancelledSuccessfully", refundedAmount = refundAmount });
         }
     }
 }

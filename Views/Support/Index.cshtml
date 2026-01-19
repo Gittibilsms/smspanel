@@ -209,41 +209,29 @@
 
         // incoming chat messages
         connection.on('ReceiveMessage', data => {
-          if (data.name === currentUser && data.text === lastSentText) {
-            lastSentText = null;
-            return;
-          }
-          const $chat = $('#chatBox');
-          if (!$chat.length) return;
-                const avatarFile = data.isAdmin ? '09.png' : '11.png';
+          // if (data.name === currentUser && data.text === lastSentText) {
+          //   lastSentText = null;
+          //   return;
+          // }
+                 const $chat = $('#chatBox');
+        if (!$chat.length) return;
+              const avatarFile = data.isAdmin ? '09.png' : '11.png';
           const isIncoming = data.name !== currentUser;
-          const html = isIncoming
-            ? `<div class="chat-content-rightside text-end" style="display:flex; justify-content:end">
-                 <div class="d-flex">
-                  <img src="/assets/images/avatars/${avatarFile}"
-                            width="42" height="42"
-                            class="rounded-circle"
-                            alt="${data.name}" />
-                                 <div class="flex-grow-1 ms-2">
-                 <p class="mb-0 chat-time">${data.time}</p>
-                 <p class="chat-right-msg">${data.text}</p>
-                 </div>
-                        </div>
-               </div>`
-            : `<div class="chat-content-leftside yeshere">
-                 <div class="d-flex">
-                       <img src="/assets/images/avatars/${avatarFile}"
-                        width="42" height="42"
-                        class="rounded-circle"
-                        alt="${data.name}" />
-                   <div class="flex-grow-1 ms-2">
-                     <p class="mb-0 chat-time">${data.time}</p>
-                     <p class="chat-left-msg">${data.text}</p>
-                   </div>
-                 </div>
-               </div>`;
-          $chat.append(html);
-          $chat[0].scrollTop = $chat[0].scrollHeight;
+              const html = `
+        <div class="chat-content-leftside">
+          <div class="d-flex">
+            <img src="/assets/images/avatars/${avatarFile}"
+                 width="42" height="42"
+                 class="rounded-circle"
+                 alt="${data.name}" />
+            <div class="flex-grow-1 ms-2">
+              <p class="mb-0 chat-time">${data.time}</p>
+              <p class="chat-left-msg">${data.text}</p>
+            </div>
+          </div>
+        </div>`;
+               $chat.append(html);
+        $chat[0].scrollTop = $chat[0].scrollHeight;
         });
 
         // new tickets
@@ -320,6 +308,11 @@
               $('.chat-wrapper').addClass('showChat');
               connection.invoke('JoinGroup', ticketId)
                         .catch(console.error);
+                            // Scroll to bottom after chat loads
+        const chatBox = document.getElementById('chatBox');
+        if (chatBox) {
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
             });
         });
 
@@ -327,47 +320,58 @@
           $('.chat-wrapper').removeClass('showChat')
         );
 
-        let lastSentText = null;
-        $(document).on('submit', '#chatForm', function(e) {
-          e.preventDefault();
-              const isAdminUser = @Html.Raw(Json.Serialize(User.IsInRole("Admin")));
-          const ticketId = +$('#TicketId').val();
-          const text     = $('#messageInput').val().trim();
-          if (!text) return;
-          $('#sendBtn').prop('disabled', true);
-          lastSentText = text;
+      //  let lastSentText = null;
+            $(document).on('submit', '#chatForm', function(e) {
+        e.preventDefault();
+        const isAdminUser = @Html.Raw(Json.Serialize(User.IsInRole("Admin")));
+        const ticketId = +$('#TicketId').val();
+        const text     = $('#messageInput').val().trim();
+        if (!text) return;
+        $('#sendBtn').prop('disabled', true);
+         // lastSentText = text;
 
-          // optimistic render
-          const now = new Date();
-          const timestamp = now.toLocaleString('en-GB', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-          }).replace(',', '');
-          const avatarFile = isAdminUser ? '09.png' : '11.png';
-          const $chat = $('#chatBox');
-          $chat.append(`
-            <div class="chat-content-leftside">
-              <div class="d-flex">
-                    <img src="/assets/images/avatars/${avatarFile}" width="42" height="42" class="rounded-circle" alt="${currentUser}" />
-                <div class="flex-grow-1 ms-2">
-                  <p class="mb-0 chat-time">${timestamp}</p>
-                  <p class="chat-left-msg">${text}</p>
-                </div>
+                const now = new Date();
+        const timestamp = now.toLocaleString('en-GB', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        }).replace(',', '');
+        const avatarFile = isAdminUser ? '09.png' : '11.png';
+        const $chat = $('#chatBox');
+               $chat.append(`
+          <div class="chat-content-rightside" style="display:flex; justify-content:end">
+            <div class="d-flex">
+                <img src="/assets/images/avatars/09.png"
+                     width="42" height="42"
+                   class="rounded-circle"
+                   alt="${currentUser}" />
+              <div class="flex-grow-1 ms-2">
+                <p class="mb-0 chat-time">${timestamp}</p>
+                <p class="chat-right-msg">${text}</p>
               </div>
-            </div>`);
-          $chat[0].scrollTop = $chat[0].scrollHeight;
+            </div>
+          </div>`);
+        $chat[0].scrollTop = $chat[0].scrollHeight;
 
-          $.ajax({
-            url: '/Support/RespondToTicket',
-            method: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ ticketId, responseText: text })
+               $('#messageInput').val('').focus();
+        $('#charCount').text('0/2000');
+                  $.ajax({
+          url: '/Support/RespondToTicket',
+          method: 'POST',
+          contentType: 'application/json',
+          data: JSON.stringify({
+            ticketId,
+            responseText: text,
+            connectionId: connection.connectionId
           })
-          .always(() => {
-            $('#messageInput').val('').focus();
-            $('#charCount').text('0/2000');
-            $('#sendBtn').prop('disabled', false);
-          });
+        })
+        .done(() => {
+          $('#sendBtn').prop('disabled', false);
+        })
+        .fail(() => {
+          alert('Failed to send message');
+          $('#messageInput').val(text);
+          $('#sendBtn').prop('disabled', false);
+        });
         });
 
         // 6) Chat input char counter

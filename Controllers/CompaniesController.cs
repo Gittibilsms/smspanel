@@ -26,6 +26,45 @@ namespace GittBilSmsCore.Controllers
             _userManager = userManager;
             _svc = svc;
         }
+        private async Task<bool> CanAccessCompany(int companyId)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null) return false;
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return false;
+
+            // Admins can access all companies
+            if (user.UserType == "Admin" || user.UserType == "SuperAdmin")
+                return true;
+
+            // Company users can only access their own company
+            if (user.UserType == "CompanyUser" || user.UserType == "PanelUser" || user.UserType == "SubUser")
+                return user.CompanyId == companyId;
+
+            return false;
+        }
+        /// </summary>
+        private async Task<int?> GetCurrentUserCompanyId()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null) return null;
+
+            var user = await _context.Users.FindAsync(userId);
+            return user?.CompanyId;
+        }
+
+        /// <summary>
+        /// Checks if the current user is an admin
+        /// </summary>
+        private async Task<bool> IsAdmin()
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null) return false;
+
+            var user = await _context.Users.FindAsync(userId);
+            return user?.UserType == "Admin" || user?.UserType == "SuperAdmin";
+        }
         [HttpGet("")]
         public async Task<IActionResult> Index()
         {
@@ -50,6 +89,10 @@ namespace GittBilSmsCore.Controllers
         [HttpGet("AddCompanyModal")]
         public async Task<IActionResult> AddCompanyModal()
         {
+            if (!HasAccessRoles("Firm", "Create"))
+            {
+                return Forbid();
+            }
             var latestPricing = await _context.Pricing
                 .Where(p => p.IsActive)
                 .OrderByDescending(p => p.CreatedAt)
@@ -83,6 +126,10 @@ namespace GittBilSmsCore.Controllers
         [HttpPost("Add")]
         public async Task<IActionResult> AddCompany([FromBody] AddCompanyInputModel model)
         {
+            if (!HasAccessRoles("Firm", "Create"))
+            {
+                return Forbid();
+            }
             // 🔍 Check for duplicate company name
             if (await _context.Companies.AnyAsync(c => c.CompanyName == model.CompanyName))
             {
@@ -190,6 +237,11 @@ namespace GittBilSmsCore.Controllers
         [HttpGet("GetAll")]
         public async Task<IActionResult> GetAllCompanies()
         {
+            // Check read permission
+            if (!HasAccessRoles("Firm", "Read"))
+            {
+                return Forbid();
+            }
             var userId = HttpContext.Session.GetInt32("UserId");
             if (userId == null)
                 return Unauthorized();
@@ -229,6 +281,11 @@ namespace GittBilSmsCore.Controllers
         [HttpPost("ToggleActive/{id}")]
         public async Task<IActionResult> ToggleActive(int id)
         {
+            // Only admins can toggle company status
+            if (!HasAccessRoles("Firm", "Edit"))
+            {
+                return Forbid();
+            }
             var company = await _context.Companies.FindAsync(id);
             if (company == null) return NotFound();
 
@@ -242,6 +299,11 @@ namespace GittBilSmsCore.Controllers
         [HttpGet("List")]
         public IActionResult GetCompaniesList()
         {
+            // Check read permission
+            if (!HasAccessRoles("Firm", "Read"))
+            {
+                return Forbid();
+            }
             var companies = _context.Companies
                 .Where(c => c.IsActive)
                 .Select(c => new {
@@ -254,6 +316,12 @@ namespace GittBilSmsCore.Controllers
         [HttpGet("Details/{id}")]
         public async Task<IActionResult> Details(int id)
         {
+            // Check read permission
+            if (!HasAccessRoles("Firm", "Read"))
+            {
+                return Forbid();
+            }
+
             var company = await _context.Companies
                 .Include(c => c.Api)
                 .FirstOrDefaultAsync(c => c.CompanyId == id);
@@ -336,6 +404,12 @@ namespace GittBilSmsCore.Controllers
         [HttpGet("GetUsersByCompany")]
         public async Task<IActionResult> GetUsersByCompany([FromQuery] int companyId)
         {
+            // Check read permission for users
+            if (!HasAccessRoles("Company_User", "Read"))
+            {
+                return Forbid();
+            }
+
             var users = await _context.Users
                 .Include(u => u.Company)
                 .Where(u => u.CompanyId == companyId)
@@ -365,6 +439,16 @@ namespace GittBilSmsCore.Controllers
         [HttpPost("UpdateDetails")]
         public async Task<IActionResult> UpdateDetails(CompanyDetailsViewModel model)
         {
+            if (!HasAccessRoles("Firm", "Edit"))
+            {
+                return Forbid();
+            }
+
+            // Check if user can access this specific company
+            if (!await CanAccessCompany(model.Company.CompanyId))
+            {
+                return Forbid();
+            }
             try
             {
                 var company = await _context.Companies.FindAsync(model.Company.CompanyId);
@@ -400,6 +484,16 @@ namespace GittBilSmsCore.Controllers
         [HttpPost("AddCredit")]
         public async Task<IActionResult> AddCredit(int companyId, decimal price, string unitPrice, string currency, string note)
         {
+            // Only admins can add credit
+            if (!HasAccessRoles("Firm", "Edit"))
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = _sharedLocalizer["AccessDenied"]
+                });
+            }
+
             try
             {
                 // ✅ Parse unitPrice using invariant culture
@@ -501,6 +595,11 @@ namespace GittBilSmsCore.Controllers
         [HttpPost("DeleteCredit")]
         public async Task<IActionResult> DeleteCredit(int companyId, decimal credit, string currency, string note)
         {
+            // Only admins can delete credit
+            if (!HasAccessRoles("Firm", "Edit"))
+            {
+                return Forbid();
+            }
             var transaction = new CreditTransaction
             {
                 CompanyId = companyId,
@@ -559,6 +658,10 @@ namespace GittBilSmsCore.Controllers
         [HttpPost("Deactivate/{id}")]
         public async Task<IActionResult> Deactivate(int id)
         {
+            if (!HasAccessRoles("Firm", "Edit"))
+            {
+                return Forbid();
+            }
             var company = await _context.Companies.FindAsync(id);
             if (company == null) return NotFound();
 
@@ -572,6 +675,10 @@ namespace GittBilSmsCore.Controllers
         [HttpDelete("Delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
+            if (!HasAccessRoles("Firm", "Edit"))
+            {
+                return Forbid();
+            }
             var company = await _context.Companies
         .Include(c => c.Users) // Include related users
         .FirstOrDefaultAsync(c => c.CompanyId == id);

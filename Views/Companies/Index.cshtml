@@ -15,8 +15,9 @@
 }
 @{
     var canEditFirm = Context.Session.HasPermission("Firm", "Edit");
+    var canReadFirm = Context.Session.HasPermission("Firm", "Read");
 }
-<div id="permission-flags-firm"
+<div id="permission-flags-firm" data-can-read-firm="@canReadFirm.ToString().ToLower()"
      data-can-edit-firm="@canEditFirm.ToString().ToLower()">
 </div>
 <div class="container mt-4">
