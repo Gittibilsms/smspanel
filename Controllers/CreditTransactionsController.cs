@@ -56,6 +56,10 @@ namespace GittBilSmsCore.Controllers
         {
             try
             {
+                var company = await _context.Companies.FirstOrDefaultAsync(c => c.CompanyId == companyId);
+                if (company == null)
+                    return Json(new { success = false, message = "Company not found." });
+
                 var transaction = new CreditTransaction
                 {
                     CompanyId = companyId,
@@ -69,6 +73,7 @@ namespace GittBilSmsCore.Controllers
                 };
 
                 _context.CreditTransactions.Add(transaction);
+                company.CreditLimit += credit;
                 await _context.SaveChangesAsync();
                 int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
                 decimal? availableCredit = await (

@@ -13,19 +13,22 @@ using Microsoft.EntityFrameworkCore;
 using System.IO;
 using GittBilSmsCore.Models;
 using GittBilSmsCore.Helpers;
+using Microsoft.Extensions.Localization;
 public class SmsReportBackgroundService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<SmsReportBackgroundService> _logger;
     private readonly IWebHostEnvironment _env;
+    private readonly IStringLocalizer _sharedLocalizer;
 
-    public SmsReportBackgroundService(IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory, ILogger<SmsReportBackgroundService> logger, IWebHostEnvironment env)
+    public SmsReportBackgroundService(IServiceProvider serviceProvider, IHttpClientFactory httpClientFactory, ILogger<SmsReportBackgroundService> logger, IWebHostEnvironment env, IStringLocalizerFactory factory)
     {
         _serviceProvider = serviceProvider;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _env = env;
+        _sharedLocalizer = factory.Create("SharedResource", "GittBilSmsCore");
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -57,7 +60,7 @@ public class SmsReportBackgroundService : BackgroundService
         using (var scope = _serviceProvider.CreateScope())
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<GittBilSmsDbContext>();
-
+            var telegramService = scope.ServiceProvider.GetRequiredService<TelegramMessageService>();
             var supportedApis = new[] { "yurtici", "telsim", "turkcell" };
 
             var orders = await dbContext.Orders
@@ -192,6 +195,34 @@ public class SmsReportBackgroundService : BackgroundService
 
                                     order.Returned = true;
                                     order.ReturnDate = DateTime.UtcNow.AddHours(3);
+                                    //NOTIFY TO ADMIN IF REFUND ADDED 
+
+                                    decimal? availableCredit = await (
+                                   from c in dbContext.Companies
+                                   join u in dbContext.Users on c.CompanyId equals u.CompanyId
+                                   where u.IsMainUser == true && c.CompanyId == order.CompanyId
+                                   select (decimal?)c.CreditLimit
+                   ).FirstOrDefaultAsync();
+                                    var textMsg = string.Format(
+                                                          _sharedLocalizer["CreditRefundedMessage"],
+                                                           (decimal)refundAmount,
+                                                          availableCredit
+                                                      );
+                                    string? companyName = await (
+                                    from c in dbContext.Companies
+                                    join u in dbContext.Users on c.CompanyId equals u.CompanyId
+                                    where u.IsMainUser == true && c.CompanyId == order.CompanyId
+                                    select (string?)c.CompanyName
+                                        ).FirstOrDefaultAsync();
+                                    var textMsgtoAdmin = string.Format(
+                                                               _sharedLocalizer["CreditRefundedMessageToAdmin"],
+                                                               companyName,
+                                                                (decimal)refundAmount,
+                                                               availableCredit
+                                                           );
+
+                                    await telegramService.SendToUsersAsync(order.CompanyId, 0, textMsg, "System-added credit during refund", textMsgtoAdmin, 0);
+
 
                                     _logger.LogInformation($"Refunded {refundAmount} credits to CompanyId={order.CompanyId} for OrderId={order.OrderId}");
                                 }

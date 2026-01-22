@@ -1139,7 +1139,7 @@ namespace GittBilSmsCore.Controllers
                     });
                     if (order.TotalPrice > 0 && order.Returned == false)
                     {
-                       // company.CreditLimit += order.TotalPrice.Value;
+                        company.CreditLimit += order.TotalPrice.Value; // uncommented the credit mismatch
 
                         order.Refundable = true;
                         order.Returned = true;

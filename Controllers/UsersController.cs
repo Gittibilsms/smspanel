@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using OtpNet;
 using QRCoder;
+//using Telegram.Bot.Types;
 using static QRCoder.QRCodeGenerator;
 
 namespace GittBilSmsCore.Controllers
@@ -124,7 +125,6 @@ namespace GittBilSmsCore.Controllers
 
             return PartialView("_Enable2FA", model);
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Enable2FA(string verificationCode, string secretKey)
@@ -153,7 +153,6 @@ namespace GittBilSmsCore.Controllers
 
             return Json(new { success = true, message = "Two-Factor Authentication enabled successfully!" });
         }
-
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(User model, int[] selectedRoles)
@@ -210,7 +209,13 @@ namespace GittBilSmsCore.Controllers
                 }
             }
             await _context.SaveChangesAsync();
-
+            // Verify user exists in DB before logging activity
+            var savedUser = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == model.Id);
+            if (savedUser != null)
+            {
+                // ✅ User confirmed saved - then log the activity
+                await LogUserActivityAsync(savedUser.Id, savedUser.UserName, "UserCreated", $"User '{savedUser.UserName}' was created");
+            }
             // send alert to admin about new user creation
             int loggerUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
             var loggedinUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == loggerUserId);
@@ -286,8 +291,6 @@ namespace GittBilSmsCore.Controllers
             ViewBag.RedirectDelay = TempData["RedirectDelay"];
             return View(model);
         }
-
-
         [HttpPost]
         public async Task<IActionResult> Delete(int id)
         {
@@ -298,11 +301,25 @@ namespace GittBilSmsCore.Controllers
             if (user == null)
                 return NotFound();
 
-            // ✅ Remove related UserRoles first
-            _context.UserRoles.RemoveRange(user.UserRoles);
-
-            _context.Users.Remove(user);
+            var wasActive = user.IsActive;
+            user.IsActive = !user.IsActive;
+            user.UpdatedAt = TimeHelper.NowInTurkey();
             await _context.SaveChangesAsync();
+            var updatedUser = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
+            if (updatedUser != null && updatedUser.IsActive != wasActive)
+            {                
+                var activityType = updatedUser.IsActive ? "UserEnabled" : "UserDisabled";
+                var description = updatedUser.IsActive
+                    ? $"User '{updatedUser.UserName}' was activated"
+                    : $"User '{updatedUser.UserName}' was deactivated";
+                await LogUserActivityAsync(updatedUser.Id, updatedUser.UserName, activityType, description);
+            }
+
+            // ✅ Remove related UserRoles first
+            // _context.UserRoles.RemoveRange(user.UserRoles);
+
+            // _context.Users.Remove(user);
+            //  await _context.SaveChangesAsync();
 
             TempData["SuccessMessage"] = "User deleted successfully.";
             return RedirectToAction("Index");
@@ -359,6 +376,9 @@ namespace GittBilSmsCore.Controllers
             await _context.SaveChangesAsync();
             if (passwordChanged)
             {
+                // ✅ Password change confirmed saved - now safe to log activity
+                await LogUserActivityAsync(user.Id, user.UserName, "PasswordChanged", $"User '{user.UserName}' changed their own password");
+
                 int loggerUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
                 var loggedinUser = await _context.Users
                 .FirstOrDefaultAsync(u => u.Id == loggerUserId);
@@ -508,6 +528,8 @@ namespace GittBilSmsCore.Controllers
                 _context.SaveChanges();
                 if (ispwdChanged) 
                 {
+                    // ✅ Password change confirmed saved - now safe to log activity
+                    await LogUserActivityAsync(user.Id, user.UserName, "PasswordChanged", $"User '{user.UserName}' changed their own password");
                     int loggerUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
                     var loggedinUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == loggerUserId);
                     string loggedInUserName = loggedinUser?.UserName ?? "unknownUser";
@@ -546,6 +568,41 @@ namespace GittBilSmsCore.Controllers
             return RedirectToAction("Details", new { id = user.Id });
 
         }
+
+        #region Activity Log Helper     
+        private async Task LogUserActivityAsync(int? affectedUserId, string? affectedUserName, string activityType, string description)
+        {
+            try
+            {
+                int loggerUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+                var loggedInUser = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == loggerUserId);
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                var userAgent = Request.Headers["User-Agent"].ToString();
+                var location = await SessionHelper.GetLocationFromIP(ipAddress);
+                var activityLog = new UserActivityLog
+                {
+                    PerformedByUserId = loggerUserId,
+                    PerformedByUserName = loggedInUser?.UserName ?? "System",
+                    AffectedUserId = affectedUserId,
+                    AffectedUserName = affectedUserName,
+                    ActivityType = activityType,
+                    Description = description,
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    Location = location,
+                    CreatedAt = TimeHelper.NowInTurkey(),
+                    CompanyId = loggedInUser?.CompanyId
+                };
+                _context.UserActivityLogs.Add(activityLog);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                // Log to console/logger but don't throw - activity logging failure shouldn't break main operation
+                Console.WriteLine($"⚠️ Failed to log user activity: {ex.Message}");
+            }
+        }
+        #endregion
     }
 
 }
