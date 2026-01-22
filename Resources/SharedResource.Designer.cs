@@ -1015,6 +1015,24 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to {0} kredi iade edildi. Mevcut bakiye: {1}.
+        /// </summary>
+        public static string CreditRefundedMessage {
+            get {
+                return ResourceManager.GetString("CreditRefundedMessage", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} şirketine {1} kredi iade edildi. Mevcut bakiye: {2}.
+        /// </summary>
+        public static string CreditRefundedMessageToAdmin {
+            get {
+                return ResourceManager.GetString("CreditRefundedMessageToAdmin", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Kredi Yüklemeleri.
         /// </summary>
         public static string Credittopups {

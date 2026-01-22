@@ -1437,4 +1437,10 @@
   <data name="uploding" xml:space="preserve">
     <value>Dosya yükleniyor... Lütfen bekleyin.</value>
   </data>
+  <data name="CreditRefundedMessage" xml:space="preserve">
+    <value>{0} kredi iade edildi. Mevcut bakiye: {1}</value>
+  </data>
+  <data name="CreditRefundedMessageToAdmin" xml:space="preserve">
+    <value>{0} şirketine {1} kredi iade edildi. Mevcut bakiye: {2}</value>
+  </data>
 </root>

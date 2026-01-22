@@ -1437,4 +1437,10 @@
   <data name="uploding" xml:space="preserve">
     <value>Uploading file... Please wait.</value>
   </data>
+  <data name="CreditRefundedMessage" xml:space="preserve">
+    <value>Your account has been refunded {0} credits. Available balance: {1}</value>
+  </data>
+  <data name="CreditRefundedMessageToAdmin" xml:space="preserve">
+    <value>{0} has been refunded {1} credits. Available balance: {2}</value>
+  </data>
 </root>

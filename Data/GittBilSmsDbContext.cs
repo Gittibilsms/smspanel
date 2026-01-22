@@ -39,6 +39,7 @@ namespace GittBilSmsCore.Data
         public DbSet<OrderRecipient> OrderRecipients { get; set; }
         public DbSet<TelegramMessage> TelegramMessages => Set<TelegramMessage>();
         public DbSet<HistoryLog> HistoryLogs => Set<HistoryLog>();
+        public DbSet<UserActivityLog> UserActivityLogs { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
