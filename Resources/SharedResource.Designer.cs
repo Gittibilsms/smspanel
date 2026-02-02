@@ -268,6 +268,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Tüm Türler.
+        /// </summary>
+        public static string All_Types {
+            get {
+                return ResourceManager.GetString("All_Types", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Tüm Kullanıcılar.
         /// </summary>
         public static string All_Users {
@@ -912,6 +921,24 @@ namespace GittBilSmsCore.Resources {
         public static string Credit {
             get {
                 return ResourceManager.GetString("Credit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kredi eklendi.
+        /// </summary>
+        public static string Credit_Added {
+            get {
+                return ResourceManager.GetString("Credit_Added", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kredi silindi.
+        /// </summary>
+        public static string Credit_Deleted {
+            get {
+                return ResourceManager.GetString("Credit_Deleted", resourceCulture);
             }
         }
         
@@ -2383,6 +2410,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Sipariş iptali.
+        /// </summary>
+        public static string Order_Cancellation {
+            get {
+                return ResourceManager.GetString("Order_Cancellation", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Sipariş Kimliği.
         /// </summary>
         public static string Order_ID {
@@ -2397,6 +2433,15 @@ namespace GittBilSmsCore.Resources {
         public static string Order_No {
             get {
                 return ResourceManager.GetString("Order No", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sipariş ödemesi.
+        /// </summary>
+        public static string Order_Payment {
+            get {
+                return ResourceManager.GetString("Order_Payment", resourceCulture);
             }
         }
         

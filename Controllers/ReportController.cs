@@ -44,7 +44,7 @@ namespace GittBilSmsCore.Controllers
         {
             try
             {
-                orderId = 56808;
+                orderId = 56820;
                 _logger.LogInformation($"Manual single order report requested for OrderId={orderId}");
 
                 using (var scope = HttpContext.RequestServices.CreateScope())
@@ -180,7 +180,7 @@ namespace GittBilSmsCore.Controllers
 
                                     order.Returned = true;
                                     order.ReturnDate = DateTime.UtcNow.AddHours(3);
-
+                                    await dbContext.SaveChangesAsync();
                                     // 4️⃣ Send Telegram notification
                                     decimal? availableCredit = await (
                                         from c in dbContext.Companies
@@ -223,7 +223,7 @@ namespace GittBilSmsCore.Controllers
                             }
                         }
 
-                        await dbContext.SaveChangesAsync();
+                      
 
                         // Save CSV files
                         var orderFolderPath = Path.Combine("D:\\home\\data", "orders", order.OrderId.ToString());

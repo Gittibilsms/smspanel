@@ -1443,4 +1443,19 @@
   <data name="CreditRefundedMessageToAdmin" xml:space="preserve">
     <value>{0} şirketine {1} kredi iade edildi. Mevcut bakiye: {2}</value>
   </data>
+  <data name="Order_Payment" xml:space="preserve">
+    <value>Sipariş ödemesi</value>
+  </data>
+  <data name="Order_Cancellation" xml:space="preserve">
+    <value>Sipariş iptali</value>
+  </data>
+  <data name="Credit_Added" xml:space="preserve">
+    <value>Kredi eklendi</value>
+  </data>
+  <data name="Credit_Deleted" xml:space="preserve">
+    <value>Kredi silindi</value>
+  </data>
+  <data name="All_Types" xml:space="preserve">
+    <value>Tüm Türler</value>
+  </data>
 </root>

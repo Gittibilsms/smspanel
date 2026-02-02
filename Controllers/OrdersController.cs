@@ -475,10 +475,22 @@ namespace GittBilSmsCore.Controllers
                 CompanyId = company.CompanyId,
                 Amount = -totalCost,
                 Action = "Deduct on Resend",
+                OrderId = order.OrderId,
                 CreatedAt = TimeHelper.NowInTurkey(),
                 CreatedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0
             });
-
+            // ✅ Track credit usage in CreditTransactions
+            _context.CreditTransactions.Add(new CreditTransaction
+            {
+                CompanyId = company.CompanyId,
+                TransactionType = _sharedLocalizer["Order_Payment"],
+                Credit = -totalCost,
+                Currency = "TRY",
+                TransactionDate = TimeHelper.NowInTurkey(),
+                Note = $"SMS Order #{order.OrderId} - Resend",
+                UnitPrice = pricePerSms,
+                TotalPrice = totalCost
+            });
             // 🚀 Resend via new API
             var requestBody = BuildRequestBody(new SendSmsViewModel
             {
@@ -506,11 +518,23 @@ namespace GittBilSmsCore.Controllers
                 {
                     CompanyId = company.CompanyId,
                     Amount = totalCost,
+                    OrderId = order.OrderId,
                     Action = "Refund on Failed Resend",
                     CreatedAt = TimeHelper.NowInTurkey(),
                     CreatedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0
                 });
-
+                // ✅ Track refund in CreditTransactions
+                _context.CreditTransactions.Add(new CreditTransaction
+                {
+                    CompanyId = company.CompanyId,
+                    TransactionType = _sharedLocalizer["Order_Cancellation"],
+                    Credit = totalCost,
+                    Currency = "TRY",
+                    TransactionDate = TimeHelper.NowInTurkey(),
+                    Note = $"Sipariş iadesi (Resend Failed) - Order #{order.OrderId}",
+                    UnitPrice = 0,
+                    TotalPrice = 0
+                });
                 company.CreditLimit += totalCost;
 
                 await _context.SaveChangesAsync();
@@ -641,11 +665,23 @@ namespace GittBilSmsCore.Controllers
                 {
                     CompanyId = company.CompanyId,
                     Amount = -totalCost,
+                    OrderId = order.OrderId,
                     Action = "Deduct on Send (Approval)",
                     CreatedAt = TimeHelper.NowInTurkey(),
                     CreatedByUserId = userId
                 });
-
+                // ✅ Track credit usage in CreditTransactions
+                _context.CreditTransactions.Add(new CreditTransaction
+                {
+                    CompanyId = company.CompanyId,
+                    TransactionType = _sharedLocalizer["Order_Payment"],
+                    Credit = -totalCost,
+                    Currency = "TRY",
+                    TransactionDate = TimeHelper.NowInTurkey(),
+                    Note = $"SMS Order #{order.OrderId} - Approved",
+                    UnitPrice = pricePerSms,
+                    TotalPrice = totalCost
+                });
 
                 _context.Orders.Update(order);
                 _context.Companies.Update(company);
@@ -851,7 +887,7 @@ namespace GittBilSmsCore.Controllers
                     LoadedCount = numbersList.Count,
                     ProcessedCount = 0,
                     UnsuccessfulCount = 0,
-                    Refundable = false,
+                    Refundable = company.IsRefundable,
                     Returned = false,
                     CreatedByUserId = userId,
                     CreatedAt = TimeHelper.NowInTurkey()
@@ -1048,10 +1084,24 @@ namespace GittBilSmsCore.Controllers
                     {
                         CompanyId = company.CompanyId,
                         Amount = -totalCost,
+                        OrderId = order.OrderId,
                         Action = "Deduct on Send (Scheduled)",
                         CreatedAt = TimeHelper.NowInTurkey(),
                         CreatedByUserId = userId
                     });
+                    // ✅ Track credit usage in CreditTransactions
+                    _context.CreditTransactions.Add(new CreditTransaction
+                    {
+                        CompanyId = company.CompanyId,
+                        TransactionType = _sharedLocalizer["Order_Payment"],
+                        Credit = -totalCost,
+                        Currency = "TRY",
+                        TransactionDate = TimeHelper.NowInTurkey(),
+                        Note = $"SMS Order #{order.OrderId} - Scheduled",
+                        UnitPrice = pricePerSms,
+                        TotalPrice = totalCost
+                    });
+
                     if (!isMainUser && user.QuotaType == "Variable Quota")
                     {
                         _context.Users.Update(user);
@@ -1106,10 +1156,22 @@ namespace GittBilSmsCore.Controllers
                     CompanyId = company.CompanyId,
                     Amount = -totalCost,
                     Action = "Deduct on Send",
+                    OrderId = order.OrderId,
                     CreatedAt = TimeHelper.NowInTurkey(),
                     CreatedByUserId = userId
                 });
-
+                // ✅ Track credit usage in CreditTransactions
+                _context.CreditTransactions.Add(new CreditTransaction
+                {
+                    CompanyId = company.CompanyId,
+                    TransactionType = _sharedLocalizer["Order_Payment"],
+                    Credit = -totalCost,
+                    Currency = "TRY",
+                    TransactionDate = TimeHelper.NowInTurkey(),
+                    Note = $"SMS Order #{order.OrderId}",
+                    UnitPrice = pricePerSms,
+                    TotalPrice = totalCost
+                });
                 _context.Companies.Update(company);
                 await _context.SaveChangesAsync();
                 var requestBody = BuildRequestBody(model, api);
@@ -1150,8 +1212,21 @@ namespace GittBilSmsCore.Controllers
                             CompanyId = company.CompanyId,
                             Amount = order.TotalPrice.Value,  // ✅ FIXED
                             Action = "Refund on Failed",
+                            OrderId = order.OrderId,
                             CreatedAt = TimeHelper.NowInTurkey(),
                             CreatedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0
+                        });
+                        // ✅ Track refund in CreditTransactions
+                        _context.CreditTransactions.Add(new CreditTransaction
+                        {
+                            CompanyId = company.CompanyId,
+                            TransactionType = _sharedLocalizer["Order_Cancellation"],
+                            Credit = order.TotalPrice.Value,
+                            Currency = "TRY",
+                            TransactionDate = TimeHelper.NowInTurkey(),
+                            Note = $"Sipariş iadesi (API Error) - Order #{order.OrderId}",
+                            UnitPrice = 0,
+                            TotalPrice = 0
                         });
                     }
                     await _context.SaveChangesAsync();
@@ -1678,13 +1753,14 @@ namespace GittBilSmsCore.Controllers
                 _context.CreditTransactions.Add(new CreditTransaction
                 {
                     CompanyId = order.CompanyId,
+                    TransactionType = _sharedLocalizer["Order_Cancellation"],   
                     Credit = refundAmount,
+                    Currency = "TRY",   
                     TransactionDate = TimeHelper.NowInTurkey(),
                     Note = $"Sipariş iptali - Order #{order.OrderId}",
                     UnitPrice = 0,
                     TotalPrice = 0
                 });
-
                 // 5️⃣ Restore user quota (if variable)
                 if (order.CreatedByUser != null && order.CreatedByUser.QuotaType == "Variable Quota")
                 {

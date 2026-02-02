@@ -521,7 +521,7 @@ namespace GittBilSmsCore.Controllers
                 var transaction = new CreditTransaction
                 {
                     CompanyId = companyId,
-                    TransactionType = _sharedLocalizer["creditadded"],
+                    TransactionType = _sharedLocalizer["creditadded"],                    
                     Credit = credit,
                     TotalPrice = price,
                     UnitPrice = unitPriceValue,
@@ -603,7 +603,7 @@ namespace GittBilSmsCore.Controllers
             var transaction = new CreditTransaction
             {
                 CompanyId = companyId,
-                TransactionType = "Credit deleted",
+                TransactionType = _sharedLocalizer["creditdeleted"],
                 Credit = -credit,
                 TotalPrice = 0,
                 UnitPrice = 0,

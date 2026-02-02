@@ -169,18 +169,40 @@
                             }
     </div>
     <div class="table-responsive">
-    <table id="transactionList" class="table table-striped table-bordered">
-        <thead>
-            <tr>
-                <th>@SharedResource.Transaction_Type</th>
-                <th>@SharedResource.Credit</th>
-                <th>@SharedResource.Total</th>
-                <th>@SharedResource.Currency</th>
-                <th>@SharedResource.Unit_Price</th>
-                <th>@SharedResource.Transaction_Date</th>
-                <th>@SharedResource.Note</th>
-            </tr>
-        </thead>
+        <table id="transactionList" class="table table-striped table-bordered">
+            <thead>
+                <!-- HEADER ROW 1: Column Titles -->
+                <tr>
+                    <th>@SharedResource.Transaction_Type</th>
+                    <th>@SharedResource.Credit</th>
+                    <th>@SharedResource.Total</th>
+                    <th>@SharedResource.Currency</th>
+                    <th>@SharedResource.Unit_Price</th>
+                    <th>@SharedResource.Transaction_Date</th>
+                    <th>@SharedResource.Note</th>
+                </tr>
+
+                <!-- HEADER ROW 2: Filter Inputs -->
+                <tr class="filter-row">
+                    <th>
+                        <div class="filter-container">
+                            <select id="transactionTypeFilter" class="column-filter" data-column="0">
+                                <option value="">@SharedResource.All_Types</option>
+                                <option value="Credit Added|Kredi eklendi">@SharedResource.Credit_Added</option>
+                                <option value="Credit deleted|Kredi silindi">@SharedResource.Credit_Deleted</option>
+                                <option value="Order payment|Sipariş ödemesi">@SharedResource.Order_Payment</option>
+                                <option value="Order cancellation|Sipariş iptali">@SharedResource.Order_Cancellation</option>
+                            </select>
+                        </div>
+                    </th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                </tr>
+            </thead>
         <tbody>
        
         </tbody>

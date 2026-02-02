@@ -34,8 +34,38 @@ namespace GittBilSmsCore.Controllers
         [HttpGet]
         public async Task<IActionResult> GetTransactions(int companyId)
         {
+            // Get current language
+            var currentCulture = System.Globalization.CultureInfo.CurrentCulture.Name;
+            var isTurkish = currentCulture.StartsWith("tr");
+
+            // Define language-specific transaction types
+            List<string> allowedTypes;
+            if (isTurkish)
+            {
+                allowedTypes = new List<string>
+        {
+            "Kredi eklendi",
+            "Kredi silindi",
+            "Sipariş ödemesi",
+            "Sipariş iptali"
+        };
+            }
+            else
+            {
+                allowedTypes = new List<string>
+        {
+            "Credit Added",
+            "Credit added",
+            "Credit deleted",
+            "Order payment",
+            "Order cancellation",
+            "Order Cancellation"
+        };
+            }
+
             var transactions = await _context.CreditTransactions
                 .Where(t => t.CompanyId == companyId)
+                .Where(t => allowedTypes.Contains(t.TransactionType))
                 .OrderByDescending(t => t.TransactionDate)
                 .Select(t => new {
                     t.TransactionType,
@@ -50,7 +80,7 @@ namespace GittBilSmsCore.Controllers
 
             return Json(new { data = transactions });
         }
-   
+
         [HttpPost]
         public async Task<IActionResult> AddCredit(int companyId, decimal price, decimal unitPrice, decimal credit, string currency, string note)
         {
@@ -63,7 +93,7 @@ namespace GittBilSmsCore.Controllers
                 var transaction = new CreditTransaction
                 {
                     CompanyId = companyId,
-                    TransactionType = _sharedLocalizer["creditadded"],
+                    TransactionType = _sharedLocalizer["creditadded"],                    
                     Credit = credit,
                     TotalPrice = price,
                     UnitPrice = unitPrice,
@@ -74,6 +104,16 @@ namespace GittBilSmsCore.Controllers
 
                 _context.CreditTransactions.Add(transaction);
                 company.CreditLimit += credit;
+
+                // ✅ ADD THIS:
+                _context.BalanceHistory.Add(new BalanceHistory
+                {
+                    CompanyId = companyId,
+                    Amount = credit,
+                    Action = "Credit Added",
+                    CreatedAt = TimeHelper.NowInTurkey(),
+                    CreatedByUserId = HttpContext.Session.GetInt32("UserId")
+                });
                 await _context.SaveChangesAsync();
                 int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
                 decimal? availableCredit = await (
@@ -142,7 +182,7 @@ namespace GittBilSmsCore.Controllers
             var transaction = new CreditTransaction
             {
                 CompanyId = companyId,
-                TransactionType = _sharedLocalizer["creditdeleted"],
+                TransactionType = _sharedLocalizer["creditdeleted"],                
                 Credit = -credit,
                 TotalPrice = 0,
                 UnitPrice = 0,
@@ -154,7 +194,15 @@ namespace GittBilSmsCore.Controllers
             _context.CreditTransactions.Add(transaction);
 
             company.CreditLimit -= credit;
-
+            // ✅ ADD THIS:
+            _context.BalanceHistory.Add(new BalanceHistory
+            {
+                CompanyId = companyId,
+                Amount = -credit,
+                Action = "Credit Deleted",
+                CreatedAt = TimeHelper.NowInTurkey(),
+                CreatedByUserId = HttpContext.Session.GetInt32("UserId")
+            });
             await _context.SaveChangesAsync();
 
             decimal? availableCredit = await (
