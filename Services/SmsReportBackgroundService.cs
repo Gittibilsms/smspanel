@@ -79,7 +79,14 @@ public class SmsReportBackgroundService : BackgroundService
             {
                 try
                 {
-                    var httpClient = _httpClientFactory.CreateClient();
+                    //  var httpClient = _httpClientFactory.CreateClient();
+                    // Run the job manually
+
+                    var handler = new HttpClientHandler
+                    {
+                       ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+                    };
+                    var httpClient = new HttpClient(handler);
 
                     var apiUrl = order.Api.ApiUrl;
                     var username = order.Api.Username;
@@ -179,7 +186,7 @@ public class SmsReportBackgroundService : BackgroundService
                                         Action = "Refund on Report",
                                         OrderId = order.OrderId,
                                         CreatedAt = DateTime.UtcNow.AddHours(3),
-                                        CreatedByUserId = null
+                                        CreatedByUserId = 1 // its hardcoded because it wont allow null since its a bg job hardcoding the id
                                     });
 
                               
@@ -187,6 +194,8 @@ public class SmsReportBackgroundService : BackgroundService
                                     {
                                         CompanyId = order.CompanyId,
                                         Credit = (decimal)refundAmount,
+                                        Currency = "TRY",
+                                        TransactionType = _sharedLocalizer["Order_Cancellation"],
                                         TransactionDate = DateTime.UtcNow.AddHours(3),
                                         Note = $"Sipariş iadesi - Order #{order.OrderId}",
                                         UnitPrice = 0,
@@ -195,7 +204,11 @@ public class SmsReportBackgroundService : BackgroundService
 
                                     order.Returned = true;
                                     order.ReturnDate = DateTime.UtcNow.AddHours(3);
-                                    //NOTIFY TO ADMIN IF REFUND ADDED 
+
+                                    // ✅ SAVE CHANGES FIRST
+                                    await dbContext.SaveChangesAsync();
+
+                                    // ✅ NOW SEND NOTIFICATION WITH CORRECT BALANCE
 
                                     decimal? availableCredit = await (
                                    from c in dbContext.Companies

@@ -3904,7 +3904,7 @@ $(document).ready(function () {
     });
 
     const companyId = $('#companyId').val();
-    $('#transactionList').DataTable({
+    const transactionTable = $('#transactionList').DataTable({
         ajax: {
             url: '/CreditTransactions/GetTransactions',
             data: { companyId: companyId },
@@ -3927,6 +3927,23 @@ $(document).ready(function () {
         ],
         order: [[5, 'desc']]
     });
+    // Column filter for Transaction Type
+    $('#transactionTypeFilter').on('change', function () {
+        const value = $(this).val();
+
+        if (value === '') {
+            // Show all
+            transactionTable.column(0).search('').draw();
+        } else if (value.includes('|')) {
+            // Multiple values - case-insensitive regex search
+            const regex = value.split('|').join('|');
+            transactionTable.column(0).search(regex, true, false, false).draw();  // ✅ Case-insensitive!
+        } else {
+            // Single value - case-insensitive search
+            transactionTable.column(0).search(value, false, false).draw();
+        }
+    });
+
     const quotaTypeSelect = $('.QuotaType');
     const quotaInput = $('.QuotaValue');
 

@@ -7,6 +7,8 @@ using Newtonsoft.Json;
 using Serilog;
 using Microsoft.Extensions.Logging;
 using GittBilSmsCore.Helpers;
+using Microsoft.Extensions.Localization;
+using CsvHelper;
 namespace GittBilSmsCore.Controllers
 {
     [ApiController]
@@ -14,13 +16,14 @@ namespace GittBilSmsCore.Controllers
     public class SmsApiController : ControllerBase
     {
         private readonly GittBilSmsDbContext _context;
+        private readonly IStringLocalizer _sharedLocalizer;
 
         private readonly Microsoft.Extensions.Logging.ILogger _smsLogger;
 
-        public SmsApiController(GittBilSmsDbContext context, ILogger<SmsApiController> smsLogger)
+        public SmsApiController(GittBilSmsDbContext context, IStringLocalizerFactory factory, ILogger<SmsApiController> smsLogger)
         {
             _context = context;
-
+            _sharedLocalizer = factory.Create("SharedResource", "GittBilSmsCore");
             // Create a special logger for SMS
             _smsLogger = smsLogger;
         }
@@ -113,9 +116,23 @@ namespace GittBilSmsCore.Controllers
                 Amount = -totalCost,
                 Action = "Deduct on Send (API)",
                 CreatedAt = TimeHelper.NowInTurkey(),
-                CreatedByUserId = 0
+                CreatedByUserId = 0,
+                OrderId = order.OrderId,
             });
 
+            _context.CreditTransactions.Add(new CreditTransaction
+            {
+                CompanyId = company.CompanyId,
+                TransactionType = _sharedLocalizer["Order_Payment"],
+                Credit = -totalCost,
+                Currency = "TRY",
+                TransactionDate = TimeHelper.NowInTurkey(),
+                Note = $"SMS Order #{order.OrderId} - API",
+                UnitPrice = pricePerSms,
+                TotalPrice = totalCost
+            });
+
+           
             await _context.SaveChangesAsync();
 
             // 🚀 8️⃣ Build Yurtici format
@@ -158,8 +175,22 @@ namespace GittBilSmsCore.Controllers
                     Amount = totalCost,
                     Action = "Refund on Failed",
                     CreatedAt = TimeHelper.NowInTurkey(),
-                    CreatedByUserId = 0
+                    CreatedByUserId = 0,
+                    OrderId = order.OrderId,
                 });
+                // ✅ Track refund in CreditTransactions
+                _context.CreditTransactions.Add(new CreditTransaction
+                {
+                    CompanyId = company.CompanyId,
+                    TransactionType = _sharedLocalizer["Order_Cancellation"],
+                    Credit = totalCost,
+                    Currency = "TRY",
+                    TransactionDate = TimeHelper.NowInTurkey(),
+                    Note = $"Sipariş iadesi (API Failed - HTTP Error) - Order #{order.OrderId}",
+                    UnitPrice = 0,
+                    TotalPrice = 0
+                });
+
 
                 await _context.SaveChangesAsync();
 
@@ -196,9 +227,21 @@ namespace GittBilSmsCore.Controllers
                     Amount = totalCost,
                     Action = "Refund on Failed",
                     CreatedAt = TimeHelper.NowInTurkey(),
-                    CreatedByUserId = 0
+                    CreatedByUserId = 0,
+                    OrderId = order.OrderId,
                 });
-
+                // ✅ Track refund in CreditTransactions
+                _context.CreditTransactions.Add(new CreditTransaction
+                {
+                    CompanyId = company.CompanyId,
+                    TransactionType = _sharedLocalizer["Order_Cancellation"],
+                    Credit = totalCost,
+                    Currency = "TRY",
+                    TransactionDate = TimeHelper.NowInTurkey(),
+                    Note = $"Sipariş iadesi (API Status Error) - Order #{order.OrderId}",
+                    UnitPrice = 0,
+                    TotalPrice = 0
+                });
                 await _context.SaveChangesAsync();
 
                 return BadRequest(new { status = "FAILED", error = $"SMS API returned an error: {json.Status}" });
