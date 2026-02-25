@@ -1458,4 +1458,121 @@
   <data name="All_Types" xml:space="preserve">
     <value>Tüm Türler</value>
   </data>
+  <data name="Destination_URL" xml:space="preserve">
+    <value>Hedef URL</value>
+  </data>
+  <data name="Create_Short_URL" xml:space="preserve">
+    <value>Kısa URL Oluştur</value>
+  </data>
+  <data name="Short_URL" xml:space="preserve">
+    <value>Kısa URL</value>
+  </data>
+  <data name="ShortURL_Title" xml:space="preserve">
+    <value>Başlık</value>
+  </data>
+  <data name="Clicks" xml:space="preserve">
+    <value>Tıklamalar</value>
+  </data>
+  <data name="Created_Date" xml:space="preserve">
+    <value>Oluşturma Tarihi</value>
+  </data>
+  <data name="Expiry_Date" xml:space="preserve">
+    <value>Son Kullanma Tarihi</value>
+  </data>
+  <data name="Inactive" xml:space="preserve">
+    <value>Pasif</value>
+  </data>
+  <data name="Max_Clicks_Reached" xml:space="preserve">
+    <value>Maksimum Tıklamaya Ulaşıldı</value>
+  </data>
+  <data name="Active" xml:space="preserve">
+    <value>Aktif</value>
+  </data>
+  <data name="Copied_to_clipboard" xml:space="preserve">
+    <value>Panoya kopyalandı!</value>
+  </data>
+  <data name="Failed_to_copy" xml:space="preserve">
+    <value>Kopyalama başarısız</value>
+  </data>
+  <data name="Are_you_sure_you_want_to_delete_this_short_URL" xml:space="preserve">
+    <value>Bu kısa URL'yi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.</value>
+  </data>
+  <data name="Short_URL_deleted_successfully" xml:space="preserve">
+    <value>Kısa URL başarıyla silindi</value>
+  </data>
+  <data name="Failed_to_delete_short_URL" xml:space="preserve">
+    <value>Kısa URL silme başarısız</value>
+  </data>
+  <data name="Custom_Back_Half" xml:space="preserve">
+    <value>Özel Kısa Kod</value>
+  </data>
+  <data name="Add_title_to_organize" xml:space="preserve">
+    <value>Bağlantılarınızı düzenlemek için bir başlık ekleyin</value>
+  </data>
+  <data name="Leave_blank_for_auto_generated" xml:space="preserve">
+    <value>Otomatik oluşturulmuş kod için boş bırakın. Sadece harf, rakam, tire ve alt çizgi kullanılabilir.</value>
+  </data>
+  <data name="Maximum_Clicks" xml:space="preserve">
+    <value>Maksimum Tıklama</value>
+  </data>
+  <data name="Unlimited" xml:space="preserve">
+    <value>Sınırsız</value>
+  </data>
+  <data name="Edit_Short_URL" xml:space="preserve">
+    <value>Kısa URL Düzenle</value>
+  </data>
+  <data name="Editing_short_link_info" xml:space="preserve">
+    <value>Kısa bağlantınızı düzenlemek hedef URL ve ayarlarını güncelleyecektir. Kısa bağlantı yeni ayarlarla çalışmaya devam edecektir.</value>
+  </data>
+  <data name="Visit" xml:space="preserve">
+    <value>Ziyaret Et</value>
+  </data>
+  <data name="Optional_Details" xml:space="preserve">
+    <value>İsteğe Bağlı Detaylar</value>
+  </data>
+  <data name="Link_Expired" xml:space="preserve">
+    <value>Bu bağlantının süresi doldu</value>
+  </data>
+  <data name="Expires" xml:space="preserve">
+    <value>Son Kullanma</value>
+  </data>
+  <data name="Back" xml:space="preserve">
+    <value>Geri</value>
+  </data>
+  <data name="SaveChanges" xml:space="preserve">
+    <value>Değişiklikleri Kaydet</value>
+  </data>
+  <data name="Delete_Short_URL" xml:space="preserve">
+    <value>Kısa URL'yi Sil</value>
+  </data>
+  <data name="Delete_warning" xml:space="preserve">
+    <value>Silindikten sonra, bu kısa URL çalışmayı durduracaktır. Bu işlem geri alınamaz.</value>
+  </data>
+  <data name="Please_enter_URL" xml:space="preserve">
+    <value>Lütfen önce bir URL girin</value>
+  </data>
+  <data name="shorturlcreatedsuccess" xml:space="preserve">
+    <value>Kısa URL başarıyla oluşturuldu!</value>
+  </data>
+  <data name="shorturlupdatedsuccess" xml:space="preserve">
+    <value>Kısa URL başarıyla güncellendi!</value>
+  </data>
+  <data name="shorturldeletedsuccess" xml:space="preserve">
+    <value>Kısa URL başarıyla silindi!</value>
+  </data>
+  <data name="shorturlnotfound" xml:space="preserve">
+    <value>Kısa URL bulunamadı</value>
+  </data>
+  <data name="errorcreatingshortu" xml:space="preserve">
+    <value>Kısa URL oluşturulurken hata</value>
+  </data>
+  <data name="errorupdatingshortu" xml:space="preserve">
+    <value>Kısa URL güncellenirken hata</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Test" xml:space="preserve">
+    <value>Test</value>
+  </data>
 </root>

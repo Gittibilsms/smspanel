@@ -1,4 +1,4 @@
-using GittBilSmsCore.Data;
+﻿using GittBilSmsCore.Data;
 using GittBilSmsCore.Models;
 using GittBilSmsCore.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -11,6 +11,8 @@ using Serilog;
 using System.Globalization;
 using Telegram.Bot;
 using Microsoft.AspNetCore.Http.Features;
+using GittiBillSmsCore.Services;
+using GittBilSmsCore.ViewModels;
 var builder = WebApplication.CreateBuilder(args);
 var logPath = Path.Combine(Environment.GetEnvironmentVariable("HOME") ?? AppContext.BaseDirectory, "LogFiles", "GittBilSms", "sms-report-.txt");
 
@@ -55,6 +57,7 @@ builder.Services.AddDbContext<GittBilSmsDbContext>(options =>
         options.EnableSensitiveDataLogging();
     }
 });
+builder.Services.Configure<ShortUrlSettings>(builder.Configuration.GetSection("ShortUrl"));
 builder.Services.AddIdentity<User, IdentityRole<int>>()
     .AddEntityFrameworkStores<GittBilSmsDbContext>()
     .AddDefaultTokenProviders();
@@ -75,7 +78,7 @@ builder.Services.AddSingleton<ITelegramBotClient>(sp =>
     var opts = sp.GetRequiredService<IOptions<TelegramOptions>>().Value;
     return new TelegramBotClient(opts.BotToken);
 });
- 
+builder.Services.AddScoped<IShortUrlService, ShortUrlService>();
 builder.Services.AddScoped<TelegramMessageService>();
 builder.Services.AddHostedService<BotPollingService>();
 builder.Services.AddControllersWithViews()
@@ -146,10 +149,39 @@ app.Use(async (context, next) =>
 });
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+// ✅ 1. Redirect l.go2s.me root to Google
+app.Use(async (context, next) => {
+    if (context.Request.Host.Host.Equals("l.go2s.me", StringComparison.OrdinalIgnoreCase)
+        && context.Request.Path == "/")
+    {
+        context.Response.Redirect("https://www.google.com", permanent: true);
+        return;
+    }
+    await next();
+});
+
+// ✅ Short URL routing - ONLY on l.go2s.me domain
+app.MapWhen(
+    context => context.Request.Host.Host.Equals("l.go2s.me", StringComparison.OrdinalIgnoreCase),
+    appBranch =>
+    {
+        appBranch.UseRouting();
+        appBranch.UseEndpoints(endpoints =>
+        {
+            endpoints.MapControllerRoute(
+                name: "shorturl",
+                pattern: "{shortCode}/{token?}",
+                defaults: new { controller = "Redirect", action = "RedirectToOriginal" }
+            );
+        });
+    }
+);
+
 app.UseRouting();
 app.UseSession();
 app.UseAuthentication();
 app.UseAuthorization();
+ 
 
 app.MapControllerRoute(
     name: "default",
