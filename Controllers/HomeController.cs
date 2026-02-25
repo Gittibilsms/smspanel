@@ -41,6 +41,10 @@ namespace GittBilSmsCore.Controllers
         private readonly IHubContext<ChatHub> _hubContext;
         private readonly UserManager<User> _userManager;
         private readonly TelegramMessageService _svc;
+        private static readonly Regex ShortUrlRegex = new Regex(
+    @"https?://l\.go2s\.me/([a-zA-Z0-9]+)",
+    RegexOptions.Compiled | RegexOptions.IgnoreCase
+);
         public HomeController(GittBilSmsDbContext context, IStringLocalizerFactory factory, INotificationService notificationService, IHubContext<ChatHub> hubContext, UserManager<User> userManager, IWebHostEnvironment env, TelegramMessageService svc) : base(context)
         {
             _context = context;
@@ -2146,6 +2150,39 @@ namespace GittBilSmsCore.Controllers
             }
         }
 
+        private string BuildTrackedMessage(string message, Match shortUrlMatch, string phoneNumber)
+        {
+            if (!shortUrlMatch.Success)
+                return message;
+
+            string shortCode = shortUrlMatch.Groups[1].Value;
+            string token = EncodePhoneNumberToBase62(phoneNumber);
+            string trackedUrl = $"https://l.go2s.me/{shortCode}/{token}";
+
+            return message.Replace(shortUrlMatch.Value, trackedUrl);
+        }
+
+        private string EncodePhoneNumberToBase62(string phoneNumber)
+        {
+            const string chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+            string cleaned = new string(phoneNumber.Where(char.IsDigit).ToArray());
+
+            if (string.IsNullOrEmpty(cleaned))
+                return "0";
+
+            long number = long.Parse(cleaned);
+            if (number == 0)
+                return "0";
+
+            var result = new System.Text.StringBuilder();
+            while (number > 0)
+            {
+                result.Insert(0, chars[(int)(number % 62)]);
+                number /= 62;
+            }
+
+            return result.ToString();
+        }
         private string BuildRequestBody(SendSmsViewModel model, Api api)
         {
             var rawNumbers = model.PhoneNumbers ?? "";
@@ -2154,10 +2191,12 @@ namespace GittBilSmsCore.Controllers
                 .Select(n => n.Trim())
                 .Where(n => !string.IsNullOrWhiteSpace(n))
                 .ToList();
+
             bool isPersonalized =
                  !string.IsNullOrWhiteSpace(model.RecipientsJson)
               && !string.IsNullOrWhiteSpace(model.SelectedCustomColumn)
               && model.Message.Contains($"{{{model.SelectedCustomColumn}}}");
+
             List<RecipientDto> recs = null;
             if (isPersonalized)
             {
@@ -2165,12 +2204,15 @@ namespace GittBilSmsCore.Controllers
                     .DeserializeObject<List<RecipientDto>>(model.RecipientsJson);
             }
 
+            // ✅ Check for short URL tracking
+            var shortUrlMatch = ShortUrlRegex.Match(model.Message ?? "");
+            bool hasShortUrl = shortUrlMatch.Success;
+
             switch (api.ServiceName?.ToLower())
             {
                 case "yurtici":
                     if (isPersonalized)
                     {
-                        // your “custom” structure:
                         return JsonConvert.SerializeObject(new
                         {
                             Username = api.Username,
@@ -2178,14 +2220,32 @@ namespace GittBilSmsCore.Controllers
                             Messages = recs.Select(r => new
                             {
                                 To = r.Number,
-                                Text = model.Message.Replace(
-                                           $"{{{model.SelectedCustomColumn}}}",
-                                           r.Name
-                                       )
+                                Text = hasShortUrl
+                                    ? BuildTrackedMessage(
+                                        model.Message.Replace($"{{{model.SelectedCustomColumn}}}", r.Name),
+                                        shortUrlMatch,
+                                        r.Number)
+                                    : model.Message.Replace($"{{{model.SelectedCustomColumn}}}", r.Name)
                             }).ToArray()
                         });
                     }
-                    // fallback to original flat format
+
+                    // ✅ Check for short URL in non-personalized
+                    if (hasShortUrl)
+                    {
+                        return JsonConvert.SerializeObject(new
+                        {
+                            Username = api.Username,
+                            Password = api.Password,
+                            Messages = numbersList.Select(n => new
+                            {
+                                To = n,
+                                Text = BuildTrackedMessage(model.Message, shortUrlMatch, n)
+                            }).ToArray()
+                        });
+                    }
+
+                    // Fallback
                     return JsonConvert.SerializeObject(new
                     {
                         Username = api.Username,
@@ -2197,26 +2257,43 @@ namespace GittBilSmsCore.Controllers
                 case "turkcell":
                     if (isPersonalized)
                     {
-                        // Turkcell’s custom “Messages” schema:
                         return JsonConvert.SerializeObject(new
                         {
                             From = api.Originator,
                             User = api.Username,
                             Pass = api.Password,
-                            Message = model.Message,        // global “subject” if any
+                            Message = model.Message,
                             StartDate = (string)null,
                             ValidityPeriod = 1440,
                             Messages = recs.Select(r => new
                             {
-                                Message = model.Message.Replace(
-                                              $"{{{model.SelectedCustomColumn}}}",
-                                              r.Name
-                                          ),
+                                Message = hasShortUrl
+                                    ? BuildTrackedMessage(
+                                        model.Message.Replace($"{{{model.SelectedCustomColumn}}}", r.Name),
+                                        shortUrlMatch,
+                                        r.Number)
+                                    : model.Message.Replace($"{{{model.SelectedCustomColumn}}}", r.Name),
                                 GSM = r.Number
                             }).ToArray()
                         });
                     }
-                    // fallback flat
+
+                    // ✅ Check for short URL
+                    if (hasShortUrl)
+                    {
+                        return JsonConvert.SerializeObject(new
+                        {
+                            User = api.Username,
+                            Pass = api.Password,
+                            Messages = numbersList.Select(n => new
+                            {
+                                Message = BuildTrackedMessage(model.Message, shortUrlMatch, n),
+                                GSM = n
+                            }).ToArray()
+                        });
+                    }
+
+                    // Fallback
                     return JsonConvert.SerializeObject(new
                     {
                         User = api.Username,
@@ -2226,12 +2303,10 @@ namespace GittBilSmsCore.Controllers
                     });
 
                 default:
-                    // generic JSON fallback
                     if (api.ContentType == "application/json")
                     {
                         if (isPersonalized)
                         {
-                            // same pattern if you want to custom‑fall back here, or just do flat
                             return JsonConvert.SerializeObject(new
                             {
                                 Username = api.Username,
@@ -2239,13 +2314,31 @@ namespace GittBilSmsCore.Controllers
                                 Messages = recs.Select(r => new
                                 {
                                     To = r.Number,
-                                    Text = model.Message.Replace(
-                                               $"{{{model.SelectedCustomColumn}}}",
-                                               r.Name
-                                           )
+                                    Text = hasShortUrl
+                                        ? BuildTrackedMessage(
+                                            model.Message.Replace($"{{{model.SelectedCustomColumn}}}", r.Name),
+                                            shortUrlMatch,
+                                            r.Number)
+                                        : model.Message.Replace($"{{{model.SelectedCustomColumn}}}", r.Name)
                                 }).ToArray()
                             });
                         }
+
+                        // ✅ Short URL tracking
+                        if (hasShortUrl)
+                        {
+                            return JsonConvert.SerializeObject(new
+                            {
+                                Username = api.Username,
+                                Password = api.Password,
+                                Messages = numbersList.Select(n => new
+                                {
+                                    To = n,
+                                    Text = BuildTrackedMessage(model.Message, shortUrlMatch, n)
+                                }).ToArray()
+                            });
+                        }
+
                         return JsonConvert.SerializeObject(new
                         {
                             Username = api.Username,
@@ -2255,7 +2348,7 @@ namespace GittBilSmsCore.Controllers
                             To = numbersList
                         });
                     }
-                    // XML fallback unchanged
+
                     if (api.ContentType == "text/xml")
                     {
                         return $@"<?xml version=""1.0"" encoding=""UTF-8""?>
@@ -2267,6 +2360,109 @@ namespace GittBilSmsCore.Controllers
                       <To>{string.Join(",", numbersList)}</To>
                     </SendSms>";
                     }
+
+                    throw new InvalidOperationException("Unsupported ContentType or API format");
+            }
+        }
+        private string BuildRequestBody(string text, SendSmsViewModel model, Api api)
+        {
+            var rawNumbers = model.PhoneNumbers ?? "";
+            var numbersList = rawNumbers
+                .Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(n => n.Trim())
+                .Where(n => !string.IsNullOrWhiteSpace(n))
+                .ToList();
+
+            // ✅ Check for short URL
+            var shortUrlMatch = ShortUrlRegex.Match(text ?? "");
+            bool hasShortUrl = shortUrlMatch.Success;
+
+            switch (api.ServiceName?.ToLower())
+            {
+                case "yurtici":
+                    if (hasShortUrl)
+                    {
+                        return JsonConvert.SerializeObject(new
+                        {
+                            Username = api.Username,
+                            Password = api.Password,
+                            Messages = numbersList.Select(n => new
+                            {
+                                To = n,
+                                Text = BuildTrackedMessage(text, shortUrlMatch, n)
+                            }).ToArray()
+                        });
+                    }
+
+                    return JsonConvert.SerializeObject(new
+                    {
+                        Username = api.Username,
+                        Password = api.Password,
+                        Text = text,
+                        To = numbersList
+                    });
+
+                case "turkcell":
+                    if (hasShortUrl)
+                    {
+                        return JsonConvert.SerializeObject(new
+                        {
+                            User = api.Username,
+                            Pass = api.Password,
+                            Messages = numbersList.Select(n => new
+                            {
+                                Message = BuildTrackedMessage(text, shortUrlMatch, n),
+                                GSM = n
+                            }).ToArray()
+                        });
+                    }
+
+                    return JsonConvert.SerializeObject(new
+                    {
+                        User = api.Username,
+                        Pass = api.Password,
+                        Message = text,
+                        Numbers = numbersList
+                    });
+
+                default:
+                    if (hasShortUrl)
+                    {
+                        return JsonConvert.SerializeObject(new
+                        {
+                            Username = api.Username,
+                            Password = api.Password,
+                            Messages = numbersList.Select(n => new
+                            {
+                                To = n,
+                                Text = BuildTrackedMessage(text, shortUrlMatch, n)
+                            }).ToArray()
+                        });
+                    }
+
+                    if (api.ContentType == "application/json")
+                    {
+                        return JsonConvert.SerializeObject(new
+                        {
+                            Username = api.Username,
+                            Password = api.Password,
+                            From = api.Originator,
+                            Text = text,
+                            To = numbersList
+                        });
+                    }
+                    else if (api.ContentType == "text/xml")
+                    {
+                        return $@"<?xml version=""1.0"" encoding=""UTF-8""?>
+                <SendSms>
+                  <Username>{api.Username}</Username>
+                  <Password>{api.Password}</Password>
+                  <From>{api.Originator}</From>
+                  <Text>{text}</Text>
+                  <To>{string.Join(",", numbersList)}</To>
+                </SendSms>";
+                    }
+
                     throw new InvalidOperationException("Unsupported ContentType or API format");
             }
         }
@@ -2522,6 +2718,10 @@ namespace GittBilSmsCore.Controllers
                 {
                     var placeholder = $"{{{order.PlaceholderColumn}}}";
 
+                    // ✅ Check for short URL in custom messages
+                    var shortUrlMatch = ShortUrlRegex.Match(order.MessageText ?? "");
+                    bool hasShortUrl = shortUrlMatch.Success;
+
                     if (api.ServiceName.Equals("turkcell", StringComparison.OrdinalIgnoreCase))
                     {
                         requestBody = JsonConvert.SerializeObject(new
@@ -2534,7 +2734,12 @@ namespace GittBilSmsCore.Controllers
                             ValidityPeriod = 1440,
                             Messages = toSend.Select(r => new
                             {
-                                Message = order.MessageText.Replace(placeholder, r.Name),
+                                Message = hasShortUrl
+                                    ? BuildTrackedMessage(
+                                        order.MessageText.Replace(placeholder, r.Name),
+                                        shortUrlMatch,
+                                        r.Number)
+                                    : order.MessageText.Replace(placeholder, r.Name),
                                 GSM = r.Number
                             }).ToArray()
                         });
@@ -2548,36 +2753,79 @@ namespace GittBilSmsCore.Controllers
                             Messages = toSend.Select(r => new
                             {
                                 To = r.Number,
-                                Text = order.MessageText.Replace($"{{{order.PlaceholderColumn}}}", r.Name)
+                                Text = hasShortUrl
+                                    ? BuildTrackedMessage(
+                                        order.MessageText.Replace(placeholder, r.Name),
+                                        shortUrlMatch,
+                                        r.Number)
+                                    : order.MessageText.Replace(placeholder, r.Name)
                             }).ToArray()
                         });
                     }
                 }
                 else
                 {
-                    if (api.ServiceName.Equals("turkcell", StringComparison.OrdinalIgnoreCase))
+                    // ✅ Check for short URL in non-custom messages
+                    var shortUrlMatch = ShortUrlRegex.Match(order.MessageText ?? "");
+                    bool hasShortUrl = shortUrlMatch.Success;
+
+                    if (hasShortUrl)
                     {
-                        requestBody = JsonConvert.SerializeObject(new
+                        // Per-recipient tracking
+                        if (api.ServiceName.Equals("turkcell", StringComparison.OrdinalIgnoreCase))
                         {
-                            User = api.Username,
-                            Pass = api.Password,
-                            Message = order.MessageText,
-                            Numbers = plainNumbers
-                        });
-                    }
-                    else if (api.ContentType == "application/json")
-                    {
-                        requestBody = JsonConvert.SerializeObject(new
+                            requestBody = JsonConvert.SerializeObject(new
+                            {
+                                User = api.Username,
+                                Pass = api.Password,
+                                Messages = toSend.Select(r => new
+                                {
+                                    Message = BuildTrackedMessage(order.MessageText, shortUrlMatch, r.Number),
+                                    GSM = r.Number
+                                }).ToArray()
+                            });
+                        }
+                        else
                         {
-                            Username = api.Username,
-                            Password = api.Password,
-                            Text = order.MessageText,
-                            To = plainNumbers
-                        });
+                            requestBody = JsonConvert.SerializeObject(new
+                            {
+                                Username = api.Username,
+                                Password = api.Password,
+                                Messages = toSend.Select(r => new
+                                {
+                                    To = r.Number,
+                                    Text = BuildTrackedMessage(order.MessageText, shortUrlMatch, r.Number)
+                                }).ToArray()
+                            });
+                        }
                     }
                     else
                     {
-                        return BadRequest("Unsupported API format.");
+                        // Normal flat format (no tracking)
+                        if (api.ServiceName.Equals("turkcell", StringComparison.OrdinalIgnoreCase))
+                        {
+                            requestBody = JsonConvert.SerializeObject(new
+                            {
+                                User = api.Username,
+                                Pass = api.Password,
+                                Message = order.MessageText,
+                                Numbers = plainNumbers
+                            });
+                        }
+                        else if (api.ContentType == "application/json")
+                        {
+                            requestBody = JsonConvert.SerializeObject(new
+                            {
+                                Username = api.Username,
+                                Password = api.Password,
+                                Text = order.MessageText,
+                                To = plainNumbers
+                            });
+                        }
+                        else
+                        {
+                            return BadRequest("Unsupported API format.");
+                        }
                     }
                 }
 
@@ -2906,34 +3154,62 @@ namespace GittBilSmsCore.Controllers
                 var contentType = api.ContentType;
                 string requestBody;
 
-                if (api.ServiceName.ToLower() == "turkcell")
+                var shortUrlMatch = ShortUrlRegex.Match(order.MessageText ?? "");
+                bool hasShortUrl = shortUrlMatch.Success;
+
+                if (hasShortUrl)
                 {
-                    requestBody = JsonConvert.SerializeObject(new
+                    // Per-recipient tracking
+                    if (api.ServiceName.ToLower() == "turkcell")
                     {
-                        User = api.Username,
-                        Pass = api.Password,
-                        Message = order.MessageText,
-                        Numbers = numbers
-                    });
-                }
-                else if (contentType == "application/json")
-                {
-                    requestBody = JsonConvert.SerializeObject(payload);
-                }
-                else if (contentType == "text/xml")
-                {
-                    requestBody = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
-                    <SendSms>
-                      <Username>{api.Username}</Username>
-                      <Password>{api.Password}</Password>
-                      <From>{api.Originator}</From>
-                      <Text>{order.MessageText}</Text>
-                      <To>{string.Join(",", numbers)}</To>
-                    </SendSms>";
+                        requestBody = JsonConvert.SerializeObject(new
+                        {
+                            User = api.Username,
+                            Pass = api.Password,
+                            Messages = numbers.Select(n => new
+                            {
+                                Message = BuildTrackedMessage(order.MessageText, shortUrlMatch, n),
+                                GSM = n
+                            }).ToArray()
+                        });
+                    }
+                    else
+                    {
+                        requestBody = JsonConvert.SerializeObject(new
+                        {
+                            Username = api.Username,
+                            Password = api.Password,
+                            Messages = numbers.Select(n => new
+                            {
+                                To = n,
+                                Text = BuildTrackedMessage(order.MessageText, shortUrlMatch, n)
+                            }).ToArray()
+                        });
+                    }
                 }
                 else
                 {
-                    return BadRequest("Unsupported API format.");
+                    // Normal flat format (no tracking)
+                    if (api.ServiceName.ToLower() == "turkcell")
+                    {
+                        requestBody = JsonConvert.SerializeObject(new
+                        {
+                            User = api.Username,
+                            Pass = api.Password,
+                            Message = order.MessageText,
+                            Numbers = numbers
+                        });
+                    }
+                    else
+                    {
+                        requestBody = JsonConvert.SerializeObject(new
+                        {
+                            Username = api.Username,
+                            Password = api.Password,
+                            Text = order.MessageText,
+                            To = numbers
+                        });
+                    }
                 }
 
                 using var client = new HttpClient();
@@ -3050,68 +3326,6 @@ namespace GittBilSmsCore.Controllers
             var downloadName = $"Order_{orderId}_recipients.txt";
 
             return File(fileBytes, "text/plain", downloadName);
-        }
-
-
-        private string BuildRequestBody(string text, SendSmsViewModel model, Api api)
-        {
-            var rawNumbers = model.PhoneNumbers ?? "";
-            var numbersList = rawNumbers
-                .Split(new[] { ',', ';', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(n => n.Trim())
-                .Where(n => !string.IsNullOrWhiteSpace(n))
-                .ToList();
-
-            switch (api.ServiceName?.ToLower())
-            {
-                case "yurtici":
-                    // Format 1
-                    return JsonConvert.SerializeObject(new
-                    {
-                        Username = api.Username,
-                        Password = api.Password,
-                        // From = api.Originator,
-                        Text = model.Message,
-                        To = numbersList
-                    });
-
-                case "turkcell":
-                    // Format 2
-                    return JsonConvert.SerializeObject(new
-                    {
-                        User = api.Username,
-                        Pass = api.Password,
-                        Message = model.Message,
-                        Numbers = numbersList
-                    });
-
-                default:
-                    // Fallback based on content-type
-                    if (api.ContentType == "application/json")
-                    {
-                        return JsonConvert.SerializeObject(new
-                        {
-                            Username = api.Username,
-                            Password = api.Password,
-                            From = api.Originator,
-                            Text = model.Message,
-                            To = numbersList
-                        });
-                    }
-                    else if (api.ContentType == "text/xml")
-                    {
-                        return $@"<?xml version=""1.0"" encoding=""UTF-8""?>
-                <SendSms>
-                  <Username>{api.Username}</Username>
-                  <Password>{api.Password}</Password>
-                  <From>{api.Originator}</From>
-                  <Text>{model.Message}</Text>
-                  <To>{string.Join(",", numbersList)}</To>
-                </SendSms>";
-                    }
-
-                    throw new InvalidOperationException("Unsupported ContentType or API format");
-            }
         }
         [HttpPost]
         public async Task<JsonResult> UploadCustomRecipients(

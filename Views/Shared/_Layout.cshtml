@@ -59,7 +59,7 @@
     var canSeeReports = HasAccess("Credit", "Read") || HasAccess("Account_transactions", "Read");
     var canSeeTransactions = HasAccess("Account_transactions", "Read");
     var canSeeCredit = HasAccess("Credit", "Read") || HasAccess("Credit", "Edit") || HasAccess("Credit", "Edit") || HasAccess("Credit", "Edit");
-
+    var canSeeShortUrl = HasAccess("ShortUrl", "Read");
 
 }
 
@@ -593,6 +593,14 @@
                                          <a asp-controller="Blacklist" asp-action="Index"><i class="material-icons-outlined">arrow_right</i>@SharedResource.Blacklist</a>
                                      </li>
                                  }
+                                @if (isAdmin || (isCompanyUser && HasAccess("ShortUrls", "Read")))
+                                {
+                                    <li>
+                                        <a asp-controller="ShortUrls" asp-action="Index">
+                                            <i class="material-icons-outlined">arrow_right</i>@SharedResource.Short_URL
+                                        </a>
+                                    </li>
+                                }
                                 @if(isAdmin)
                                 {
                                     <li>

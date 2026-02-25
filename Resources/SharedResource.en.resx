@@ -676,7 +676,7 @@
     <value>Special Powers</value>
   </data>
   <data name="Connecting to a user account" xml:space="preserve">
-    <value>Connecting to a user account</value>
+    <value>Connect to a user account</value>
   </data>
   <data name="Role assignment authority" xml:space="preserve">
     <value>Role assignment authority</value>
@@ -1457,5 +1457,122 @@
   </data>
   <data name="All_Types" xml:space="preserve">
     <value>All Types</value>
+  </data>
+  <data name="Destination_URL" xml:space="preserve">
+    <value>Destination URL</value>
+  </data>
+  <data name="Create_Short_URL" xml:space="preserve">
+    <value>Create Short URL</value>
+  </data>
+  <data name="Short_URL" xml:space="preserve">
+    <value>Short URL</value>
+  </data>
+  <data name="ShortURL_Title" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="Clicks" xml:space="preserve">
+    <value>Clicks</value>
+  </data>
+  <data name="Created_Date" xml:space="preserve">
+    <value>Created Date</value>
+  </data>
+  <data name="Expiry_Date" xml:space="preserve">
+    <value>Expired date</value>
+  </data>
+  <data name="Inactive" xml:space="preserve">
+    <value>Inactive</value>
+  </data>
+  <data name="Max_Clicks_Reached" xml:space="preserve">
+    <value>Max Clicks Reached</value>
+  </data>
+  <data name="Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Copied_to_clipboard" xml:space="preserve">
+    <value>Copied to clipboard!</value>
+  </data>
+  <data name="Failed_to_copy" xml:space="preserve">
+    <value>Failed to copy</value>
+  </data>
+  <data name="Are_you_sure_you_want_to_delete_this_short_URL" xml:space="preserve">
+    <value>Are you sure you want to delete this short URL? This action cannot be undone.</value>
+  </data>
+  <data name="Short_URL_deleted_successfully" xml:space="preserve">
+    <value>Short URL deleted successfully</value>
+  </data>
+  <data name="Failed_to_delete_short_URL" xml:space="preserve">
+    <value>Failed to delete short URL</value>
+  </data>
+  <data name="Custom_Back_Half" xml:space="preserve">
+    <value>Custom Back-Half</value>
+  </data>
+  <data name="Add_title_to_organize" xml:space="preserve">
+    <value>Add a title to organize your links</value>
+  </data>
+  <data name="Leave_blank_for_auto_generated" xml:space="preserve">
+    <value>Leave blank for auto-generated code. Only letters, numbers, hyphens and underscores allowed.</value>
+  </data>
+  <data name="Maximum_Clicks" xml:space="preserve">
+    <value>Maximum Clicks</value>
+  </data>
+  <data name="Unlimited" xml:space="preserve">
+    <value>Unlimited</value>
+  </data>
+  <data name="Edit_Short_URL" xml:space="preserve">
+    <value>Edit Short URL</value>
+  </data>
+  <data name="Editing_short_link_info" xml:space="preserve">
+    <value>Editing your short link will update the destination URL and settings. The short link will continue to work with the new settings.</value>
+  </data>
+  <data name="Visit" xml:space="preserve">
+    <value>Visit</value>
+  </data>
+  <data name="Optional_Details" xml:space="preserve">
+    <value>Optional Details</value>
+  </data>
+  <data name="Link_Expired" xml:space="preserve">
+    <value>This link has expired</value>
+  </data>
+  <data name="Expires" xml:space="preserve">
+    <value>Expires</value>
+  </data>
+  <data name="Back" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="SaveChanges" xml:space="preserve">
+    <value>Save Changes</value>
+  </data>
+  <data name="Delete_Short_URL" xml:space="preserve">
+    <value>Delete Short URL</value>
+  </data>
+  <data name="Delete_warning" xml:space="preserve">
+    <value>Once deleted, this short URL will stop working. This action cannot be undone.</value>
+  </data>
+  <data name="Please_enter_URL" xml:space="preserve">
+    <value>Please enter a URL first</value>
+  </data>
+  <data name="shorturlcreatedsuccess" xml:space="preserve">
+    <value>Short URL created successfully!</value>
+  </data>
+  <data name="shorturlupdatedsuccess" xml:space="preserve">
+    <value>Short URL updated successfully!</value>
+  </data>
+  <data name="shorturldeletedsuccess" xml:space="preserve">
+    <value>Short URL deleted successfully!</value>
+  </data>
+  <data name="shorturlnotfound" xml:space="preserve">
+    <value>Short URL not found</value>
+  </data>
+  <data name="errorcreatingshortu" xml:space="preserve">
+    <value>Error creating short URL</value>
+  </data>
+  <data name="errorupdatingshortu" xml:space="preserve">
+    <value>Error updating short URL</value>
+  </data>
+  <data name="Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Test" xml:space="preserve">
+    <value>Test</value>
   </data>
 </root>

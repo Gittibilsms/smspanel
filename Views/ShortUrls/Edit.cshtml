@@ -1,0 +1,199 @@
+﻿@using GittBilSmsCore.ViewModels
+@model GittBilSmsCore.ViewModels.EditShortUrlViewModel
+@{
+    ViewData["Title"] = "Edit Short URL";   
+    var shortUrl = ViewBag.ShortUrl as ShortUrlViewModel;
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    @TempData["SuccessMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @TempData["ErrorMessage"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <div class="alert alert-info" role="alert">
+                <i class="bi bi-info-circle"></i>
+                @SharedResource.Editing_short_link_info
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="mb-4">@SharedResource.Edit_Short_URL</h4>
+
+                    <!-- Short URL Display -->
+                    <div class="mb-4 p-3 bg-light border rounded">
+                        <label class="form-label fw-bold">@SharedResource.Short_URL</label>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="flex-grow-1">
+                                <a href="@shortUrl.ShortUrl" target="_blank" class="text-primary fw-bold">@shortUrl.ShortUrl</a>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="copyToClipboard('@shortUrl.ShortUrl')">
+                                <i class="bi bi-clipboard"></i> @SharedResource.Copy
+                            </button>
+                            <a href="@shortUrl.ShortUrl" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-box-arrow-up-right"></i> @SharedResource.Visit
+                            </a>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                Created: @shortUrl.CreatedDate.ToString("MMM dd, yyyy") | Clicks: <strong>@shortUrl.TotalClicks</strong>
+                            </small>
+                        </div>
+                    </div>
+
+                    <form method="post" action="/ShortUrls/Edit/@shortUrl.Id">
+                        @Html.AntiForgeryToken()
+
+                        @if (!ViewData.ModelState.IsValid)
+                        {
+                            <div class="alert alert-danger">
+                                <ul>
+                                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                    {
+                                        <li>@error.ErrorMessage</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label for="DestinationUrl" class="form-label fw-bold">
+                                @SharedResource.Destination_URL <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="text"
+                                       class="form-control"
+                                       id="DestinationUrl"
+                                       name="DestinationUrl"
+                                       value="@Model.DestinationUrl"
+                                       required />
+                                <button type="button" class="btn btn-outline-secondary" onclick="testRedirect()">
+                                    <i class="bi bi-arrow-right"></i> @SharedResource.Test
+                                </button>
+                            </div>
+                        </div>
+
+                        <hr class="my-4" />
+
+                        <h5 class="mb-3">@SharedResource.Optional_Details</h5>
+
+                        <div class="mb-3">
+                            <label for="Title" class="form-label">@SharedResource.Title</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="Title"
+                                   name="Title"
+                                   value="@Model.Title"
+                                   placeholder="" />
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="ExpiryDate" class="form-label">@SharedResource.Expiry_Date</label>
+                                    <input type="date"
+                                           class="form-control"
+                                           id="ExpiryDate"
+                                           name="ExpiryDate"
+                                           value="@(Model.ExpiryDate?.ToString("yyyy-MM-dd"))" />
+                                    @if (shortUrl.ExpiryDate.HasValue)
+                                    {
+                                        if (shortUrl.ExpiryDate < DateTime.Now)
+                                        {
+                                            <small class="text-danger">
+                                                <i class="bi bi-exclamation-circle"></i> @SharedResource.Link_Expired
+                                            </small>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted">
+                                                Expires: @shortUrl.ExpiryDate.Value.ToString("MMM dd, yyyy")
+                                            </small>
+                                        }
+                                    }
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="MaxClicks" class="form-label">@SharedResource.Clicks</label>
+                                    <input type="number"
+                                           class="form-control"
+                                           id="MaxClicks"
+                                           name="MaxClicks"
+                                           value="@Model.MaxClicks"
+                                           min="1"
+                                           placeholder="Unlimited" />
+                                    @if (shortUrl.MaxClicks.HasValue)
+                                    {
+                                        var percentage = (double)shortUrl.TotalClicks / shortUrl.MaxClicks.Value * 100;
+                                        <small class="text-muted">
+                                            @shortUrl.TotalClicks / @shortUrl.MaxClicks clicks (@percentage.ToString("0")%)
+                                        </small>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="/ShortUrls" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> @SharedResource.Back
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> @SharedResource.Save
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Delete Section -->
+            <div class="card mt-4 border-danger">
+                <div class="card-body">
+                    <h5 class="text-danger">@SharedResource.Delete_Short_URL</h5>
+                    <p class="text-muted mb-3">@SharedResource.Delete_warning</p>
+                    <form method="post" action="/ShortUrls/Delete/@shortUrl.Id"
+                          onsubmit="return confirm('Are you sure you want to delete this short URL?');">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-trash"></i> @SharedResource.Delete_Short_URL
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                toastr.success('Copied to clipboard!');
+            }).catch(function() {
+                toastr.error('Failed to copy');
+            });
+        }
+
+        function testRedirect() {
+            const url = document.getElementById('DestinationUrl').value;
+            if (url) {
+                window.open(url, '_blank');
+            } else {
+                toastr.warning('Please enter a URL first');
+            }
+        }
+    </script>
+}

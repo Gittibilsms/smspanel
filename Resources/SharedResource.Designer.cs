@@ -142,6 +142,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Aktif.
+        /// </summary>
+        public static string Active {
+            get {
+                return ResourceManager.GetString("Active", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Ekle.
         /// </summary>
         public static string Add {
@@ -183,6 +192,15 @@ namespace GittBilSmsCore.Resources {
         public static string Add_New_User {
             get {
                 return ResourceManager.GetString("Add New User", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bağlantılarınızı düzenlemek için bir başlık ekleyin.
+        /// </summary>
+        public static string Add_title_to_organize {
+            get {
+                return ResourceManager.GetString("Add_title_to_organize", resourceCulture);
             }
         }
         
@@ -394,6 +412,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Bu kısa URL&apos;yi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz..
+        /// </summary>
+        public static string Are_you_sure_you_want_to_delete_this_short_URL {
+            get {
+                return ResourceManager.GetString("Are_you_sure_you_want_to_delete_this_short_URL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Atanmış Biletler.
         /// </summary>
         public static string assignedtickets {
@@ -453,6 +480,15 @@ namespace GittBilSmsCore.Resources {
         public static string Awaiting_Approval {
             get {
                 return ResourceManager.GetString("Awaiting Approval", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Geri.
+        /// </summary>
+        public static string Back {
+            get {
+                return ResourceManager.GetString("Back", resourceCulture);
             }
         }
         
@@ -633,6 +669,15 @@ namespace GittBilSmsCore.Resources {
         public static string clearallfilters {
             get {
                 return ResourceManager.GetString("clearallfilters", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Tıklamalar.
+        /// </summary>
+        public static string Clicks {
+            get {
+                return ResourceManager.GetString("Clicks", resourceCulture);
             }
         }
         
@@ -835,6 +880,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Panoya kopyalandı!.
+        /// </summary>
+        public static string Copied_to_clipboard {
+            get {
+                return ResourceManager.GetString("Copied_to_clipboard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Kopyala.
         /// </summary>
         public static string Copy {
@@ -880,6 +934,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Kısa URL Oluştur.
+        /// </summary>
+        public static string Create_Short_URL {
+            get {
+                return ResourceManager.GetString("Create_Short_URL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Oluşturuldu.
         /// </summary>
         public static string Created {
@@ -894,6 +957,15 @@ namespace GittBilSmsCore.Resources {
         public static string Created_By {
             get {
                 return ResourceManager.GetString("Created By", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Oluşturma Tarihi.
+        /// </summary>
+        public static string Created_Date {
+            get {
+                return ResourceManager.GetString("Created_Date", resourceCulture);
             }
         }
         
@@ -1078,6 +1150,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Özel Kısa Kod.
+        /// </summary>
+        public static string Custom_Back_Half {
+            get {
+                return ResourceManager.GetString("Custom_Back_Half", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Özel (Yalnızca Excel).
         /// </summary>
         public static string customformat {
@@ -1258,6 +1339,24 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Kısa URL&apos;yi Sil.
+        /// </summary>
+        public static string Delete_Short_URL {
+            get {
+                return ResourceManager.GetString("Delete_Short_URL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Silindikten sonra, bu kısa URL çalışmayı durduracaktır. Bu işlem geri alınamaz..
+        /// </summary>
+        public static string Delete_warning {
+            get {
+                return ResourceManager.GetString("Delete_warning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Bu API&apos;yi silmek istediğinizden emin misiniz?.
         /// </summary>
         public static string deleteapiconfirmation {
@@ -1290,6 +1389,15 @@ namespace GittBilSmsCore.Resources {
         public static string Delivered {
             get {
                 return ResourceManager.GetString("Delivered", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hedef URL.
+        /// </summary>
+        public static string Destination_URL {
+            get {
+                return ResourceManager.GetString("Destination_URL", resourceCulture);
             }
         }
         
@@ -1393,11 +1501,29 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Kısa URL Düzenle.
+        /// </summary>
+        public static string Edit_Short_URL {
+            get {
+                return ResourceManager.GetString("Edit_Short_URL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Kullanıcıyı Düzenle.
         /// </summary>
         public static string Edit_User {
             get {
                 return ResourceManager.GetString("Edit User", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kısa bağlantınızı düzenlemek hedef URL ve ayarlarını güncelleyecektir. Kısa bağlantı yeni ayarlarla çalışmaya devam edecektir..
+        /// </summary>
+        public static string Editing_short_link_info {
+            get {
+                return ResourceManager.GetString("Editing_short_link_info", resourceCulture);
             }
         }
         
@@ -1492,6 +1618,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Kısa URL oluşturulurken hata.
+        /// </summary>
+        public static string errorcreatingshortu {
+            get {
+                return ResourceManager.GetString("errorcreatingshortu", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Kullanıcı silinirken bir hata oluştu..
         /// </summary>
         public static string erroroccureddeletinguser {
@@ -1519,6 +1654,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Kısa URL güncellenirken hata.
+        /// </summary>
+        public static string errorupdatingshortu {
+            get {
+                return ResourceManager.GetString("errorupdatingshortu", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Excel.
         /// </summary>
         public static string Excel {
@@ -1537,11 +1681,47 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Son Kullanma.
+        /// </summary>
+        public static string Expires {
+            get {
+                return ResourceManager.GetString("Expires", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Son Kullanma Tarihi.
+        /// </summary>
+        public static string Expiry_Date {
+            get {
+                return ResourceManager.GetString("Expiry_Date", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Gönderim başarısız.
         /// </summary>
         public static string Failed {
             get {
                 return ResourceManager.GetString("Failed", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kopyalama başarısız.
+        /// </summary>
+        public static string Failed_to_copy {
+            get {
+                return ResourceManager.GetString("Failed_to_copy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kısa URL silme başarısız.
+        /// </summary>
+        public static string Failed_to_delete_short_URL {
+            get {
+                return ResourceManager.GetString("Failed_to_delete_short_URL", resourceCulture);
             }
         }
         
@@ -1807,6 +1987,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Pasif.
+        /// </summary>
+        public static string Inactive {
+            get {
+                return ResourceManager.GetString("Inactive", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Yetersiz bakiye..
         /// </summary>
         public static string insufficientbal {
@@ -1911,6 +2100,24 @@ namespace GittBilSmsCore.Resources {
         public static string Last {
             get {
                 return ResourceManager.GetString("Last", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Otomatik oluşturulmuş kod için boş bırakın. Sadece harf, rakam, tire ve alt çizgi kullanılabilir..
+        /// </summary>
+        public static string Leave_blank_for_auto_generated {
+            get {
+                return ResourceManager.GetString("Leave_blank_for_auto_generated", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bu bağlantının süresi doldu.
+        /// </summary>
+        public static string Link_Expired {
+            get {
+                return ResourceManager.GetString("Link_Expired", resourceCulture);
             }
         }
         
@@ -2046,6 +2253,24 @@ namespace GittBilSmsCore.Resources {
         public static string Mark_as_Paid {
             get {
                 return ResourceManager.GetString("Mark as Paid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Maksimum Tıklamaya Ulaşıldı.
+        /// </summary>
+        public static string Max_Clicks_Reached {
+            get {
+                return ResourceManager.GetString("Max_Clicks_Reached", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Maksimum Tıklama.
+        /// </summary>
+        public static string Maximum_Clicks {
+            get {
+                return ResourceManager.GetString("Maximum_Clicks", resourceCulture);
             }
         }
         
@@ -2401,6 +2626,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to İsteğe Bağlı Detaylar.
+        /// </summary>
+        public static string Optional_Details {
+            get {
+                return ResourceManager.GetString("Optional_Details", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Sipariş.
         /// </summary>
         public static string Order {
@@ -2721,6 +2955,15 @@ namespace GittBilSmsCore.Resources {
         public static string phoneremoved {
             get {
                 return ResourceManager.GetString("phoneremoved", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Lütfen önce bir URL girin.
+        /// </summary>
+        public static string Please_enter_URL {
+            get {
+                return ResourceManager.GetString("Please_enter_URL", resourceCulture);
             }
         }
         
@@ -3148,6 +3391,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Save.
+        /// </summary>
+        public static string Save {
+            get {
+                return ResourceManager.GetString("Save", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Değişiklikleri Kaydet.
         /// </summary>
         public static string Save_Changes {
@@ -3162,6 +3414,15 @@ namespace GittBilSmsCore.Resources {
         public static string Save_User {
             get {
                 return ResourceManager.GetString("Save User", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Değişiklikleri Kaydet.
+        /// </summary>
+        public static string SaveChanges {
+            get {
+                return ResourceManager.GetString("SaveChanges", resourceCulture);
             }
         }
         
@@ -3351,6 +3612,69 @@ namespace GittBilSmsCore.Resources {
         public static string Shipping_has_started {
             get {
                 return ResourceManager.GetString("Shipping has started", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kısa URL.
+        /// </summary>
+        public static string Short_URL {
+            get {
+                return ResourceManager.GetString("Short_URL", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kısa URL başarıyla silindi.
+        /// </summary>
+        public static string Short_URL_deleted_successfully {
+            get {
+                return ResourceManager.GetString("Short_URL_deleted_successfully", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Başlık.
+        /// </summary>
+        public static string ShortURL_Title {
+            get {
+                return ResourceManager.GetString("ShortURL_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kısa URL başarıyla oluşturuldu!.
+        /// </summary>
+        public static string shorturlcreatedsuccess {
+            get {
+                return ResourceManager.GetString("shorturlcreatedsuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kısa URL başarıyla silindi!.
+        /// </summary>
+        public static string shorturldeletedsuccess {
+            get {
+                return ResourceManager.GetString("shorturldeletedsuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kısa URL bulunamadı.
+        /// </summary>
+        public static string shorturlnotfound {
+            get {
+                return ResourceManager.GetString("shorturlnotfound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kısa URL başarıyla güncellendi!.
+        /// </summary>
+        public static string shorturlupdatedsuccess {
+            get {
+                return ResourceManager.GetString("shorturlupdatedsuccess", resourceCulture);
             }
         }
         
@@ -3553,6 +3877,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Test.
+        /// </summary>
+        public static string Test {
+            get {
+                return ResourceManager.GetString("Test", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to RoleName alanı zorunludur..
         /// </summary>
         public static string The_RoleName_field_is_required_ {
@@ -3729,6 +4062,15 @@ namespace GittBilSmsCore.Resources {
         public static string Unit_price_options {
             get {
                 return ResourceManager.GetString("Unit price options", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Sınırsız.
+        /// </summary>
+        public static string Unlimited {
+            get {
+                return ResourceManager.GetString("Unlimited", resourceCulture);
             }
         }
         
@@ -3999,6 +4341,15 @@ namespace GittBilSmsCore.Resources {
         public static string viewresponse {
             get {
                 return ResourceManager.GetString("viewresponse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Ziyaret Et.
+        /// </summary>
+        public static string Visit {
+            get {
+                return ResourceManager.GetString("Visit", resourceCulture);
             }
         }
         
