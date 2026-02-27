@@ -76,6 +76,7 @@ namespace GittBilSmsCore.ViewModels
         [Display(Name = "Maximum Clicks")]
         [Range(1, int.MaxValue, ErrorMessage = "Maximum clicks must be greater than 0")]
         public int? MaxClicks { get; set; }
+        public int? CompanyId { get; set; }
     }
     public class EditShortUrlViewModel
     {
