@@ -72,7 +72,7 @@ namespace GittiBillSmsCore.Controllers
 
         // GET: /ShortUrls
         [HttpGet("")]
-        public async Task<IActionResult> Index(int page = 1)
+        public async Task<IActionResult> Index(int page = 1, string search = "")
         {
             if (!HasAccessRoles("ShortUrls", "Read"))
             {
@@ -99,19 +99,32 @@ namespace GittiBillSmsCore.Controllers
 
                 query = query.Where(s => s.CompanyId == user.CompanyId);
             }
+            // Search filter
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                search = search.Trim().ToLower();
+                query = query.Where(s =>
+                    s.ShortCode.ToLower().Contains(search) ||
+                    s.OriginalUrl.ToLower().Contains(search) ||
+                    (s.Title != null && s.Title.ToLower().Contains(search)) ||
+                    s.Company.CompanyName.ToLower().Contains(search) ||
+                    s.CreatedByUser.FullName.ToLower().Contains(search)
+                );
+            }
 
-            // Step 1: Get entities from database
             var entities = await query
                 .OrderByDescending(s => s.CreatedDate)
                 .Skip((page - 1) * 20)
                 .Take(20)
-                .Include(s => s.Company)           // ✅ Need this for CompanyName!
-                .Include(s => s.CreatedByUser)     // ✅ Need this for CreatedByName!
+                .Include(s => s.Company)            
+                .Include(s => s.CreatedByUser)     
                 .ToListAsync();
-
-            // Step 2: Map to ShortUrlViewModel (not anonymous type!)
+            if (!entities.Any() && page > 1)
+            {
+                return RedirectToAction("Index", new { page = 1,search });
+            }
             var shortUrls = entities
-                .Select(s => new ShortUrlViewModel  // ✅ Use ShortUrlViewModel, not new { }
+                .Select(s => new ShortUrlViewModel   
                 {
                     Id = s.Id,
                     ShortCode = s.ShortCode,
@@ -123,30 +136,83 @@ namespace GittiBillSmsCore.Controllers
                     IsActive = s.IsActive,
                     CreatedDate = s.CreatedDate,
                     ExpiryDate = s.ExpiryDate,
-                    CompanyName = s.Company.CompanyName,      // ✅ Now works because of Include!
-                    CreatedByName = s.CreatedByUser.FullName  // ✅ Now works because of Include!
+                    CompanyName = s.Company.CompanyName,       
+                    CreatedByName = s.CreatedByUser.FullName  
                 })
                 .ToList();
 
             ViewBag.CurrentPage = page;
             ViewBag.TotalCount = await query.CountAsync();
             ViewBag.PageSize = 20;
-
+            ViewBag.HasCreatePermission = HasAccessRoles("ShortUrls", "Create");
+            ViewBag.HasEditPermission = HasAccessRoles("ShortUrls", "Edit");
+            ViewBag.HasDeletePermission = HasAccessRoles("ShortUrls", "Delete");
+            ViewBag.Search = search;
             return View(shortUrls);
         }
 
         // GET: /ShortUrls/Create
         [HttpGet("Create")]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
             if (!HasAccessRoles("ShortUrls", "Create"))
             {
                 return Forbid();
             }
 
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+                return Unauthorized();
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                return Unauthorized();
+
+            var isAdmin = user.UserType == "Admin" || user.UserType == "SuperAdmin";
+            ViewBag.IsAdmin = isAdmin;
+
+            if (isAdmin)
+            {
+                ViewBag.Companies = await _context.Companies
+                    .OrderBy(c => c.CompanyName)
+                    .Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
+                    {
+                        Value = c.CompanyId.ToString(),
+                        Text = c.CompanyName
+                    })
+                    .ToListAsync();
+            }
+            else
+            {
+                var company = await _context.Companies.FindAsync(user.CompanyId);
+                ViewBag.CompanyName = company?.CompanyName ?? "N/A";
+                ViewBag.CompanyId = user.CompanyId;
+            }
+
             return View(new CreateShortUrlViewModel());
         }
 
+        private async Task ReloadCreateViewBag(User user, bool isAdmin)
+        {
+            ViewBag.IsAdmin = isAdmin;
+            if (isAdmin)
+            {
+                ViewBag.Companies = await _context.Companies
+                    .OrderBy(c => c.CompanyName)
+                    .Select(c => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
+                    {
+                        Value = c.CompanyId.ToString(),
+                        Text = c.CompanyName
+                    })
+                    .ToListAsync();
+            }
+            else
+            {
+                var company = await _context.Companies.FindAsync(user.CompanyId);
+                ViewBag.CompanyName = company?.CompanyName ?? "N/A";
+                ViewBag.CompanyId = user.CompanyId;
+            }
+        }
         // POST: /ShortUrls/Create
         [HttpPost("Create")]
         [ValidateAntiForgeryToken]
@@ -157,40 +223,41 @@ namespace GittiBillSmsCore.Controllers
                 return Forbid();
             }
 
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (userId == null)
+                return Unauthorized();
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                return Unauthorized();
+
+            var isAdmin = user.UserType == "Admin" || user.UserType == "SuperAdmin";
+
             if (!ModelState.IsValid)
             {
+                await ReloadCreateViewBag(user, isAdmin);
                 return View(model);
             }
 
             try
             {
-                var userId = HttpContext.Session.GetInt32("UserId");
-                if (userId == null)
-                    return Unauthorized();
-
-                var user = await _context.Users.FindAsync(userId);
-                if (user == null)
-                    return Unauthorized();
-
-                // ✅ For admins, require company selection. For company users, use their company
                 int companyId;
-                if (user.UserType == "Admin" || user.UserType == "SuperAdmin")
+                if (isAdmin)
                 {
-                    // For now, we'll need to add company selection to the form for admins
-                    // Or default to first company - you can modify this logic
-                    var firstCompany = await _context.Companies.FirstOrDefaultAsync();
-                    if (firstCompany == null)
+                    if (model.CompanyId == null || model.CompanyId <= 0)
                     {
-                        ModelState.AddModelError("", "No company found. Please create a company first.");
+                        ModelState.AddModelError("CompanyId", "Please select a company.");
+                        await ReloadCreateViewBag(user, isAdmin);
                         return View(model);
                     }
-                    companyId = firstCompany.CompanyId;
+                    companyId = model.CompanyId.Value;
                 }
                 else
                 {
                     if (user.CompanyId == null)
                     {
                         ModelState.AddModelError("", "You are not associated with any company.");
+                        await ReloadCreateViewBag(user, isAdmin);
                         return View(model);
                     }
                     companyId = user.CompanyId.Value;
@@ -204,11 +271,13 @@ namespace GittiBillSmsCore.Controllers
             catch (InvalidOperationException ex)
             {
                 ModelState.AddModelError("CustomBackHalf", ex.Message);
+                await ReloadCreateViewBag(user, isAdmin);
                 return View(model);
             }
             catch (Exception ex)
             {
                 ModelState.AddModelError("", _sharedLocalizer["errorcreatingshortu"].Value + ": " + ex.Message);
+                await ReloadCreateViewBag(user, isAdmin);
                 return View(model);
             }
         }

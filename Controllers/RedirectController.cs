@@ -91,10 +91,10 @@ namespace GittBilSmsCore.Controllers
                     Console.WriteLine($"[ShortUrl-Click] Failed to decode token: {token}");
                 }
             }
-            else
-            {
-                Console.WriteLine($"[ShortUrl-Click] No token - phone will be NULL for ShortCode: {shortCode}");
-            }
+            //else
+            //{
+            //    Console.WriteLine($"[ShortUrl-Click] No token - phone will be NULL for ShortCode: {shortCode}");
+            //}
 
             // ✅ Device Detection
             var userAgentString = Request.Headers["User-Agent"].ToString();
@@ -110,29 +110,38 @@ namespace GittBilSmsCore.Controllers
             // ✅ Log click with phone number ONLY if iOS
             if (isIOS)
             {
-                _context.ShortUrlClicks.Add(new ShortUrlClick
+                // Only log if this phone number hasn't been recorded for this short URL
+                bool isDuplicate = false;
+                if (!string.IsNullOrEmpty(phoneNumber))
                 {
-                    ShortUrlId = shortUrl.Id,
-                    ShortCode = shortCode,
-                    PhoneNumber = phoneNumber,
-                    DeviceType = GetDeviceType(userAgentString),
-                    OperatingSystem = clientInfo.OS.Family + " " + clientInfo.OS.Major,
-                    Browser = clientInfo.UA.Family + " " + clientInfo.UA.Major,
-                    IpAddress = GetClientIpAddress(),
-                    UserAgent = userAgentString,
-                    ClickedAt = DateTime.Now
-                });
+                    isDuplicate = await _context.ShortUrlClicks
+                        .AnyAsync(c => c.ShortUrlId == shortUrl.Id && c.PhoneNumber == phoneNumber);
+                }
+                if (!isDuplicate)
+                {
+                    _context.ShortUrlClicks.Add(new ShortUrlClick
+                    {
+                        ShortUrlId = shortUrl.Id,
+                        ShortCode = shortCode,
+                        PhoneNumber = phoneNumber,
+                        DeviceType = GetDeviceType(userAgentString),
+                        OperatingSystem = clientInfo.OS.Family + " " + clientInfo.OS.Major,
+                        Browser = clientInfo.UA.Family + " " + clientInfo.UA.Major,
+                        IpAddress = GetClientIpAddress(),
+                        UserAgent = userAgentString,
+                        ClickedAt = DateTime.Now
+                    });
 
-                Console.WriteLine($"[ShortUrl-Click] iOS device detected - Click logged for ShortCode: {shortCode}");
-            }
-            else
-            {
-                Console.WriteLine($"[ShortUrl-Click] Non-iOS device - Click NOT logged for ShortCode: {shortCode}");
+                 // Console.WriteLine($"[ShortUrl-Click] iOS - New click logged for ShortCode: {shortCode}, Phone: {phoneNumber}");
+                }
+                //else
+                //{
+                //    Console.WriteLine($"[ShortUrl-Click] iOS - Duplicate phone {phoneNumber} for ShortCode: {shortCode} - Skipped");
+                //}
             }
 
             await _context.SaveChangesAsync();
-
-            Console.WriteLine($"[RedirectController] Redirecting to: {shortUrl.OriginalUrl}");
+            //Console.WriteLine($"[RedirectController] Redirecting to: {shortUrl.OriginalUrl}");
             return Redirect(shortUrl.OriginalUrl);
         }
 

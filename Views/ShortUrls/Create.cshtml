@@ -12,7 +12,28 @@
 
                     <form asp-action="Create" method="post" class="needs-validation" novalidate>
                         <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-
+                        <!-- Company Selection -->
+                        @if (ViewBag.IsAdmin == true)
+                        {
+                            <div class="mb-3">
+                                <label for="CompanyId" class="form-label">
+                                    @SharedResource.Firm <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="CompanyId" class="form-select" required
+                                        asp-items="@((IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.Companies)">
+                                    <option value="">-- @SharedResource.Select_Firm --</option>
+                                </select>
+                                <span asp-validation-for="CompanyId" class="text-danger"></span>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="mb-3">
+                                <label class="form-label">@SharedResource.Firm</label>
+                                <input type="text" class="form-control" value="@ViewBag.CompanyName" readonly disabled />
+                                <input type="hidden" name="CompanyId" value="@ViewBag.CompanyId" />
+                            </div>
+                        }
                         <div class="mb-3">
                             <label asp-for="DestinationUrl" class="form-label">
                                 @SharedResource.Destination_URL <span class="text-danger">*</span>
