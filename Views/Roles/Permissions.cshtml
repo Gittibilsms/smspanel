@@ -127,6 +127,33 @@
                     <td class="form-check-success"><input class="form-check-input" type="checkbox" name="SelectedPermissions" value="Blacklist_Edit" @(Model.SelectedPermissions.Contains("Blacklist_Edit") ? "checked" : "") @(isReadOnly ? "disabled" : "") /></td>
                     <td class="form-check-success"></td>
                 </tr>
+                <tr>
+                    <td>@SharedResource.Short_URL</td>
+                    <td class="form-check-success">
+                        <input class="form-check-input" type="checkbox" name="SelectedPermissions"
+                               value="ShortUrls_Read"
+                        @(Model.SelectedPermissions.Contains("ShortUrls_Read") ? "checked" : "")
+                        @(isReadOnly ? "disabled" : "") />
+                    </td>
+                    <td class="form-check-success">
+                        <input class="form-check-input" type="checkbox" name="SelectedPermissions"
+                               value="ShortUrls_Create"
+                        @(Model.SelectedPermissions.Contains("ShortUrls_Create") ? "checked" : "")
+                        @(isReadOnly ? "disabled" : "") />
+                    </td>
+                    <td class="form-check-success">
+                        <input class="form-check-input" type="checkbox" name="SelectedPermissions"
+                               value="ShortUrls_Edit"
+                        @(Model.SelectedPermissions.Contains("ShortUrls_Edit") ? "checked" : "")
+                        @(isReadOnly ? "disabled" : "") />
+                    </td>
+                    <td class="form-check-success">
+                        <input class="form-check-input" type="checkbox" name="SelectedPermissions"
+                               value="ShortUrls_Delete"
+                        @(Model.SelectedPermissions.Contains("ShortUrls_Delete") ? "checked" : "")
+                        @(isReadOnly ? "disabled" : "") />
+                    </td>
+                </tr>
                 @if (isAdmin)
                 {
                 <tr>

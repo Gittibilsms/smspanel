@@ -92,11 +92,8 @@ namespace GittiBillSmsCore.Controllers
                 .Include(s => s.Company)
                 .Include(s => s.CreatedByUser);
 
-            if (user.UserType == "CompanyUser" || user.UserType == "PanelUser" || user.UserType == "SubUser")
-            {
-                if (user.CompanyId == null)
-                    return Unauthorized();
-
+            if (user.CompanyId != null)
+            {                
                 query = query.Where(s => s.CompanyId == user.CompanyId);
             }
             // Search filter
@@ -168,7 +165,8 @@ namespace GittiBillSmsCore.Controllers
             if (user == null)
                 return Unauthorized();
 
-            var isAdmin = user.UserType == "Admin" || user.UserType == "SuperAdmin";
+            //var isAdmin = user.UserType == "Admin" || user.UserType == "SuperAdmin";
+            bool isAdmin = user.CompanyId == null;
             ViewBag.IsAdmin = isAdmin;
 
             if (isAdmin)
@@ -231,7 +229,8 @@ namespace GittiBillSmsCore.Controllers
             if (user == null)
                 return Unauthorized();
 
-            var isAdmin = user.UserType == "Admin" || user.UserType == "SuperAdmin";
+            //  var isAdmin = user.UserType == "Admin" || user.UserType == "SuperAdmin";
+            bool isAdmin = user.CompanyId == null;
 
             if (!ModelState.IsValid)
             {
@@ -286,7 +285,7 @@ namespace GittiBillSmsCore.Controllers
         [HttpGet("Edit/{id}")]
         public async Task<IActionResult> Edit(long id)
         {
-            if (!HasAccessRoles("ShortUrls", "Read"))
+            if (!HasAccessRoles("ShortUrls", "Edit"))
             {
                 return Forbid();
             }
@@ -310,14 +309,8 @@ namespace GittiBillSmsCore.Controllers
                 return RedirectToAction("Index");
             }
 
-            // Check access
-            if (user.UserType != "Admin" && user.UserType != "SuperAdmin")
-            {
-                if (shortUrlEntity.CompanyId != user.CompanyId)
-                {
-                    return Forbid();
-                }
-            }
+             
+
 
             var shortUrl = new ShortUrlViewModel
             {
@@ -374,7 +367,7 @@ namespace GittiBillSmsCore.Controllers
                     .FirstOrDefaultAsync(s => s.Id == id);
 
                 if (shortUrlEntity != null)
-                {
+                {                    
                     ViewBag.ShortUrl = new ShortUrlViewModel
                     {
                         Id = shortUrlEntity.Id,
@@ -401,14 +394,14 @@ namespace GittiBillSmsCore.Controllers
                     return RedirectToAction("Index");
                 }
 
-                // Check access
-                if (user.UserType != "Admin" && user.UserType != "SuperAdmin")
-                {
-                    if (shortUrlEntity.CompanyId != user.CompanyId)
-                    {
-                        return Forbid();
-                    }
-                }
+                //// Check access
+                //if (user.UserType != "Admin" && user.UserType != "SuperAdmin")
+                //{
+                //    if (shortUrlEntity.CompanyId != user.CompanyId)
+                //    {
+                //        return Forbid();
+                //    }
+                //}
 
                 // Update fields
                 shortUrlEntity.Title = model.Title;
@@ -483,16 +476,7 @@ namespace GittiBillSmsCore.Controllers
             {
                 TempData["ErrorMessage"] = _sharedLocalizer["shorturlnotfound"].Value;
                 return RedirectToAction("Index");
-            }
-
-            // ✅ Check access
-            if (user.UserType != "Admin" && user.UserType != "SuperAdmin")
-            {
-                if (shortUrl.CompanyId != user.CompanyId)
-                {
-                    return Forbid();
-                }
-            }
+            }             
 
             shortUrl.IsActive = false;
             await _context.SaveChangesAsync();
@@ -521,13 +505,8 @@ namespace GittiBillSmsCore.Controllers
             // ✅ Admins see all, Company users see only their own
             IQueryable<ShortUrl> query = _context.ShortUrls;
 
-            if (user.UserType == "CompanyUser" || user.UserType == "PanelUser" || user.UserType == "SubUser")
-            {
-                if (user.CompanyId == null)
-                    return Unauthorized();
-
+            if (user.CompanyId != null)
                 query = query.Where(s => s.CompanyId == user.CompanyId);
-            }
 
             var shortUrls = await query
                 .OrderByDescending(s => s.CreatedDate)
@@ -569,16 +548,7 @@ namespace GittiBillSmsCore.Controllers
 
             var shortUrl = await _context.ShortUrls.FirstOrDefaultAsync(s => s.Id == id);
             if (shortUrl == null)
-                return NotFound();
-
-            // ✅ Check access
-            if (user.UserType != "Admin" && user.UserType != "SuperAdmin")
-            {
-                if (shortUrl.CompanyId != user.CompanyId)
-                {
-                    return Forbid();
-                }
-            }
+                return NotFound(); 
 
             shortUrl.IsActive = !shortUrl.IsActive;
             await _context.SaveChangesAsync();

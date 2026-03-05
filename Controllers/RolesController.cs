@@ -209,7 +209,8 @@ namespace GittBilSmsCore.Controllers
             {
                 "Firm", "User", "Order", "Directory", "Blacklist", "Passive_numbers",
                 "Credit", "Request_for_support", "Account_transactions", "Dealer_transactions",
-                "Dealer", "DealerCredit", "DealerSupportRequest", "DealerAccountTransactions", "DealerUsers"
+                "Dealer", "DealerCredit", "DealerSupportRequest", "DealerAccountTransactions", "DealerUsers",
+                "ShortUrls"
             };
 
             var addedModules = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
