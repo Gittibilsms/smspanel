@@ -168,11 +168,12 @@ public class SmsReportBackgroundService : BackgroundService
                             if (order.Company.IsRefundable && order.Refundable && !order.Returned)
                             {
                                 var segmentsPerMessage = order.SmsCount > 0 ? order.SmsCount : 1;
+                                var pricePerSms = order.PricePerSms ?? 0;
                                 var refundableCount = (order.ExpiredCount ?? 0) + (order.UndeliveredCount ?? 0);
 
-                                if (refundableCount > 0)
+                                if (refundableCount > 0 && pricePerSms > 0)
                                 {
-                                    var refundAmount = refundableCount * segmentsPerMessage;
+                                    var refundAmount = refundableCount * segmentsPerMessage * pricePerSms;
 
                                     // 1️⃣ Add to Company CreditLimit
                                     order.Company.CreditLimit += refundAmount;
