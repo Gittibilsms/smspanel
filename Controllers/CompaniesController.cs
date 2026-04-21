@@ -290,7 +290,7 @@ namespace GittBilSmsCore.Controllers
             if (company == null) return NotFound();
 
             company.IsActive = !company.IsActive;
-            company.UpdatedAt = DateTime.UtcNow.AddHours(3);
+            company.UpdatedAt = TimeHelper.NowInTurkey();
             await _context.SaveChangesAsync();
 
             return Ok(new { isActive = company.IsActive });
@@ -533,13 +533,21 @@ namespace GittBilSmsCore.Controllers
                 _context.CreditTransactions.Add(transaction);
 
                 var company = await _context.Companies.FirstOrDefaultAsync(c => c.CompanyId == companyId);
+                int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
                 if (company != null)
                 {
                     company.CreditLimit += credit;
+                    _context.BalanceHistory.Add(new BalanceHistory
+                    {
+                        CompanyId = company.CompanyId,
+                        Amount = credit,
+                        Action = "Credit Added",
+                        CreatedAt = TimeHelper.NowInTurkey(),
+                        CreatedByUserId = performedByUserId
+                    });
                 }
 
-                await _context.SaveChangesAsync();
-                int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+                await _context.SaveChangesAsync();               
                 decimal? availableCredit = await (
                         from c in _context.Companies
                         join u in _context.Users on c.CompanyId equals u.CompanyId
@@ -609,29 +617,35 @@ namespace GittBilSmsCore.Controllers
                 UnitPrice = 0,
                 Currency = currency,
                 Note = note ?? string.Empty,
-                TransactionDate = DateTime.UtcNow.AddHours(3)
+                TransactionDate = TimeHelper.NowInTurkey(),
             };
 
             _context.CreditTransactions.Add(transaction);
 
             var company = await _context.Companies.FirstOrDefaultAsync(c => c.CompanyId == companyId);
+            int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+           
             if (company != null)
             {
-                // 💡 If credits are stored in CurrentBalance (usually yes):
-                company.CurrentBalance -= credit;
-
-                // Optional: Also update CreditLimit if you want to reduce the max cap
                 company.CreditLimit -= credit;
 
-                await _context.SaveChangesAsync();
+                _context.BalanceHistory.Add(new BalanceHistory
+                {
+                    CompanyId = company.CompanyId,
+                    Amount = -credit,
+                    Action = "Credit Removed",
+                    CreatedAt = TimeHelper.NowInTurkey(),
+                    CreatedByUserId = performedByUserId
+                });
             }
+            await _context.SaveChangesAsync();
+           
             decimal? availableCredit = await (
                        from c in _context.Companies
                        join u in _context.Users on c.CompanyId equals u.CompanyId
                        where u.IsMainUser == true && c.CompanyId == companyId
                        select (decimal?)c.CreditLimit
-                   ).FirstOrDefaultAsync();
-            int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
+                   ).FirstOrDefaultAsync();           
             var textMsg = string.Format(
                                        _sharedLocalizer["Creditdeletedmessage"],
                                        credit,

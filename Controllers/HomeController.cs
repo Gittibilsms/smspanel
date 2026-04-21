@@ -1185,6 +1185,38 @@ namespace GittBilSmsCore.Controllers
                         Message = errorMessage,
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
+
+                    // ✅ FIX: Refund if balance was deducted
+                    if (order.TotalPrice > 0 && order.Returned == false)
+                    {
+                        company.CreditLimit += (decimal)order.TotalPrice.Value;
+
+                        order.Refundable = true;
+                        order.Returned = true;
+                        order.ReturnDate = TimeHelper.NowInTurkey();
+
+                        _context.BalanceHistory.Add(new BalanceHistory
+                        {
+                            CompanyId = company.CompanyId,
+                            Amount = (decimal)order.TotalPrice.Value,
+                            Action = "Refund on Failed",
+                            OrderId = order.OrderId,
+                            CreatedAt = TimeHelper.NowInTurkey(),
+                            CreatedByUserId = userId
+                        });
+                        _context.CreditTransactions.Add(new CreditTransaction
+                        {
+                            CompanyId = company.CompanyId,
+                            TransactionType = _sharedLocalizer["Order_Cancellation"],
+                            Credit = (decimal)order.TotalPrice.Value,
+                            Currency = "TRY",
+                            TransactionDate = TimeHelper.NowInTurkey(),
+                            Note = $"Sipariş iadesi (API Status Error) - Order #{order.OrderId}",
+                            UnitPrice = 0,
+                            TotalPrice = 0
+                        });
+                        _context.Companies.Update(company);
+                    }                     
                     await _context.SaveChangesAsync();
                     return BadRequest(new { error = "Başarısız" });
                 }
@@ -2143,9 +2175,31 @@ namespace GittBilSmsCore.Controllers
                     Message = $"API returned: {json.Status}",
                     CreatedAt = TimeHelper.NowInTurkey()
                 });
-
+                // ✅ FIX: Refund the deduction
+                company.CreditLimit += totalCredits;
+                _context.BalanceHistory.Add(new BalanceHistory
+                {
+                    CompanyId = company.CompanyId,
+                    Amount = totalCredits,
+                    Action = "Refund on Failed Resend",
+                    OrderId = order.OrderId,
+                    CreatedAt = TimeHelper.NowInTurkey(),
+                    CreatedByUserId = userId
+                });
+                _context.CreditTransactions.Add(new CreditTransaction
+                {
+                    CompanyId = company.CompanyId,
+                    TransactionType = _sharedLocalizer["Order_Cancellation"],
+                    Credit = totalCredits,
+                    Currency = "TRY",
+                    TransactionDate = TimeHelper.NowInTurkey(),
+                    Note = $"Sipariş iadesi (ChangeApiAndResend Status Error) - Order #{order.OrderId}",
+                    UnitPrice = 0,
+                    TotalPrice = 0
+                });
                 _context.Orders.Update(order);
-                await _context.SaveChangesAsync();
+                _context.Companies.Update(company);
+                await _context.SaveChangesAsync();                
                 return BadRequest($"SMS resend failed: {json.Status}");
             }
         }
@@ -3143,6 +3197,68 @@ namespace GittBilSmsCore.Controllers
 
                 // Not scheduled, send now
                 var api = order.Api;
+                var company = order.Company;
+                var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
+
+                // ✅ FIX: Deduct balance (was MISSING - free SMS bug)
+                var segmentsPerMessage = order.SmsCount > 0 ? order.SmsCount : 1;
+                if (segmentsPerMessage <= 0) segmentsPerMessage = 1;
+                int totalSmsCredits = numbers.Count * (int)segmentsPerMessage;
+
+                var globalPricing = await _context.Pricing.FirstOrDefaultAsync();
+                if (globalPricing == null)
+                    return BadRequest("Global pricing configuration is missing.");
+
+                decimal low = company.LowPrice ?? globalPricing.Low;
+                decimal medium = company.MediumPrice ?? globalPricing.Middle;
+                decimal high = company.HighPrice ?? globalPricing.High;
+                decimal pricePerSms = totalSmsCredits <= 500_000 ? low
+                                    : totalSmsCredits <= 1_000_000 ? medium
+                                    : high;
+                decimal totalCost = totalSmsCredits * pricePerSms;
+
+                if (company.CreditLimit < totalCost)
+                {
+                    order.CurrentStatus = "Failed";
+                    order.ApiErrorResponse = "Insufficient balance.";
+                    order.Actions.Add(new OrderAction
+                    {
+                        ActionName = "Sending failed",
+                        Message = _sharedLocalizer["insufficientbal"],
+                        CreatedAt = TimeHelper.NowInTurkey()
+                    });
+                    await _context.SaveChangesAsync();
+                    return BadRequest("Insufficient balance.");
+                }
+
+                company.CreditLimit -= totalCost;
+                order.PricePerSms = pricePerSms;
+                order.TotalPrice = totalCost;
+                order.Returned = false;
+                order.Refundable = company.IsRefundable;
+
+                _context.BalanceHistory.Add(new BalanceHistory
+                {
+                    CompanyId = company.CompanyId,
+                    Amount = -totalCost,
+                    Action = "Deduct on Resend",
+                    OrderId = order.OrderId,
+                    CreatedAt = TimeHelper.NowInTurkey(),
+                    CreatedByUserId = userId
+                });
+                _context.CreditTransactions.Add(new CreditTransaction
+                {
+                    CompanyId = company.CompanyId,
+                    TransactionType = _sharedLocalizer["Order_Payment"],
+                    Credit = -totalCost,
+                    Currency = "TRY",
+                    TransactionDate = TimeHelper.NowInTurkey(),
+                    Note = $"SMS Order #{order.OrderId} - Resend",
+                    UnitPrice = pricePerSms,
+                    TotalPrice = totalCost
+                });
+                _context.Companies.Update(company);
+                await _context.SaveChangesAsync();
                 var payload = new
                 {
                     Username = api.Username,
@@ -3218,9 +3334,6 @@ namespace GittBilSmsCore.Controllers
                     Content = new StringContent(requestBody, Encoding.UTF8, contentType)
                 };
 
-
-
-
                 var stopwatch = Stopwatch.StartNew();
                 var response = await client.SendAsync(request);
                 stopwatch.Stop();
@@ -3254,7 +3367,36 @@ namespace GittBilSmsCore.Controllers
                         Message = order.ApiErrorResponse,
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
+                    // ✅ FIX: Refund the deduction
+                    if (order.TotalPrice > 0 && order.Returned == false)
+                    {
+                        company.CreditLimit += totalCost;
+                        order.Refundable = true;
+                        order.Returned = true;
+                        order.ReturnDate = TimeHelper.NowInTurkey();
 
+                        _context.BalanceHistory.Add(new BalanceHistory
+                        {
+                            CompanyId = company.CompanyId,
+                            Amount = totalCost,
+                            Action = "Refund on Failed Resend",
+                            OrderId = order.OrderId,
+                            CreatedAt = TimeHelper.NowInTurkey(),
+                            CreatedByUserId = userId
+                        });
+                        _context.CreditTransactions.Add(new CreditTransaction
+                        {
+                            CompanyId = company.CompanyId,
+                            TransactionType = _sharedLocalizer["Order_Cancellation"],
+                            Credit = totalCost,
+                            Currency = "TRY",
+                            TransactionDate = TimeHelper.NowInTurkey(),
+                            Note = $"Sipariş iadesi (Resend HTTP Error) - Order #{order.OrderId}",
+                            UnitPrice = 0,
+                            TotalPrice = 0
+                        });
+                        _context.Companies.Update(company);
+                    }
                     await _context.SaveChangesAsync();
 
                     return BadRequest($"SMS API call failed: {result}");
@@ -3299,8 +3441,38 @@ namespace GittBilSmsCore.Controllers
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
 
-                    await _context.SaveChangesAsync();
+                   
+                    // ✅ FIX: Refund the deduction
+                    if (order.TotalPrice > 0 && order.Returned == false)
+                    {
+                        company.CreditLimit += totalCost;
+                        order.Refundable = true;
+                        order.Returned = true;
+                        order.ReturnDate = TimeHelper.NowInTurkey();
 
+                        _context.BalanceHistory.Add(new BalanceHistory
+                        {
+                            CompanyId = company.CompanyId,
+                            Amount = totalCost,
+                            Action = "Refund on Failed Resend",
+                            OrderId = order.OrderId,
+                            CreatedAt = TimeHelper.NowInTurkey(),
+                            CreatedByUserId = userId
+                        });
+                        _context.CreditTransactions.Add(new CreditTransaction
+                        {
+                            CompanyId = company.CompanyId,
+                            TransactionType = _sharedLocalizer["Order_Cancellation"],
+                            Credit = totalCost,
+                            Currency = "TRY",
+                            TransactionDate = TimeHelper.NowInTurkey(),
+                            Note = $"Sipariş iadesi (Resend API Status Error) - Order #{order.OrderId}",
+                            UnitPrice = 0,
+                            TotalPrice = 0
+                        });
+                        _context.Companies.Update(company);
+                    }
+                    await _context.SaveChangesAsync();
                     return BadRequest($"SMS API returned an error: {json.Status}");
                 }
             }
@@ -3473,7 +3645,11 @@ namespace GittBilSmsCore.Controllers
         [HttpPost]
         public async Task<IActionResult> CancelOrder(int orderId)
         {
-            var order = await _context.Orders.FindAsync(orderId);
+            var order = await _context.Orders
+       .Include(o => o.Company)
+       .Include(o => o.CreatedByUser)
+       .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
             if (order == null)
             {
                 return NotFound(new { messageKey = "OrderNotFound" });
@@ -3482,16 +3658,60 @@ namespace GittBilSmsCore.Controllers
             {
                 return BadRequest(new { messageKey = "OrderCannotBeCancelled" });
             }
+
+            // ✅ FIX: Refund if credits were deducted
+            var refundAmount = order.TotalPrice ?? 0;
+            if (refundAmount > 0 && order.Company != null)
+            {
+                order.Company.CreditLimit += refundAmount;
+
+                _context.BalanceHistory.Add(new BalanceHistory
+                {
+                    CompanyId = order.CompanyId,
+                    Amount = refundAmount,
+                    Action = "Refund on Cancel",
+                    OrderId = order.OrderId,
+                    CreatedAt = TimeHelper.NowInTurkey(),
+                    CreatedByUserId = order.CreatedByUserId
+                });
+
+                _context.CreditTransactions.Add(new CreditTransaction
+                {
+                    CompanyId = order.CompanyId,
+                    TransactionType = _sharedLocalizer["Order_Cancellation"],
+                    Credit = refundAmount,
+                    Currency = "TRY",
+                    TransactionDate = TimeHelper.NowInTurkey(),
+                    Note = $"Sipariş iptali - Order #{order.OrderId}",
+                    UnitPrice = 0,
+                    TotalPrice = 0
+                });
+
+                // Restore user quota if variable
+                if (order.CreatedByUser != null && order.CreatedByUser.QuotaType == "Variable Quota")
+                {
+                    int deductedCount =
+                        order.LoadedCount
+                        - (order.InvalidCount ?? 0)
+                        - (order.BlacklistedCount ?? 0)
+                        - (order.RepeatedCount ?? 0)
+                        - (order.BannedCount ?? 0);
+                    order.CreatedByUser.Quota = (order.CreatedByUser.Quota ?? 0) + deductedCount;
+                }
+            }
+
             order.CurrentStatus = "Cancelled";
             order.UpdatedAt = TimeHelper.NowInTurkey();
             order.Actions.Add(new OrderAction
             {
                 ActionName = "Cancelled",
-                Message = "OrderWasCancelled",
+                Message = refundAmount > 0
+                    ? $"Order cancelled. {refundAmount} credits refunded."
+                    : "OrderWasCancelled",
                 CreatedAt = TimeHelper.NowInTurkey()
             });
             _context.Orders.Update(order);
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();           
 
             // ✅ ADD LOGGING
             Console.WriteLine($"[SignalR] OrderStatusChanged - OrderId: {order.OrderId}, CompanyId: {order.CompanyId}, CreatedByUserId: {order.CreatedByUserId}");

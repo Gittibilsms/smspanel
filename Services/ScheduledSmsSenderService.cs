@@ -110,26 +110,103 @@ TimeZoneInfo.FindSystemTimeZoneById("Turkey Standard Time");
                         Message = order.ApiErrorResponse,
                         CreatedAt = nowInTurkey
                     });
+                    // ✅ FIX: Refund the scheduled deduction
+                    if (order.TotalPrice > 0 && order.Returned == false && order.Company != null)
+                    {
+                        order.Company.CreditLimit += order.TotalPrice.Value;
+                        order.Refundable = true;
+                        order.Returned = true;
+                        order.ReturnDate = nowInTurkey;
 
+                        db.BalanceHistory.Add(new BalanceHistory
+                        {
+                            CompanyId = order.CompanyId,
+                            Amount = order.TotalPrice.Value,
+                            Action = "Refund on Failed (Scheduled)",
+                            OrderId = order.OrderId,
+                            CreatedAt = nowInTurkey,
+                            CreatedByUserId = 1
+                        });
+                        db.CreditTransactions.Add(new CreditTransaction
+                        {
+                            CompanyId = order.CompanyId,
+                            TransactionType = "Order_Cancellation",
+                            Credit = order.TotalPrice.Value,
+                            Currency = "TRY",
+                            TransactionDate = nowInTurkey,
+                            Note = $"Sipariş iadesi (Scheduled HTTP Error) - Order #{order.OrderId}",
+                            UnitPrice = 0,
+                            TotalPrice = 0
+                        });
+                    }
                     _logger.LogError("Send failed for OrderId={OrderId}: {Error}", order.OrderId, order.ApiErrorResponse);
                 }
                 else
                 {
                     dynamic json = JsonConvert.DeserializeObject(result);
-                    order.SmsOrderId = json?.MessageId ?? "unknown";
-                    order.CurrentStatus = "Sent";
-                    order.StartedAt = nowInTurkey;
-                    order.CompletedAt = nowInTurkey;
-                    order.ReportLock = true;
+                    string status = (string)(json?.Status ?? "");
 
-                    order.Actions.Add(new OrderAction
+                    if (status == "OK")
                     {
-                        ActionName = "Scheduled sent",
-                        Message = $"MessageId: {order.SmsOrderId}",
-                        CreatedAt = nowInTurkey
-                    });
+                        order.SmsOrderId = (string)(json?.MessageId ?? "unknown");
+                        order.CurrentStatus = "Sent";
+                        order.StartedAt = nowInTurkey;
+                        order.CompletedAt = nowInTurkey;
+                        order.ReportLock = true;
 
-                    _logger.LogInformation("Scheduled SMS sent for OrderId={OrderId}", order.OrderId);
+                        order.Actions.Add(new OrderAction
+                        {
+                            ActionName = "Scheduled sent",
+                            Message = $"MessageId: {order.SmsOrderId}",
+                            CreatedAt = nowInTurkey
+                        });
+
+                        _logger.LogInformation("Scheduled SMS sent for OrderId={OrderId}", order.OrderId);
+                    }
+                    else
+                    {
+                        // API returned 200 but logical error - refund
+                        order.CurrentStatus = "Failed";
+                        order.ApiErrorResponse = $"Status: {status}, Full Response: {result}";
+                        order.Actions.Add(new OrderAction
+                        {
+                            ActionName = "Sending failed",
+                            Message = order.ApiErrorResponse,
+                            CreatedAt = nowInTurkey
+                        });
+
+                        // ✅ Refund
+                        if (order.TotalPrice > 0 && order.Returned == false && order.Company != null)
+                        {
+                            order.Company.CreditLimit += order.TotalPrice.Value;
+                            order.Refundable = true;
+                            order.Returned = true;
+                            order.ReturnDate = nowInTurkey;
+
+                            db.BalanceHistory.Add(new BalanceHistory
+                            {
+                                CompanyId = order.CompanyId,
+                                Amount = order.TotalPrice.Value,
+                                Action = "Refund on Failed (Scheduled)",
+                                OrderId = order.OrderId,
+                                CreatedAt = nowInTurkey,
+                                CreatedByUserId = 1
+                            });
+                            db.CreditTransactions.Add(new CreditTransaction
+                            {
+                                CompanyId = order.CompanyId,
+                                TransactionType = "Order_Cancellation",
+                                Credit = order.TotalPrice.Value,
+                                Currency = "TRY",
+                                TransactionDate = nowInTurkey,
+                                Note = $"Sipariş iadesi (Scheduled API Status Error) - Order #{order.OrderId}",
+                                UnitPrice = 0,
+                                TotalPrice = 0
+                            });
+                        }
+
+                        _logger.LogError("Scheduled SMS API status error for OrderId={OrderId}: {Status}", order.OrderId, status);
+                    }
                 }
 
                 await db.SaveChangesAsync();
