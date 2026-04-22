@@ -86,6 +86,12 @@ function debounce(func, delay = 300) {
         timeout = setTimeout(() => func.apply(this, args), delay);
     };
 }
+$.fn.dataTable.ext.type.order['tr-datetime-pre'] = function (d) {
+    if (!d) return 0;
+    const m = String(d).match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})/);
+    if (!m) return 0;
+    return +(m[3] + m[2] + m[1] + m[4] + m[5]);
+};
 const SEGMENT_UNITS = 155;
 const MAX_UNITS = 755;
 function calculateMessageLength(text) {
@@ -3922,7 +3928,7 @@ $(document).ready(function () {
             { data: 'total' },
             { data: 'currency' },
             { data: 'unitPrice' },
-            { data: 'transactionDate' },
+            { data: 'transactionDate', type: 'tr-datetime' },
             { data: 'note' }
         ],
         order: [[5, 'desc']]
