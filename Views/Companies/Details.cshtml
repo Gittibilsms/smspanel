@@ -22,6 +22,68 @@
         }
 
         </script>
+    <script>      
+
+        function revertToStandardPricing(el) {
+            const companyId = el.dataset.companyId;
+            if (!confirm("Revert this company to standard pricing?")) return;
+
+            fetch(`/Companies/RevertToStandardPricing/${companyId}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "RequestVerificationToken": document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                }
+            })
+            .then(res => res.json())
+             .then(data => {
+                if (data.success) {
+                    toastr.success("Special pricing removed. Company is now on standard pricing.");
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    toastr.error(data.message || "Could not revert pricing.");
+                }
+            })
+            .catch(err => {
+                toastr.error("An error occurred.");
+                console.error(err);
+            });
+        }
+    </script>
+    <script>
+                // ── Pricing validation on Update submit ──
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('companyDetailsForm');
+            if (!form) return;
+
+            form.addEventListener('submit', function (e) {
+                const low    = parseFloat(document.getElementById('lowPriceInput').value);
+                const medium = parseFloat(document.getElementById('mediumPriceInput').value);
+                const high   = parseFloat(document.getElementById('highPriceInput').value);
+
+                if (isNaN(low) || isNaN(medium) || isNaN(high)) {
+                    e.preventDefault();
+                    toastr.error('Low, Medium and High prices are all required.');
+                    return;
+                }
+                if (low <= 0 || medium <= 0 || high <= 0) {
+                    e.preventDefault();
+                    toastr.error('Prices must be greater than zero.');
+                    return;
+                }
+                if (low > 10 || medium > 10 || high > 10) {
+                    e.preventDefault();
+                    toastr.error('Price per SMS looks too high — must be ≤ 10.');
+                    return;
+                }
+                if (!(low >= medium && medium >= high)) {
+                    e.preventDefault();
+                    toastr.error('Tier order invalid: Low ≥ Medium ≥ High (bulk volume gets a cheaper rate).');
+                    return;
+                }
+            });
+        });
+    </script>
     
 }
 @{
@@ -128,8 +190,29 @@
 
             <!-- Pricing Info -->
             <div class="col-md-6">
-                <h5 class="mb-3 border-bottom pb-2 planText">@SharedResource.Pricing <span class="text-success">@SharedResource.Standard</span></h5>
-
+               @*  <h5 class="mb-3 border-bottom pb-2 planText">@SharedResource.Pricing <span class="text-success">@SharedResource.Standard</span></h5> *@
+                <h5 class="mb-3 border-bottom pb-2 planText">
+                    @SharedResource.Pricing
+                    @{
+                        bool isSpecial = Model.Company.Pricing == "1";
+                    }
+                    @if (isSpecial)
+                    {
+                        <span id="pricingModeLabel"
+                              class="text-danger fw-semibold"
+                              style="cursor: pointer; text-decoration: underline;"
+                              data-company-id="@Model.Company.CompanyId"
+                              onclick="revertToStandardPricing(this)">
+                            Special
+                        </span>
+                    }
+                    else
+                    {
+                        <span id="pricingModeLabel" class="text-success fw-semibold">
+                            @SharedResource.Standard
+                        </span>
+                    }
+                </h5>
                 <div class="mb-3">
                     <label class="form-label">@SharedResource.Currency</label>
                     <select asp-for="Company.CurrencyCode" id="currencyCode" class="form-select select2">
@@ -139,17 +222,17 @@
 
                 <div class="mb-3">
                     <label class="form-label">@SharedResource.Low__1_500_000_SMS_unit_price_</label>
-                    <input asp-for="Company.LowPrice" type="text" class="form-control" id="lowPriceInput" />
+                    <input asp-for="Company.LowPrice" type="number" step="0.0001" min="0.0001" max="10" class="form-control" id="lowPriceInput" />
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">@SharedResource.Medium__500_000_1_000_000_SMS_unit_price_</label>
-                    <input asp-for="Company.MediumPrice" type="text" class="form-control" id="mediumPriceInput" />
+                    <input asp-for="Company.MediumPrice" type="number" step="0.0001" min="0.0001" max="10" class="form-control" id="mediumPriceInput" />
                 </div>
 
                 <div class="mb-3">
                     <label class="form-label">@SharedResource.High__1_000_000__SMS_unit_price_</label>
-                    <input asp-for="Company.HighPrice" type="text" class="form-control" id="highPriceInput" />
+                    <input asp-for="Company.HighPrice" type="number" step="0.0001" min="0.0001" max="10" class="form-control" id="highPriceInput" />
                 </div>
             </div>
         </div>
@@ -411,7 +494,7 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label>@SharedResource.Price</label>
-                            <input type="number" name="price" id="priceInput" class="form-control" step="0.01" min="0" required />
+                            <input type="number" name="price" id="priceInput" class="form-control" step="0.01" min="0.01" max="10000000" required />
                         </div>
 
                         <div class="mb-3">

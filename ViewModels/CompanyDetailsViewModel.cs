@@ -13,5 +13,8 @@ namespace GittBilSmsCore.ViewModels
         public List<User> CompanyUsers { get; set; }
         public List<SelectListItem> ApiList { get; set; }
         public string LatestUnitPrice { get; set; }
+        public decimal DefaultLowPrice { get; set; }
+        public decimal DefaultMediumPrice { get; set; }
+        public decimal DefaultHighPrice { get; set; }
     }
 }

@@ -1716,6 +1716,23 @@ $(document).ready(function () {
             alert(window.localizedTextDT.fillAllRequiredFields || "Please fill all required fields.");
             return;
         }
+        // ── Pricing validation ──
+        if (isNaN(data.LowPrice) || isNaN(data.MediumPrice) || isNaN(data.HighPrice)) {
+            toastr.error('Low, Medium and High prices are all required.');
+            return;
+        }
+        if (data.LowPrice <= 0 || data.MediumPrice <= 0 || data.HighPrice <= 0) {
+            toastr.error('Prices must be greater than zero.');
+            return;
+        }
+        if (data.LowPrice > 10 || data.MediumPrice > 10 || data.HighPrice > 10) {
+            toastr.error('Price per SMS looks too high — must be ≤ 10.');
+            return;
+        }
+        if (!(data.LowPrice >= data.MediumPrice && data.MediumPrice >= data.HighPrice)) {
+            toastr.error('Tier order invalid: Low ≥ Medium ≥ High (bulk volume gets a cheaper rate).');
+            return;
+        }
 
         $.ajax({
             url: '/Companies/Add',
@@ -3032,6 +3049,33 @@ $(document).ready(function () {
         e.preventDefault();
 
         const form = $(this);
+        const price = parseFloat($('#priceInput').val()) || 0;
+        const unitPrice = parseFloat($('#unitPriceHidden').val()) || 0;
+        const credit = parseInt(($('#loanDisplay').val() || '').replace(/[^\d]/g, '')) || 0;
+
+        if (price <= 0) {
+            toastr.error('Price must be greater than zero.');
+            return;
+        }
+        if (price > 10000000) {
+            toastr.error('Price looks too high — please double-check.');
+            return;
+        }
+        if (unitPrice <= 0) {
+            toastr.error('Please select or enter a valid unit price.');
+            return;
+        }
+        if (credit <= 0) {
+            toastr.error('Calculated credit is zero. Check price and unit price.');
+            return;
+        }
+
+        // Confirmation for large amounts
+        if (credit > 1000000) {
+            if (!confirm(`You are about to add ${credit.toLocaleString()} credits. Continue?`)) {
+                return;
+            }
+        }
         const formData = form.serialize();
         const url = form.attr('action');
 
@@ -3088,9 +3132,25 @@ $(document).ready(function () {
         e.preventDefault();
 
         const form = $(this);
+        const credit = parseFloat(form.find('input[name="credit"]').val()) || 0;
+        const currentRaw = ($('#creditValue').val() || '').replace(/[^\d.]/g, '');
+        const currentBal = parseFloat(currentRaw) || 0;
+
+        if (credit <= 0) {
+            toastr.error('Credit amount must be greater than zero.');
+            return;
+        }
+        if (credit > currentBal) {
+            toastr.error(`Cannot remove more than current balance (${currentBal.toLocaleString()}).`);
+            return;
+        }
+
+        if (!confirm(`Remove ${credit.toLocaleString()} credits from this company? This cannot be undone.`)) {
+            return;
+        }
         const formData = form.serialize();
         const submitButton = form.find('button[type="submit"]');
-        submitButton.prop('disabled', true); // 🔒 Prevent double click
+        submitButton.prop('disabled', true);  
 
         $.post('/CreditTransactions/DeleteCredit', formData)
             .done(function (res) {

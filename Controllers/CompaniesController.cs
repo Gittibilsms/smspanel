@@ -19,6 +19,8 @@ namespace GittBilSmsCore.Controllers
         private readonly IStringLocalizer _sharedLocalizer;
         private readonly UserManager<User> _userManager;
         private readonly TelegramMessageService _svc;
+        private const decimal MinUnitPrice = 0.0001m;
+        private const decimal MaxUnitPrice = 10m;
         public CompaniesController(GittBilSmsDbContext context, IStringLocalizerFactory factory, UserManager<User> userManager, TelegramMessageService svc) : base(context)
         {
             _context = context;
@@ -114,9 +116,9 @@ namespace GittBilSmsCore.Controllers
 
             var viewModel = new AddCompanyViewModel
             {
-                LowPrice = latestPricing?.Low ?? 0.23m,
-                MediumPrice = latestPricing?.Middle ?? 0.23m,
-                HighPrice = latestPricing?.High ?? 0.23m,
+                LowPrice = latestPricing?.Low ?? 0.0m,
+                MediumPrice = latestPricing?.Middle ?? 0.0m,
+                HighPrice = latestPricing?.High ?? 0.0m,
                 ApiSelectList = apiSelectList
             };
 
@@ -130,7 +132,7 @@ namespace GittBilSmsCore.Controllers
             {
                 return Forbid();
             }
-            // 🔍 Check for duplicate company name
+           
             if (await _context.Companies.AnyAsync(c => c.CompanyName == model.CompanyName))
             {
                 var localizedError = _sharedLocalizer["companynameexists", model.CompanyName].Value;
@@ -141,7 +143,15 @@ namespace GittBilSmsCore.Controllers
                     errors = new[] { localizedError }
                 });
             }
-
+            var pricingError = ValidatePricing(model.LowPrice, model.MediumPrice, model.HighPrice);
+            if (pricingError != null)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    errors = new[] { pricingError }
+                });
+            }
             // 🔁 Wrap in transaction
             using var transaction = await _context.Database.BeginTransactionAsync();
 
@@ -156,6 +166,15 @@ namespace GittBilSmsCore.Controllers
                         selectedApid = defaultApi.ApiId;
                     }
                 }
+                var latestPricing = await _context.Pricing
+                   .Where(p => p.IsActive)
+                   .OrderByDescending(p => p.CreatedAt)
+                   .FirstOrDefaultAsync();
+
+                bool hasSpecialPricing = latestPricing != null
+                    && (model.LowPrice != latestPricing.Low
+                     || model.MediumPrice != latestPricing.Middle
+                     || model.HighPrice != latestPricing.High);
 
                 var company = new GittBilSmsCore.Models.Company
                 {
@@ -167,7 +186,7 @@ namespace GittBilSmsCore.Controllers
                     CurrencyCode = model.CurrencyCode,
                     LowPrice = model.LowPrice,
                     MediumPrice = model.MediumPrice,
-                    Pricing = "Standard",
+                    Pricing = hasSpecialPricing ? "1" : "0",
                     HighPrice = model.HighPrice,
                     CreditLimit = 0,
                     CurrentBalance = 0,
@@ -343,26 +362,40 @@ namespace GittBilSmsCore.Controllers
                 .Where(api => !api.IsClientApi)
                 .ToListAsync();
 
+            // --- Pricing: company special pricing wins, otherwise latest pricing ---
             var latestPricing = await _context.Pricing
                 .Where(p => p.IsActive)
                 .OrderByDescending(p => p.CreatedAt)
                 .FirstOrDefaultAsync();
 
-            var latestUnitPrice = latestPricing != null
-                ? latestPricing.Low.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture)
-                : "0";
+            bool hasSpecialPricing =
+                (company.LowPrice ?? 0) > 0 ||
+                (company.MediumPrice ?? 0) > 0 ||
+                (company.HighPrice ?? 0) > 0;
 
-            var distinctPrices = new List<decimal>
+            decimal low, medium, high;
+
+            if (hasSpecialPricing)
             {
-                company.LowPrice ?? -1,
-                company.MediumPrice ?? -1,
-                company.HighPrice ?? -1
-            }.Where(p => p > 0).Distinct().OrderBy(p => p).ToList();
+                low = company.LowPrice ?? 0;
+                medium = company.MediumPrice ?? 0;
+                high = company.HighPrice ?? 0;
+            }
+            else
+            {
+                low = latestPricing?.Low ?? 0;
+                medium = latestPricing?.Middle ?? 0;
+                high = latestPricing?.High ?? 0;
+            }
 
-            distinctPrices = distinctPrices
-                .Distinct()
+            var pricingOptions = new List<decimal> { low, medium, high }
+                .Where(p => p > 0)
                 .OrderBy(p => p)
                 .ToList();
+
+
+            var latestUnitPrice = low.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture);
+
             var defaultApiId = apiList.FirstOrDefault(a => a.IsDefault)?.ApiId;
 
             var apiSelectList = new List<SelectListItem>();
@@ -382,13 +415,13 @@ namespace GittBilSmsCore.Controllers
 
             // Then add all APIs (including default one again)
             apiSelectList.AddRange(apiList
-      .Where(api => api.ApiId != defaultApi?.ApiId)
-      .Select(api => new SelectListItem
-      {
-          Value = api.ApiId.ToString(),
-          Text = api.ServiceName,
-          Selected = userApiId != null && userApiId == api.ApiId
-      }));
+              .Where(api => api.ApiId != defaultApi?.ApiId)
+              .Select(api => new SelectListItem
+              {
+                  Value = api.ApiId.ToString(),
+                  Text = api.ServiceName,
+                  Selected = userApiId != null && userApiId == api.ApiId
+              }));
             var viewModel = new CompanyDetailsViewModel
             {
                 Company = company,
@@ -396,7 +429,10 @@ namespace GittBilSmsCore.Controllers
                 CompanyUsers = companyUsers,
                 ApiList = apiSelectList,
                 LatestUnitPrice = latestUnitPrice,
-                DistinctPricingOptions = distinctPrices
+                DistinctPricingOptions = pricingOptions,
+                DefaultLowPrice = latestPricing?.Low ?? 0,
+                DefaultMediumPrice = latestPricing?.Middle ?? 0,
+                DefaultHighPrice = latestPricing?.High ?? 0
             };
 
             return View(viewModel);
@@ -449,6 +485,15 @@ namespace GittBilSmsCore.Controllers
             {
                 return Forbid();
             }
+            var pricingError = ValidatePricing(
+                model.Company.LowPrice ?? 0,
+                model.Company.MediumPrice ?? 0,
+                model.Company.HighPrice ?? 0);
+            if (pricingError != null)
+            {
+                TempData["ErrorMessage"] = pricingError;
+                return RedirectToAction("Details", new { id = model.Company.CompanyId });
+            }
             try
             {
                 var company = await _context.Companies.FindAsync(model.Company.CompanyId);
@@ -469,6 +514,18 @@ namespace GittBilSmsCore.Controllers
                 company.HighPrice = model.Company.HighPrice;
                 company.Apid = model.Company.Apid;
                 company.UpdatedAt = TimeHelper.NowInTurkey();
+              
+                var latestPricing = await _context.Pricing
+                .Where(p => p.IsActive)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync();
+
+                bool isSpecial = latestPricing == null
+                    || (company.LowPrice ?? 0) != latestPricing.Low
+                    || (company.MediumPrice ?? 0) != latestPricing.Middle
+                    || (company.HighPrice ?? 0) != latestPricing.High;
+
+                company.Pricing = isSpecial ? "1" : "0";
 
                 await _context.SaveChangesAsync();
 
@@ -512,6 +569,23 @@ namespace GittBilSmsCore.Controllers
                     {
                         success = false,
                         message = _sharedLocalizer["Unit_Price_Must_Be_Greater_Than_Zero"]
+                    });
+                }
+                if (price <= 0)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = _sharedLocalizer["pricemustbepositive"]                        
+                    });
+                }
+
+                if (price > 10_000_000m)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = _sharedLocalizer["pricetoohigh"]                       
                     });
                 }
 
@@ -608,6 +682,24 @@ namespace GittBilSmsCore.Controllers
             {
                 return Forbid();
             }
+            if (credit <= 0)
+            {
+                TempData["ErrorMessage"] = _sharedLocalizer["creditmustbepositive"].Value;                
+                return RedirectToAction("Details", new { id = companyId });
+            }
+
+            var company = await _context.Companies.FirstOrDefaultAsync(c => c.CompanyId == companyId);
+            if (company == null)
+            {
+                TempData["ErrorMessage"] = "Company not found.";
+                return RedirectToAction("Index");
+            }
+          
+            if ((company.CreditLimit ?? 0) < credit)
+            {
+                TempData["ErrorMessage"] = _sharedLocalizer["cannotremovemorethanbalance"].Value;               
+                return RedirectToAction("Details", new { id = companyId });
+            }
             var transaction = new CreditTransaction
             {
                 CompanyId = companyId,
@@ -621,8 +713,7 @@ namespace GittBilSmsCore.Controllers
             };
 
             _context.CreditTransactions.Add(transaction);
-
-            var company = await _context.Companies.FirstOrDefaultAsync(c => c.CompanyId == companyId);
+           
             int performedByUserId = HttpContext.Session.GetInt32("UserId") ?? 0;
            
             if (company != null)
@@ -712,5 +803,49 @@ namespace GittBilSmsCore.Controllers
             return Ok();
         }
 
+        [HttpPost("RevertToStandardPricing/{id}")]
+        public async Task<IActionResult> RevertToStandardPricing(int id)
+        {
+            if (!HasAccessRoles("Firm", "Edit"))
+            {
+                return Forbid();
+            }
+
+            var company = await _context.Companies.FirstOrDefaultAsync(c => c.CompanyId == id);
+            if (company == null)
+                return NotFound(new { success = false, message = "Company not found." });
+
+            var latestPricing = await _context.Pricing
+                .Where(p => p.IsActive)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            if (latestPricing == null)
+                return BadRequest(new { success = false, message = "No active default pricing found." });
+
+            // Reset to standard
+            company.LowPrice = latestPricing.Low;
+            company.MediumPrice = latestPricing.Middle;
+            company.HighPrice = latestPricing.High;
+            company.Pricing = "0";
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { success = true, message = "Reverted to standard pricing." });
+        }
+
+        private string ValidatePricing(decimal low, decimal medium, decimal high)
+        {
+            if (low < MinUnitPrice || medium < MinUnitPrice || high < MinUnitPrice)
+                return _sharedLocalizer["pricingmustbepositive"].Value;            
+
+            if (low > MaxUnitPrice || medium > MaxUnitPrice || high > MaxUnitPrice)
+                return _sharedLocalizer["pricingtoohigh"].Value;
+
+            if (!(low >= medium && medium >= high))
+                return _sharedLocalizer["pricingtierorderinvalid"].Value;
+
+            return null;
+        }
     }
 }

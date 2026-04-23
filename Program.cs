@@ -78,6 +78,7 @@ builder.Services.AddSingleton<ITelegramBotClient>(sp =>
     var opts = sp.GetRequiredService<IOptions<TelegramOptions>>().Value;
     return new TelegramBotClient(opts.BotToken);
 });
+builder.Services.AddSingleton<GonderSmsService>();
 builder.Services.AddScoped<IShortUrlService, ShortUrlService>();
 builder.Services.AddScoped<TelegramMessageService>();
 builder.Services.AddHostedService<BotPollingService>();

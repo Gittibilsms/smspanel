@@ -13,6 +13,12 @@
         @TempData["SuccessMessage"]
     </div>
 }
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
 
 <div class="row">
     <!-- Pricing Form -->
@@ -22,38 +28,38 @@
                 <h5 class="card-title mb-0">@SharedResource.Pricing</h5>
             </div>
             <div class="card-body">
-                <form method="post" action="/Pricing/Update" autocomplete="off">
+                <form method="post" action="/Pricing/Update" autocomplete="off" >
+                    @Html.AntiForgeryToken()
                     <div class="mb-3">
                         <label class="form-label">@SharedResource.Currency</label>
                         <select name="currency" class="form-select" required>
                             <option value="">@SharedResource.Currency</option>
-                            <option value="TRY" selected>TRY</option>
-                            <!-- Add more currencies if needed -->
+                            <option value="TRY" selected>TRY</option>                            
                         </select>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">@SharedResource.Low__1_500_000_SMS_unit_price_</label>
-                        <input type="number" name="low" class="form-control" step="0.0001" min="0" required
+                        <input type="number" id="lowInput" name="low" class="form-control" step="0.0001" min="0" required
                                value="@(ViewBag.LatestPricing != null ? ViewBag.LatestPricing.Low.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) : "")">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">@SharedResource.Medium__500_000_1_000_000_SMS_unit_price_</label>
-                        <input type="number" name="middle" class="form-control" step="0.0001" min="0" required
+                        <input type="number" id="middleInput"  name="middle" class="form-control" step="0.0001" min="0" required
                                value="@(ViewBag.LatestPricing != null ? ViewBag.LatestPricing.Middle.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) : "")">
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">@SharedResource.High__1_000_000__SMS_unit_price_</label>
-                        <input type="number" name="high" class="form-control" step="0.0001" min="0" required
+                        <input type="number" id="highInput" name="high" class="form-control" step="0.0001" min="0" required
                                value="@(ViewBag.LatestPricing != null ? ViewBag.LatestPricing.High.ToString("0.####", System.Globalization.CultureInfo.InvariantCulture) : "")">
                     </div>
-
+                    <div id="pricingClientError" class="text-danger small mb-2"></div>
                     <div class="d-flex justify-content-between">
                         <button type="submit" name="action" value="update" class="btn btn-success">@SharedResource.Update</button>
-                        <button type="submit" name="action" value="remove" class="btn btn-danger">@SharedResource.Remove_Special_Pricing</button>
-                        <!-- Optional: implement Remove if needed -->
+                        <button type="submit" name="action" value="remove" id="removeBtn" style="display:none;" class="btn btn-danger">@SharedResource.Remove_Special_Pricing</button>
+                      
                     </div>
                 </form>
             </div>
@@ -96,3 +102,43 @@
         </div>
     </div>
 </div>
+@section Scripts {
+    <script>
+        (function () {
+            const form = document.getElementById('pricingForm');
+            const errBox = document.getElementById('pricingClientError');
+            const removeBtn = document.getElementById('removeBtn');
+
+            removeBtn.addEventListener('click', function (e) {
+                if (!confirm('Remove the current active pricing? This will deactivate it.')) {
+                    e.preventDefault();
+                }
+            });
+
+            form.addEventListener('submit', function (e) {
+                const action = (e.submitter && e.submitter.value) || 'update';
+                if (action === 'remove') return;
+
+                errBox.textContent = '';
+                const low = parseFloat(document.getElementById('lowInput').value);
+                const middle = parseFloat(document.getElementById('middleInput').value);
+                const high = parseFloat(document.getElementById('highInput').value);
+
+                if (isNaN(low) || isNaN(middle) || isNaN(high)) {
+                    e.preventDefault(); errBox.textContent = 'All three prices are required.'; return;
+                }
+                if (low <= 0 || middle <= 0 || high <= 0) {
+                    e.preventDefault(); errBox.textContent = 'Prices must be greater than zero.'; return;
+                }
+                if (low > 10 || middle > 10 || high > 10) {
+                    e.preventDefault(); errBox.textContent = 'Price per SMS looks too high — must be ≤ 10.'; return;
+                }
+                if (!(low >= middle && middle >= high)) {
+                    e.preventDefault();
+                    errBox.textContent = 'Tier order invalid: Low ≥ Medium ≥ High (bulk volume gets a cheaper rate).';
+                    return;
+                }
+            });
+        })();
+    </script>
+}
