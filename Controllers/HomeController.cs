@@ -45,8 +45,7 @@ namespace GittBilSmsCore.Controllers
     @"https?://l\.go2s\.me/([a-zA-Z0-9]+)",
     RegexOptions.Compiled | RegexOptions.IgnoreCase
 );
-        private readonly GonderSmsService _gonderSms;
-        public HomeController(GittBilSmsDbContext context, IStringLocalizerFactory factory, INotificationService notificationService, IHubContext<ChatHub> hubContext, UserManager<User> userManager, IWebHostEnvironment env, TelegramMessageService svc, GonderSmsService gonderSms) : base(context)
+        public HomeController(GittBilSmsDbContext context, IStringLocalizerFactory factory, INotificationService notificationService, IHubContext<ChatHub> hubContext, UserManager<User> userManager, IWebHostEnvironment env, TelegramMessageService svc) : base(context)
         {
             _context = context;
             _hubContext = hubContext;
@@ -55,7 +54,6 @@ namespace GittBilSmsCore.Controllers
             _userManager = userManager;
             _env = env;
             _svc = svc;
-            _gonderSms = gonderSms;
         }
         private async Task<User?> GetCurrentUser()
         {
@@ -716,8 +714,8 @@ namespace GittBilSmsCore.Controllers
                 var payloadsignalrOrder = new
                 {
                     orderId = order.OrderId,
-                    companyId = order.CompanyId,                
-                    createdByUserId = order.CreatedByUserId,   
+                    companyId = order.CompanyId,
+                    createdByUserId = order.CreatedByUserId,
                     status = order.CurrentStatus,
                     companyName = company.CompanyName,
                     dateOfSending = (order.CurrentStatus == "Scheduled" && order.ScheduledSendDate.HasValue)
@@ -1218,7 +1216,7 @@ namespace GittBilSmsCore.Controllers
                             TotalPrice = 0
                         });
                         _context.Companies.Update(company);
-                    }                     
+                    }
                     await _context.SaveChangesAsync();
                     return BadRequest(new { error = "Başarısız" });
                 }
@@ -2130,7 +2128,7 @@ namespace GittBilSmsCore.Controllers
                     Action = "Refund on Failed Resend",
                     CreatedAt = TimeHelper.NowInTurkey(),
                     CreatedByUserId = userId,
-                    OrderId=order.OrderId,
+                    OrderId = order.OrderId,
                 });
                 // ✅ Track refund in CreditTransactions
                 _context.CreditTransactions.Add(new CreditTransaction
@@ -2201,7 +2199,7 @@ namespace GittBilSmsCore.Controllers
                 });
                 _context.Orders.Update(order);
                 _context.Companies.Update(company);
-                await _context.SaveChangesAsync();                
+                await _context.SaveChangesAsync();
                 return BadRequest($"SMS resend failed: {json.Status}");
             }
         }
@@ -2524,7 +2522,6 @@ namespace GittBilSmsCore.Controllers
         }
 
         [HttpPost]
-        [HttpPost]
         public async Task<IActionResult> ApproveOrder(int orderId)
         {
             var order = await _context.Orders
@@ -2543,7 +2540,9 @@ namespace GittBilSmsCore.Controllers
 
             try
             {
+                // Build request body from stored order
                 var isAzure = Environment.GetEnvironmentVariable("HOME") != null;
+
                 var baseFolderPath = isAzure
                     ? Path.Combine("D:\\home\\data", "orders")
                     : Path.Combine(System.IO.Directory.GetCurrentDirectory(), "App_Data", "orders");
@@ -2563,7 +2562,9 @@ namespace GittBilSmsCore.Controllers
                 List<(string Name, string Number)> toSend;
                 if (customRecipients.Any())
                 {
-                    toSend = customRecipients.Select(r => (r.RecipientName, r.RecipientNumber)).ToList();
+                    toSend = customRecipients
+                        .Select(r => (r.RecipientName, r.RecipientNumber))
+                        .ToList();
                 }
                 else
                 {
@@ -2571,8 +2572,10 @@ namespace GittBilSmsCore.Controllers
                         return BadRequest("Recipient file not found.");
 
                     var raw = await System.IO.File.ReadAllLinesAsync(fullFilePath);
-                    toSend = raw.Where(n => !string.IsNullOrWhiteSpace(n))
-                                .Select(n => ("", n.Trim())).ToList();
+                    toSend = raw
+                        .Where(n => !string.IsNullOrWhiteSpace(n))
+                        .Select(n => ("", n.Trim()))
+                        .ToList();
 
                     if (!toSend.Any())
                     {
@@ -2591,6 +2594,7 @@ namespace GittBilSmsCore.Controllers
 
                 var plainNumbers = toSend.Select(r => r.Number).ToArray();
                 var isCustom = !string.IsNullOrEmpty(order.PlaceholderColumn);
+
                 var api = order.Api;
                 var company = order.Company;
                 var userId = HttpContext.Session.GetInt32("UserId") ?? 0;
@@ -2606,11 +2610,16 @@ namespace GittBilSmsCore.Controllers
                 decimal medium = company.MediumPrice ?? globalPricing.Middle;
                 decimal high = company.HighPrice ?? globalPricing.High;
 
+                //Pricing tier based on total SMS credits (recipients × segments)
                 decimal pricePerSms;
-                if (totalSmsCredits <= 500_000) pricePerSms = low;
-                else if (totalSmsCredits <= 1_000_000) pricePerSms = medium;
-                else pricePerSms = high;
+                if (totalSmsCredits <= 500_000)
+                    pricePerSms = low;
+                else if (totalSmsCredits <= 1_000_000)
+                    pricePerSms = medium;
+                else
+                    pricePerSms = high;
 
+                // Balance check
                 if (company.CreditLimit < totalSmsCredits)
                 {
                     order.CurrentStatus = "Failed";
@@ -2625,18 +2634,18 @@ namespace GittBilSmsCore.Controllers
                     return BadRequest("Insufficient balance.");
                 }
 
-                // Scheduled future orders (unchanged)
+                // ✅ FIX: Check if this is a SCHEDULED order for FUTURE
                 bool isScheduledForFuture = order.ScheduledSendDate.HasValue
                     && order.ScheduledSendDate.Value > TimeHelper.NowInTurkey();
 
                 if (isScheduledForFuture)
                 {
+                    // Deduct balance but DON'T send yet - let background service handle it
                     company.CreditLimit -= totalSmsCredits;
                     order.PricePerSms = pricePerSms;
                     order.TotalPrice = totalSmsCredits;
                     order.CurrentStatus = "Scheduled";
                     order.Refundable = company.IsRefundable;
-
                     _context.BalanceHistory.Add(new BalanceHistory
                     {
                         CompanyId = company.CompanyId,
@@ -2646,6 +2655,7 @@ namespace GittBilSmsCore.Controllers
                         CreatedByUserId = userId,
                         OrderId = order.OrderId,
                     });
+                    // ✅ Track credit usage in CreditTransactions
                     _context.CreditTransactions.Add(new CreditTransaction
                     {
                         CompanyId = company.CompanyId,
@@ -2664,24 +2674,33 @@ namespace GittBilSmsCore.Controllers
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
 
+                    // Mark old notifications as read
                     var oldNotifs = await _context.Notifications
-                        .Where(n => n.CompanyId == order.CompanyId
+                        .Where(n =>
+                            n.CompanyId == order.CompanyId
                             && n.Type == NotificationType.SmsAwaitingApproval
-                            && n.Description.Contains($"#{order.OrderId}"))
+                            && n.Description.Contains($"#{order.OrderId}")
+                        )
                         .ToListAsync();
 
-                    foreach (var n in oldNotifs) { n.IsRead = true; _context.Notifications.Update(n); }
+                    foreach (var n in oldNotifs)
+                    {
+                        n.IsRead = true;
+                        _context.Notifications.Update(n);
+                    }
 
                     _context.Orders.Update(order);
                     _context.Companies.Update(company);
                     await _context.SaveChangesAsync();
 
+                    // SignalR notifications
                     var statusPayload = new { orderId = order.OrderId, newStatus = order.CurrentStatus };
                     await _hubContext.Clients.Group("Admins").SendAsync("OrderStatusChanged", statusPayload);
                     await _hubContext.Clients.Group("PanelUsers").SendAsync("OrderStatusChanged", statusPayload);
                     await _hubContext.Clients.Group($"company_{order.CompanyId}").SendAsync("OrderStatusChanged", statusPayload);
                     await _hubContext.Clients.Group($"user_{order.CreatedByUserId}").SendAsync("OrderStatusChanged", statusPayload);
 
+                    // Send notification to creator
                     var notif = new Notifications
                     {
                         Title = _sharedLocalizer["OrderApprovedTitle"],
@@ -2716,7 +2735,7 @@ namespace GittBilSmsCore.Controllers
                 }
 
                 // ============================================
-                // DEDUCT BALANCE (common for all providers)
+                // NOT SCHEDULED - SEND IMMEDIATELY
                 // ============================================
                 company.CreditLimit -= totalSmsCredits;
                 order.PricePerSms = pricePerSms;
@@ -2731,6 +2750,7 @@ namespace GittBilSmsCore.Controllers
                     CreatedByUserId = userId,
                     OrderId = order.OrderId,
                 });
+                // ✅ Track credit usage in CreditTransactions
                 _context.CreditTransactions.Add(new CreditTransaction
                 {
                     CompanyId = company.CompanyId,
@@ -2746,166 +2766,13 @@ namespace GittBilSmsCore.Controllers
                 _context.Companies.Update(company);
                 await _context.SaveChangesAsync();
 
-                // ============================================
-                // ✅ BRANCH: GonderSMS uses multipart + JWT — handle separately
-                // ============================================
-                if (api.ServiceName.Equals("gonersms", StringComparison.OrdinalIgnoreCase))
-                {
-                    var stopwatchGs = Stopwatch.StartNew();
-                    GonderSmsService.SendResult gsResult;
-                    try
-                    {
-                        gsResult = await _gonderSms.SendSmsAsync(
-                            username: api.Username,
-                            password: api.Password,
-                            heading: api.Originator,
-                            message: order.MessageText,
-                            phoneNumbers: plainNumbers,
-                            plannedAt: null);
-                    }
-                    catch (Exception gsEx)
-                    {
-                        gsResult = new GonderSmsService.SendResult
-                        {
-                            Success = false,
-                            RawResponse = $"Exception: {gsEx.Message}",
-                            Message = gsEx.Message,
-                            HttpStatus = 0
-                        };
-                    }
-                    stopwatchGs.Stop();
-
-                    _context.ApiCallLogs.Add(new ApiCallLog
-                    {
-                        CompanyId = company.CompanyId,
-                        UserId = userId,
-                        OrderId = order.OrderId,
-                        ApiUrl = api.ApiUrl,
-                        RequestBody = $"[GonderSMS multipart] heading={api.Originator}, recipients={plainNumbers.Length}, message={order.MessageText?.Length ?? 0} chars",
-                        ResponseContent = gsResult.RawResponse,
-                        ResponseTimeMs = stopwatchGs.ElapsedMilliseconds,
-                        CreatedAt = TimeHelper.NowInTurkey()
-                    });
-                    await _context.SaveChangesAsync();
-
-                    if (gsResult.Success)
-                    {
-                        order.SmsOrderId = gsResult.CampaignId;
-                        order.StartedAt = TimeHelper.NowInTurkey();
-                        order.ReportLock = true;
-                        order.CompletedAt = TimeHelper.NowInTurkey();
-                        order.ScheduledSendDate = TimeHelper.NowInTurkey();
-                        order.CurrentStatus = "Sent";
-                        order.ProcessedCount = toSend.Count;
-
-                        order.Actions.Add(new OrderAction { ActionName = "Approved", CreatedAt = TimeHelper.NowInTurkey() });
-                        order.Actions.Add(new OrderAction
-                        {
-                            ActionName = "Sent",
-                            Message = $"CampaignId: {gsResult.CampaignId}. {gsResult.Message}",
-                            CreatedAt = TimeHelper.NowInTurkey()
-                        });
-
-                        _context.Orders.Update(order);
-
-                        var oldNotifs = await _context.Notifications
-                            .Where(n => n.CompanyId == order.CompanyId
-                                && n.Type == NotificationType.SmsAwaitingApproval
-                                && n.Description.Contains($"#{order.OrderId}"))
-                            .ToListAsync();
-                        foreach (var n in oldNotifs) { n.IsRead = true; _context.Notifications.Update(n); }
-
-                        await _context.SaveChangesAsync();
-
-                        var statusPayload = new { orderId = order.OrderId, newStatus = order.CurrentStatus };
-                        await _hubContext.Clients.Group("Admins").SendAsync("OrderStatusChanged", statusPayload);
-                        await _hubContext.Clients.Group("PanelUsers").SendAsync("OrderStatusChanged", statusPayload);
-                        await _hubContext.Clients.Group($"company_{order.CompanyId}").SendAsync("OrderStatusChanged", statusPayload);
-                        await _hubContext.Clients.Group($"user_{order.CreatedByUserId}").SendAsync("OrderStatusChanged", statusPayload);
-
-                        var notif = new Notifications
-                        {
-                            Title = _sharedLocalizer["OrderApprovedTitle"],
-                            Description = string.Format(_sharedLocalizer["OrderApprovedDesc"], order.OrderId),
-                            Type = NotificationType.OrderApproved,
-                            CreatedAt = TimeHelper.NowInTurkey(),
-                            IsRead = false,
-                            CompanyId = order.CompanyId,
-                            OrderId = order.OrderId,
-                            UserId = order.CreatedByUserId
-                        };
-                        await _notificationService.AddNotificationAsync(notif);
-
-                        var payload = new
-                        {
-                            notificationId = notif.NotificationId,
-                            title = notif.Title,
-                            description = notif.Description,
-                            type = (int)notif.Type,
-                            createdAt = notif.CreatedAt,
-                            companyId = notif.CompanyId,
-                            orderId = notif.OrderId,
-                            userId = notif.UserId
-                        };
-                        await _hubContext.Clients.Group($"user_{order.CreatedByUserId}").SendAsync("ReceiveNotification", payload);
-
-                        return Json(new { success = true, message = _sharedLocalizer["orderapproved"] });
-                    }
-                    else
-                    {
-                        // Failure path — refund and mark failed
-                        order.ApiErrorResponse = $"GonderSMS failed (HTTP {gsResult.HttpStatus}): {gsResult.Message ?? gsResult.RawResponse}";
-                        order.CurrentStatus = "Failed";
-                        order.Actions.Add(new OrderAction
-                        {
-                            ActionName = "Sending failed",
-                            Message = order.ApiErrorResponse,
-                            CreatedAt = TimeHelper.NowInTurkey()
-                        });
-
-                        if (order.TotalPrice > 0 && order.Returned == false)
-                        {
-                            company.CreditLimit += (decimal)order.TotalPrice.Value;
-                            order.Refundable = true;
-                            order.Returned = true;
-                            order.ReturnDate = TimeHelper.NowInTurkey();
-
-                            _context.BalanceHistory.Add(new BalanceHistory
-                            {
-                                CompanyId = order.CompanyId,
-                                Amount = (decimal)order.TotalPrice.Value,
-                                Action = "Refund on Failed",
-                                CreatedAt = TimeHelper.NowInTurkey(),
-                                CreatedByUserId = userId,
-                                OrderId = order.OrderId,
-                            });
-                            _context.CreditTransactions.Add(new CreditTransaction
-                            {
-                                CompanyId = company.CompanyId,
-                                TransactionType = _sharedLocalizer["Order_Cancellation"],
-                                Credit = (decimal)order.TotalPrice.Value,
-                                Currency = "TRY",
-                                TransactionDate = TimeHelper.NowInTurkey(),
-                                Note = $"Sipariş iadesi - Order #{order.OrderId}",
-                                UnitPrice = 0,
-                                TotalPrice = 0
-                            });
-                        }
-
-                        _context.Orders.Update(order);
-                        _context.Companies.Update(company);
-                        await _context.SaveChangesAsync();
-                        return BadRequest($"SMS API returned an error: {gsResult.Message}");
-                    }
-                }
-
-                // ============================================
-                // OTHER PROVIDERS (Yurtici, Turkcell) — existing JSON logic
-                // ============================================
+                // Build API request body
                 string requestBody;
                 if (isCustom)
                 {
                     var placeholder = $"{{{order.PlaceholderColumn}}}";
+
+                    // ✅ Check for short URL in custom messages
                     var shortUrlMatch = ShortUrlRegex.Match(order.MessageText ?? "");
                     bool hasShortUrl = shortUrlMatch.Success;
 
@@ -2922,7 +2789,10 @@ namespace GittBilSmsCore.Controllers
                             Messages = toSend.Select(r => new
                             {
                                 Message = hasShortUrl
-                                    ? BuildTrackedMessage(order.MessageText.Replace(placeholder, r.Name), shortUrlMatch, r.Number)
+                                    ? BuildTrackedMessage(
+                                        order.MessageText.Replace(placeholder, r.Name),
+                                        shortUrlMatch,
+                                        r.Number)
                                     : order.MessageText.Replace(placeholder, r.Name),
                                 GSM = r.Number
                             }).ToArray()
@@ -2934,12 +2804,14 @@ namespace GittBilSmsCore.Controllers
                         {
                             Username = api.Username,
                             Password = api.Password,
-                            From = api.Originator,
                             Messages = toSend.Select(r => new
                             {
                                 To = r.Number,
                                 Text = hasShortUrl
-                                    ? BuildTrackedMessage(order.MessageText.Replace(placeholder, r.Name), shortUrlMatch, r.Number)
+                                    ? BuildTrackedMessage(
+                                        order.MessageText.Replace(placeholder, r.Name),
+                                        shortUrlMatch,
+                                        r.Number)
                                     : order.MessageText.Replace(placeholder, r.Name)
                             }).ToArray()
                         });
@@ -2947,11 +2819,13 @@ namespace GittBilSmsCore.Controllers
                 }
                 else
                 {
+                    // ✅ Check for short URL in non-custom messages
                     var shortUrlMatch = ShortUrlRegex.Match(order.MessageText ?? "");
                     bool hasShortUrl = shortUrlMatch.Success;
 
                     if (hasShortUrl)
                     {
+                        // Per-recipient tracking
                         if (api.ServiceName.Equals("turkcell", StringComparison.OrdinalIgnoreCase))
                         {
                             requestBody = JsonConvert.SerializeObject(new
@@ -2971,7 +2845,6 @@ namespace GittBilSmsCore.Controllers
                             {
                                 Username = api.Username,
                                 Password = api.Password,
-                                From = api.Originator,
                                 Messages = toSend.Select(r => new
                                 {
                                     To = r.Number,
@@ -2982,6 +2855,7 @@ namespace GittBilSmsCore.Controllers
                     }
                     else
                     {
+                        // Normal flat format (no tracking)
                         if (api.ServiceName.Equals("turkcell", StringComparison.OrdinalIgnoreCase))
                         {
                             requestBody = JsonConvert.SerializeObject(new
@@ -2998,7 +2872,6 @@ namespace GittBilSmsCore.Controllers
                             {
                                 Username = api.Username,
                                 Password = api.Password,
-                                From = api.Originator,
                                 Text = order.MessageText,
                                 To = plainNumbers
                             });
@@ -3010,6 +2883,7 @@ namespace GittBilSmsCore.Controllers
                     }
                 }
 
+                // Send API request
                 using var client = new HttpClient();
                 client.Timeout = TimeSpan.FromMinutes(10);
 
@@ -3023,6 +2897,7 @@ namespace GittBilSmsCore.Controllers
                 stopwatch.Stop();
                 var result = await response.Content.ReadAsStringAsync();
 
+                // Log API call
                 string sanitizedBody = Regex.Replace(requestBody, @"\d{10,15}", "[NUMBER]");
                 _context.ApiCallLogs.Add(new ApiCallLog
                 {
@@ -3037,10 +2912,12 @@ namespace GittBilSmsCore.Controllers
                 });
                 await _context.SaveChangesAsync();
 
+                // Handle API failure
                 if (!response.IsSuccessStatusCode)
                 {
                     order.ApiErrorResponse = $"HTTP {(int)response.StatusCode} - {result}";
                     order.CurrentStatus = "Failed";
+
                     order.Actions.Add(new OrderAction
                     {
                         ActionName = "Sending failed",
@@ -3048,9 +2925,11 @@ namespace GittBilSmsCore.Controllers
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
 
+                    // ✅ FIX: Refund on failed (uncommented)
                     if (order.TotalPrice > 0 && order.Returned == false)
                     {
                         company.CreditLimit += (decimal)order.TotalPrice.Value;
+
                         order.Refundable = true;
                         order.Returned = true;
                         order.ReturnDate = TimeHelper.NowInTurkey();
@@ -3064,6 +2943,7 @@ namespace GittBilSmsCore.Controllers
                             CreatedByUserId = userId,
                             OrderId = order.OrderId,
                         });
+                        // ✅ Track refund in CreditTransactions
                         _context.CreditTransactions.Add(new CreditTransaction
                         {
                             CompanyId = company.CompanyId,
@@ -3083,6 +2963,7 @@ namespace GittBilSmsCore.Controllers
                     return StatusCode((int)response.StatusCode, $"SMS API failed: {result}");
                 }
 
+                // Parse API response
                 dynamic json = JsonConvert.DeserializeObject(result);
 
                 if (json.Status == "OK")
@@ -3095,7 +2976,11 @@ namespace GittBilSmsCore.Controllers
                     order.CurrentStatus = "Sent";
                     order.ProcessedCount = toSend.Count;
 
-                    order.Actions.Add(new OrderAction { ActionName = "Approved", CreatedAt = TimeHelper.NowInTurkey() });
+                    order.Actions.Add(new OrderAction
+                    {
+                        ActionName = "Approved",
+                        CreatedAt = TimeHelper.NowInTurkey()
+                    });
                     order.Actions.Add(new OrderAction
                     {
                         ActionName = "Sent",
@@ -3105,21 +2990,36 @@ namespace GittBilSmsCore.Controllers
 
                     _context.Orders.Update(order);
 
+                    // Mark old notifications as read
                     var oldNotifs = await _context.Notifications
-                        .Where(n => n.CompanyId == order.CompanyId
+                        .Where(n =>
+                            n.CompanyId == order.CompanyId
                             && n.Type == NotificationType.SmsAwaitingApproval
-                            && n.Description.Contains($"#{order.OrderId}"))
+                            && n.Description.Contains($"#{order.OrderId}")
+                        )
                         .ToListAsync();
-                    foreach (var n in oldNotifs) { n.IsRead = true; _context.Notifications.Update(n); }
+
+                    foreach (var n in oldNotifs)
+                    {
+                        n.IsRead = true;
+                        _context.Notifications.Update(n);
+                    }
 
                     await _context.SaveChangesAsync();
 
-                    var statusPayload = new { orderId = order.OrderId, newStatus = order.CurrentStatus };
+                    // SignalR notifications
+                    var statusPayload = new
+                    {
+                        orderId = order.OrderId,
+                        newStatus = order.CurrentStatus
+                    };
+
                     await _hubContext.Clients.Group("Admins").SendAsync("OrderStatusChanged", statusPayload);
                     await _hubContext.Clients.Group("PanelUsers").SendAsync("OrderStatusChanged", statusPayload);
                     await _hubContext.Clients.Group($"company_{order.CompanyId}").SendAsync("OrderStatusChanged", statusPayload);
                     await _hubContext.Clients.Group($"user_{order.CreatedByUserId}").SendAsync("OrderStatusChanged", statusPayload);
 
+                    // Send notification
                     var notif = new Notifications
                     {
                         Title = _sharedLocalizer["OrderApprovedTitle"],
@@ -3131,6 +3031,7 @@ namespace GittBilSmsCore.Controllers
                         OrderId = order.OrderId,
                         UserId = order.CreatedByUserId
                     };
+
                     await _notificationService.AddNotificationAsync(notif);
 
                     var payload = new
@@ -3144,6 +3045,7 @@ namespace GittBilSmsCore.Controllers
                         orderId = notif.OrderId,
                         userId = notif.UserId
                     };
+
                     await _hubContext.Clients.Group($"user_{order.CreatedByUserId}").SendAsync("ReceiveNotification", payload);
 
                     return Json(new { success = true, message = _sharedLocalizer["orderapproved"] });
@@ -3152,6 +3054,7 @@ namespace GittBilSmsCore.Controllers
                 {
                     order.ApiErrorResponse = $"Status: {json.Status}, Full Response: {result}";
                     order.CurrentStatus = "Failed";
+
                     order.Actions.Add(new OrderAction
                     {
                         ActionName = "Sending failed",
@@ -3159,9 +3062,11 @@ namespace GittBilSmsCore.Controllers
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
 
+                    // ✅ FIX: Refund on failed (uncommented)
                     if (order.TotalPrice > 0 && order.Returned == false)
                     {
                         company.CreditLimit += (decimal)order.TotalPrice.Value;
+
                         order.Refundable = true;
                         order.Returned = true;
                         order.ReturnDate = TimeHelper.NowInTurkey();
@@ -3175,6 +3080,7 @@ namespace GittBilSmsCore.Controllers
                             CreatedByUserId = userId,
                             OrderId = order.OrderId,
                         });
+                        // ✅ Track refund in CreditTransactions
                         _context.CreditTransactions.Add(new CreditTransaction
                         {
                             CompanyId = company.CompanyId,
@@ -3535,7 +3441,7 @@ namespace GittBilSmsCore.Controllers
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
 
-                   
+
                     // ✅ FIX: Refund the deduction
                     if (order.TotalPrice > 0 && order.Returned == false)
                     {
@@ -3805,7 +3711,7 @@ namespace GittBilSmsCore.Controllers
                 CreatedAt = TimeHelper.NowInTurkey()
             });
             _context.Orders.Update(order);
-            await _context.SaveChangesAsync();           
+            await _context.SaveChangesAsync();
 
             // ✅ ADD LOGGING
             Console.WriteLine($"[SignalR] OrderStatusChanged - OrderId: {order.OrderId}, CompanyId: {order.CompanyId}, CreatedByUserId: {order.CreatedByUserId}");

@@ -592,6 +592,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Mevcut bakiyeden ({0}) fazlasını kaldıramazsınız.
+        /// </summary>
+        public static string cannotremovemorethanbalance {
+            get {
+                return ResourceManager.GetString("cannotremovemorethanbalance", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to API&apos;yi değiştir.
         /// </summary>
         public static string Change_API {
@@ -871,6 +880,33 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Bu firmadan {0} kredi kaldırılsın mı? Bu işlem geri alınamaz.
+        /// </summary>
+        public static string confirmdeletecredit {
+            get {
+                return ResourceManager.GetString("confirmdeletecredit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0} kredi eklemek üzeresiniz. Devam edilsin mi?.
+        /// </summary>
+        public static string confirmlargecredit {
+            get {
+                return ResourceManager.GetString("confirmlargecredit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Bu firma standart fiyatlandırmaya döndürülsün mü?.
+        /// </summary>
+        public static string confirmrevertstandardpricing {
+            get {
+                return ResourceManager.GetString("confirmrevertstandardpricing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Bir kullanıcı hesabına bağlan.
         /// </summary>
         public static string Connecting_to_a_user_account {
@@ -894,6 +930,15 @@ namespace GittBilSmsCore.Resources {
         public static string Copy {
             get {
                 return ResourceManager.GetString("Copy", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fiyatlandırma geri alınamadı..
+        /// </summary>
+        public static string couldnotrevertpricing {
+            get {
+                return ResourceManager.GetString("couldnotrevertpricing", resourceCulture);
             }
         }
         
@@ -1110,6 +1155,24 @@ namespace GittBilSmsCore.Resources {
         public static string creditdeletedsuccess {
             get {
                 return ResourceManager.GetString("creditdeletedsuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Hesaplanan kredi sıfır. Fiyat ve birim fiyatı kontrol edin.
+        /// </summary>
+        public static string creditiszero {
+            get {
+                return ResourceManager.GetString("creditiszero", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kredi tutarı sıfırdan büyük olmalıdır.
+        /// </summary>
+        public static string creditmustbepositive {
+            get {
+                return ResourceManager.GetString("creditmustbepositive", resourceCulture);
             }
         }
         
@@ -1623,6 +1686,15 @@ namespace GittBilSmsCore.Resources {
         public static string errorcreatingshortu {
             get {
                 return ResourceManager.GetString("errorcreatingshortu", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kredi silinirken bir hata oluştu.
+        /// </summary>
+        public static string errordeletingcredit {
+            get {
+                return ResourceManager.GetString("errordeletingcredit", resourceCulture);
             }
         }
         
@@ -3031,6 +3103,33 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Fiyat sıfırdan büyük olmalıdır.
+        /// </summary>
+        public static string pricemustbepositive {
+            get {
+                return ResourceManager.GetString("pricemustbepositive", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Düşük, Orta ve Yüksek fiyatların tümü zorunludur.
+        /// </summary>
+        public static string pricesallrequired {
+            get {
+                return ResourceManager.GetString("pricesallrequired", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fiyat çok yüksek görünüyor — lütfen tekrar kontrol edin.
+        /// </summary>
+        public static string pricetoohigh {
+            get {
+                return ResourceManager.GetString("pricetoohigh", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Fiyatlandırma.
         /// </summary>
         public static string Pricing {
@@ -3045,6 +3144,33 @@ namespace GittBilSmsCore.Resources {
         public static string Pricing_History {
             get {
                 return ResourceManager.GetString("Pricing History", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fiyatlar sıfırdan büyük olmalıdır.
+        /// </summary>
+        public static string pricingmustbepositive {
+            get {
+                return ResourceManager.GetString("pricingmustbepositive", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Kademe sırası geçersiz: Düşük ≥ Orta ≥ Yüksek (toplu hacim daha ucuz fiyat alır).
+        /// </summary>
+        public static string pricingtierorderinvalid {
+            get {
+                return ResourceManager.GetString("pricingtierorderinvalid", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to SMS başına fiyat çok yüksek görünüyor — en fazla 10 olmalıdır.
+        /// </summary>
+        public static string pricingtoohigh {
+            get {
+                return ResourceManager.GetString("pricingtoohigh", resourceCulture);
             }
         }
         
@@ -3571,6 +3697,15 @@ namespace GittBilSmsCore.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Kredi eklenirken sunucu hatası.
+        /// </summary>
+        public static string servererroraddingcredit {
+            get {
+                return ResourceManager.GetString("servererroraddingcredit", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Hizmet Adı.
         /// </summary>
         public static string Service_Name {
@@ -3756,6 +3891,15 @@ namespace GittBilSmsCore.Resources {
         public static string Special_Powers {
             get {
                 return ResourceManager.GetString("Special Powers", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Özel fiyatlandırma kaldırıldı. Firma artık standart fiyatlandırmada..
+        /// </summary>
+        public static string specialpricingremoved {
+            get {
+                return ResourceManager.GetString("specialpricingremoved", resourceCulture);
             }
         }
         
@@ -4062,6 +4206,15 @@ namespace GittBilSmsCore.Resources {
         public static string Unit_price_options {
             get {
                 return ResourceManager.GetString("Unit price options", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Lütfen geçerli bir birim fiyat seçin veya girin.
+        /// </summary>
+        public static string unitpricerequired {
+            get {
+                return ResourceManager.GetString("unitpricerequired", resourceCulture);
             }
         }
         

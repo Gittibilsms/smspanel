@@ -26,7 +26,7 @@
 
         function revertToStandardPricing(el) {
             const companyId = el.dataset.companyId;
-            if (!confirm("Revert this company to standard pricing?")) return;
+            if (!confirm(window.localizedTextDT.confirmrevertstandardpricing || "Revert this company to standard pricing?")) return;
 
             fetch(`/Companies/RevertToStandardPricing/${companyId}`, {
                 method: "POST",
@@ -38,10 +38,10 @@
             .then(res => res.json())
              .then(data => {
                 if (data.success) {
-                    toastr.success("Special pricing removed. Company is now on standard pricing.");
+                    toastr.success(window.localizedTextDT.specialpricingremoved || "Special pricing removed. Company is now on standard pricing.");
                     setTimeout(() => location.reload(), 1500);
                 } else {
-                    toastr.error(data.message || "Could not revert pricing.");
+                    toastr.error(window.localizedTextDT.couldnotrevertpricing || "Could not revert pricing.");
                 }
             })
             .catch(err => {
@@ -63,22 +63,22 @@
 
                 if (isNaN(low) || isNaN(medium) || isNaN(high)) {
                     e.preventDefault();
-                    toastr.error('Low, Medium and High prices are all required.');
+                    toastr.error(window.localizedTextDT.pricesallrequired || 'Low, Medium and High prices are all required.');
                     return;
                 }
                 if (low <= 0 || medium <= 0 || high <= 0) {
                     e.preventDefault();
-                    toastr.error('Prices must be greater than zero.');
+                    toastr.error(window.localizedTextDT.pricingmustbepositive || 'Prices must be greater than zero.');
                     return;
                 }
                 if (low > 10 || medium > 10 || high > 10) {
                     e.preventDefault();
-                    toastr.error('Price per SMS looks too high — must be ≤ 10.');
+                    toastr.error(window.localizedTextDT.pricingtoohigh || 'Price per SMS looks too high — must be ≤ 10.');
                     return;
                 }
                 if (!(low >= medium && medium >= high)) {
                     e.preventDefault();
-                    toastr.error('Tier order invalid: Low ≥ Medium ≥ High (bulk volume gets a cheaper rate).');
+                    toastr.error(window.localizedTextDT.pricingtierorderinvalid || 'Tier order invalid: Low ≥ Medium ≥ High (bulk volume gets a cheaper rate).');
                     return;
                 }
             });

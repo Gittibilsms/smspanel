@@ -1575,4 +1575,55 @@
   <data name="Test" xml:space="preserve">
     <value>Test</value>
   </data>
+  <data name="pricingmustbepositive" xml:space="preserve">
+    <value>Fiyatlar sıfırdan büyük olmalıdır</value>
+  </data>
+  <data name="pricingtoohigh" xml:space="preserve">
+    <value>SMS başına fiyat çok yüksek görünüyor — en fazla 10 olmalıdır</value>
+  </data>
+  <data name="pricingtierorderinvalid" xml:space="preserve">
+    <value>Kademe sırası geçersiz: Düşük ≥ Orta ≥ Yüksek (toplu hacim daha ucuz fiyat alır)</value>
+  </data>
+  <data name="pricemustbepositive" xml:space="preserve">
+    <value>Fiyat sıfırdan büyük olmalıdır</value>
+  </data>
+  <data name="pricetoohigh" xml:space="preserve">
+    <value>Fiyat çok yüksek görünüyor — lütfen tekrar kontrol edin</value>
+  </data>
+  <data name="unitpricerequired" xml:space="preserve">
+    <value>Lütfen geçerli bir birim fiyat seçin veya girin</value>
+  </data>
+  <data name="creditiszero" xml:space="preserve">
+    <value>Hesaplanan kredi sıfır. Fiyat ve birim fiyatı kontrol edin</value>
+  </data>
+  <data name="creditmustbepositive" xml:space="preserve">
+    <value>Kredi tutarı sıfırdan büyük olmalıdır</value>
+  </data>
+  <data name="cannotremovemorethanbalance" xml:space="preserve">
+    <value>Mevcut bakiyeden ({0}) fazlasını kaldıramazsınız</value>
+  </data>
+  <data name="confirmlargecredit" xml:space="preserve">
+    <value>{0} kredi eklemek üzeresiniz. Devam edilsin mi?</value>
+  </data>
+  <data name="confirmdeletecredit" xml:space="preserve">
+    <value>Bu firmadan {0} kredi kaldırılsın mı? Bu işlem geri alınamaz</value>
+  </data>
+  <data name="pricesallrequired" xml:space="preserve">
+    <value>Düşük, Orta ve Yüksek fiyatların tümü zorunludur</value>
+  </data>
+  <data name="servererroraddingcredit" xml:space="preserve">
+    <value>Kredi eklenirken sunucu hatası</value>
+  </data>
+  <data name="errordeletingcredit" xml:space="preserve">
+    <value>Kredi silinirken bir hata oluştu</value>
+  </data>
+  <data name="confirmrevertstandardpricing" xml:space="preserve">
+    <value>Bu firma standart fiyatlandırmaya döndürülsün mü?</value>
+  </data>
+  <data name="specialpricingremoved" xml:space="preserve">
+    <value>Özel fiyatlandırma kaldırıldı. Firma artık standart fiyatlandırmada.</value>
+  </data>
+  <data name="couldnotrevertpricing" xml:space="preserve">
+    <value>Fiyatlandırma geri alınamadı.</value>
+  </data>
 </root>

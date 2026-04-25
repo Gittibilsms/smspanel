@@ -1718,19 +1718,19 @@ $(document).ready(function () {
         }
         // ── Pricing validation ──
         if (isNaN(data.LowPrice) || isNaN(data.MediumPrice) || isNaN(data.HighPrice)) {
-            toastr.error('Low, Medium and High prices are all required.');
+            toastr.error(window.localizedTextDT.pricesallrequired || 'Low, Medium and High prices are all required.');
             return;
         }
         if (data.LowPrice <= 0 || data.MediumPrice <= 0 || data.HighPrice <= 0) {
-            toastr.error('Prices must be greater than zero.');
+            toastr.error(window.localizedTextDT.pricingmustbepositive || 'Prices must be greater than zero.');
             return;
         }
         if (data.LowPrice > 10 || data.MediumPrice > 10 || data.HighPrice > 10) {
-            toastr.error('Price per SMS looks too high — must be ≤ 10.');
+            toastr.error(window.localizedTextDT.pricingtoohigh|| 'Price per SMS looks too high — must be ≤ 10.');
             return;
         }
         if (!(data.LowPrice >= data.MediumPrice && data.MediumPrice >= data.HighPrice)) {
-            toastr.error('Tier order invalid: Low ≥ Medium ≥ High (bulk volume gets a cheaper rate).');
+            toastr.error(window.localizedTextDT.pricingtierorderinvalid ||'Tier order invalid: Low ≥ Medium ≥ High (bulk volume gets a cheaper rate).');
             return;
         }
 
@@ -1919,17 +1919,29 @@ $(document).ready(function () {
 
             const raw = $(this).val().replace(',', '.');
             const price = parseFloat(raw);
-            let tier = null;
+            if (isNaN(price) || price <= 0) return;
 
-            if (price >= 1_000_000) tier = 0.19;
-            else if (price >= 500_000) tier = 0.20;
-            else tier = 0.21;
+            const low = parseFloat(($('#lowPriceInput').val() || '').replace(',', '.'));
+            const medium = parseFloat(($('#mediumPriceInput').val() || '').replace(',', '.'));
+            const high = parseFloat(($('#highPriceInput').val() || '').replace(',', '.'));
+ 
+            const refPrice = !isNaN(medium) && medium > 0 ? medium
+                : !isNaN(low) && low > 0 ? low
+                    : !isNaN(high) && high > 0 ? high : null;
+            if (refPrice === null) return;
 
-            if (tier === null) return;
+            const estimatedSmsCount = price / refPrice;
 
-            // Find button by data-price attribute (exact match)
+            
+            let targetPrice = null;
+            if (estimatedSmsCount > 1_000_000 && !isNaN(high)) targetPrice = high;
+            else if (estimatedSmsCount > 500_000 && !isNaN(medium)) targetPrice = medium;
+            else if (!isNaN(low)) targetPrice = low;
+
+            if (targetPrice === null) return;
+
             const $targetBtn = $('#unitPriceOptions .unit-price-option')
-                .filter((_, btn) => parseFloat($(btn).data('price')) === tier)
+                .filter((_, btn) => Math.abs(parseFloat($(btn).data('price')) - targetPrice) < 0.0001)
                 .first();
 
             if ($targetBtn.length) {
@@ -1972,11 +1984,19 @@ $(document).ready(function () {
 
             recalculateLoan();
 
-            $(".unit-price-option").removeClass("active");
-            $(this).addClass("active");
+            
+            $(".unit-price-option")
+                .removeClass("active btn-success")
+                .addClass("btn-outline-success");
 
+           
+            $(this)
+                .removeClass("btn-outline-success")
+                .addClass("active btn-success");
+
+             
             $("#manualBtn")
-                .removeClass("active btn-outline-success")
+                .removeClass("active btn-success btn-outline-success")
                 .addClass("btn-outline-secondary");
 
             $("#priceMode").val("automatic");
@@ -1985,12 +2005,17 @@ $(document).ready(function () {
         $("#manualBtn").off("click").on("click", function () {
             $("#priceMode").val("manual");
 
-            // Enable editing
             $("#unitPrice").prop("disabled", false).prop("readonly", false).focus();
 
-            // Style toggling
-            $(this).addClass("active").removeClass("btn-outline-secondary").addClass("btn-outline-success");
-            $(".unit-price-option, .unit-price-btn").removeClass("btn-primary").addClass("btn-outline-primary");
+            
+            $(this)
+                .removeClass("btn-outline-secondary btn-outline-success")
+                .addClass("active btn-success");
+
+            
+            $(".unit-price-option")
+                .removeClass("active btn-success")
+                .addClass("btn-outline-success");
 
             recalculateLoan();
         });
@@ -3054,25 +3079,25 @@ $(document).ready(function () {
         const credit = parseInt(($('#loanDisplay').val() || '').replace(/[^\d]/g, '')) || 0;
 
         if (price <= 0) {
-            toastr.error('Price must be greater than zero.');
+            toastr.error(window.localizedTextDT.pricemustbepositive || 'Price must be greater than zero.');
             return;
         }
         if (price > 10000000) {
-            toastr.error('Price looks too high — please double-check.');
+            toastr.error(window.localizedTextDT.pricetoohigh || 'Price looks too high — please double-check.');
             return;
         }
         if (unitPrice <= 0) {
-            toastr.error('Please select or enter a valid unit price.');
+            toastr.error(window.localizedTextDT.unitpricerequired || 'Please select or enter a valid unit price.');
             return;
         }
         if (credit <= 0) {
-            toastr.error('Calculated credit is zero. Check price and unit price.');
+            toastr.error(window.localizedTextDT.creditiszero || 'Calculated credit is zero. Check price and unit price.');
             return;
         }
 
         // Confirmation for large amounts
         if (credit > 1000000) {
-            if (!confirm(`You are about to add ${credit.toLocaleString()} credits. Continue?`)) {
+            if (!confirm(window.localizedTextDT.confirmlargecredit.replace('{0}', credit.toLocaleString()) || `You are about to add ${credit.toLocaleString()} credits. Continue?`)) {
                 return;
             }
         }
@@ -3103,7 +3128,7 @@ $(document).ready(function () {
                 }
             })
             .fail(function (xhr) {
-                toastr.error('Server error while adding credit.');
+                toastr.error(window.localizedTextDT.servererroraddingcredit || 'Server error while adding credit.');
                 console.error(xhr.responseText);
             })
             .always(function () {
@@ -3137,15 +3162,15 @@ $(document).ready(function () {
         const currentBal = parseFloat(currentRaw) || 0;
 
         if (credit <= 0) {
-            toastr.error('Credit amount must be greater than zero.');
+            toastr.error(window.localizedTextDT.creditmustbepositive || 'Credit amount must be greater than zero.');
             return;
         }
         if (credit > currentBal) {
-            toastr.error(`Cannot remove more than current balance (${currentBal.toLocaleString()}).`);
+            toastr.error(window.localizedTextDT.cannotremovemorethanbalance.replace('{0}', currentBal.toLocaleString()) || `Cannot remove more than current balance (${currentBal.toLocaleString()}).`);
             return;
         }
 
-        if (!confirm(`Remove ${credit.toLocaleString()} credits from this company? This cannot be undone.`)) {
+        if (!confirm(window.localizedTextDT.confirmdeletecredit.replace('{0}', credit.toLocaleString()) || `Remove ${credit.toLocaleString()} credits from this company? This cannot be undone.`)) {
             return;
         }
         const formData = form.serialize();
@@ -3171,10 +3196,10 @@ $(document).ready(function () {
                 }
             })
             .fail(function () {
-                toastr.error('An error occurred while deleting credit.');
+                toastr.error(window.localizedTextDT.errordeletingcredit || 'An error occurred while deleting credit.');
             })
             .always(function () {
-                submitButton.prop('disabled', false); // 🔓 Re-enable after AJAX completes
+                submitButton.prop('disabled', false);  
             });
     });
 
@@ -3458,7 +3483,7 @@ function loadCompanies() {
                 <td>${item.isActive ? '<i class="lni lni-checkmark text-success"></i>' : '<i class="lni lni-close text-danger"></i>'}</td>
                 <td>${(item.creditLimit ?? 0).toLocaleString('en-US')}</td>
                 <td>${item.apiName}</td>
-                <td>${item.pricing}</td>
+                <td>${item.pricing == 0 ? 'Standard' : 'Special'}</td>
                 <td>${item.isTrustedSender ? 'Yes' : 'No'}</td>
                 <td>${item.canSendSupportRequest ? 'Yes' : 'No'}</td>
                 <td>${item.isRefundable ? 'Yes' : 'No'}</td>
