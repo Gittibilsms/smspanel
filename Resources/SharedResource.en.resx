@@ -1575,4 +1575,55 @@
   <data name="Test" xml:space="preserve">
     <value>Test</value>
   </data>
+  <data name="pricingmustbepositive" xml:space="preserve">
+    <value>Prices must be greater than zero</value>
+  </data>
+  <data name="pricingtoohigh" xml:space="preserve">
+    <value>Price per SMS looks too high — must be ≤ 10</value>
+  </data>
+  <data name="pricingtierorderinvalid" xml:space="preserve">
+    <value>Tier order invalid: Low ≥ Medium ≥ High (bulk volume gets a cheaper rate)</value>
+  </data>
+  <data name="pricemustbepositive" xml:space="preserve">
+    <value>Price must be greater than zero</value>
+  </data>
+  <data name="pricetoohigh" xml:space="preserve">
+    <value>Price looks too high — please double-check</value>
+  </data>
+  <data name="unitpricerequired" xml:space="preserve">
+    <value>Please select or enter a valid unit price</value>
+  </data>
+  <data name="creditiszero" xml:space="preserve">
+    <value>Calculated credit is zero. Check price and unit price</value>
+  </data>
+  <data name="creditmustbepositive" xml:space="preserve">
+    <value>Credit amount must be greater than zero</value>
+  </data>
+  <data name="cannotremovemorethanbalance" xml:space="preserve">
+    <value>Cannot remove more than current balance ({0})</value>
+  </data>
+  <data name="confirmlargecredit" xml:space="preserve">
+    <value>You are about to add {0} credits. Continue?</value>
+  </data>
+  <data name="confirmdeletecredit" xml:space="preserve">
+    <value>Remove {0} credits from this company? This cannot be undone</value>
+  </data>
+  <data name="pricesallrequired" xml:space="preserve">
+    <value>Low, Medium and High prices are all required</value>
+  </data>
+  <data name="servererroraddingcredit" xml:space="preserve">
+    <value>Server error while adding credit</value>
+  </data>
+  <data name="errordeletingcredit" xml:space="preserve">
+    <value>An error occurred while deleting credit</value>
+  </data>
+  <data name="confirmrevertstandardpricing" xml:space="preserve">
+    <value>Revert this company to standard pricing?</value>
+  </data>
+  <data name="specialpricingremoved" xml:space="preserve">
+    <value>Special pricing removed. Company is now on standard pricing.</value>
+  </data>
+  <data name="couldnotrevertpricing" xml:space="preserve">
+    <value>Could not revert pricing.</value>
+  </data>
 </root>

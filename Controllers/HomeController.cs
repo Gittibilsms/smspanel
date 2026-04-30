@@ -714,8 +714,8 @@ namespace GittBilSmsCore.Controllers
                 var payloadsignalrOrder = new
                 {
                     orderId = order.OrderId,
-                    companyId = order.CompanyId,                
-                    createdByUserId = order.CreatedByUserId,   
+                    companyId = order.CompanyId,
+                    createdByUserId = order.CreatedByUserId,
                     status = order.CurrentStatus,
                     companyName = company.CompanyName,
                     dateOfSending = (order.CurrentStatus == "Scheduled" && order.ScheduledSendDate.HasValue)
@@ -1216,7 +1216,7 @@ namespace GittBilSmsCore.Controllers
                             TotalPrice = 0
                         });
                         _context.Companies.Update(company);
-                    }                     
+                    }
                     await _context.SaveChangesAsync();
                     return BadRequest(new { error = "Başarısız" });
                 }
@@ -2128,7 +2128,7 @@ namespace GittBilSmsCore.Controllers
                     Action = "Refund on Failed Resend",
                     CreatedAt = TimeHelper.NowInTurkey(),
                     CreatedByUserId = userId,
-                    OrderId=order.OrderId,
+                    OrderId = order.OrderId,
                 });
                 // ✅ Track refund in CreditTransactions
                 _context.CreditTransactions.Add(new CreditTransaction
@@ -2199,7 +2199,7 @@ namespace GittBilSmsCore.Controllers
                 });
                 _context.Orders.Update(order);
                 _context.Companies.Update(company);
-                await _context.SaveChangesAsync();                
+                await _context.SaveChangesAsync();
                 return BadRequest($"SMS resend failed: {json.Status}");
             }
         }
@@ -2654,7 +2654,7 @@ namespace GittBilSmsCore.Controllers
                         CreatedAt = TimeHelper.NowInTurkey(),
                         CreatedByUserId = userId,
                         OrderId = order.OrderId,
-                    });                    
+                    });
                     // ✅ Track credit usage in CreditTransactions
                     _context.CreditTransactions.Add(new CreditTransaction
                     {
@@ -3441,7 +3441,7 @@ namespace GittBilSmsCore.Controllers
                         CreatedAt = TimeHelper.NowInTurkey()
                     });
 
-                   
+
                     // ✅ FIX: Refund the deduction
                     if (order.TotalPrice > 0 && order.Returned == false)
                     {
@@ -3711,7 +3711,7 @@ namespace GittBilSmsCore.Controllers
                 CreatedAt = TimeHelper.NowInTurkey()
             });
             _context.Orders.Update(order);
-            await _context.SaveChangesAsync();           
+            await _context.SaveChangesAsync();
 
             // ✅ ADD LOGGING
             Console.WriteLine($"[SignalR] OrderStatusChanged - OrderId: {order.OrderId}, CompanyId: {order.CompanyId}, CreatedByUserId: {order.CreatedByUserId}");
